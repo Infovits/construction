@@ -9,7 +9,7 @@
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900"><?= esc($warehouse['name']) ?></h1>
-                <p class="text-gray-600"><?= esc($warehouse['location']) ?></p>
+                <p class="text-gray-600"><?= esc($warehouse['address'] ?? '') ?><?= $warehouse['city'] ? ', ' . esc($warehouse['city']) : '' ?><?= $warehouse['state'] ? ', ' . esc($warehouse['state']) : '' ?></p>
             </div>
             <div class="flex flex-wrap gap-2">
                 <a href="<?= base_url('admin/warehouses') ?>" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
@@ -37,7 +37,7 @@
                         </div>
                         <div>
                             <h3 class="text-xl font-semibold text-gray-900 mb-1"><?= esc($warehouse['name']) ?></h3>
-                            <p class="text-gray-600"><?= esc($warehouse['location']) ?></p>
+                            <p class="text-gray-600"><?= esc($warehouse['address'] ?? '') ?><?= $warehouse['city'] ? ', ' . esc($warehouse['city']) : '' ?><?= $warehouse['state'] ? ', ' . esc($warehouse['state']) : '' ?></p>
                             
                             <div class="mt-4">
                                 <p class="text-sm text-gray-500">
@@ -235,7 +235,7 @@
                         <option value="">Select Material</option>
                         <?php foreach ($allMaterials as $material): ?>
                         <option value="<?= $material['id'] ?>">
-                            <?= esc($material['name']) ?> (<?= esc($material['sku']) ?>) - <?= ucfirst($material['unit']) ?>
+                            <?= esc($material['name']) ?> (<?= esc($material['item_code']) ?>) - <?= ucfirst($material['unit']) ?>
                         </option>
                         <?php endforeach; ?>
                     </select>

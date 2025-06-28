@@ -61,7 +61,13 @@ class Materials extends BaseController
         
         $companyId = session()->get('company_id');
         $userId = session()->get('user_id');
-        
+
+        // Auto-generate item code if not provided
+        $itemCode = $this->request->getVar('item_code');
+        if (empty($itemCode)) {
+            $itemCode = $this->generateItemCode($companyId);
+        }
+
         $rules = [
             'name' => 'required|min_length[3]|max_length[255]',
             'item_code' => 'required|is_unique[materials.item_code,company_id,'.$companyId.']',
@@ -76,7 +82,7 @@ class Materials extends BaseController
         $data = [
             'company_id' => $companyId,
             'name' => $this->request->getVar('name'),
-            'item_code' => $this->request->getVar('item_code'),
+            'item_code' => $itemCode,
             'barcode' => $this->request->getVar('barcode') ?? null,
             'description' => $this->request->getVar('description') ?? null,
             'brand' => $this->request->getVar('brand') ?? null,
@@ -1164,5 +1170,30 @@ class Materials extends BaseController
         }
         
         return redirect()->to('purchase-orders/view/' . $poId)->with('success', 'Purchase order created successfully');
+    }
+
+    /**
+     * Generate a unique item code for the company
+     *
+     * @param int $companyId
+     * @return string
+     */
+    private function generateItemCode($companyId)
+    {
+        // Get the count of existing materials for this company
+        $count = $this->materialModel->where('company_id', $companyId)->countAllResults();
+
+        // Generate code in format MAT001, MAT002, etc.
+        do {
+            $count++;
+            $code = 'MAT' . str_pad($count, 3, '0', STR_PAD_LEFT);
+
+            // Check if this code already exists
+            $existing = $this->materialModel->where('company_id', $companyId)
+                                          ->where('item_code', $code)
+                                          ->first();
+        } while ($existing);
+
+        return $code;
     }
 }

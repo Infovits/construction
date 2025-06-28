@@ -41,7 +41,8 @@ class WarehouseStockModel extends Model
             ->join('materials', 'materials.id = warehouse_stock.material_id')
             ->where('warehouse_stock.warehouse_id', $warehouseId)
             ->where('warehouse_stock.current_quantity <= warehouse_stock.minimum_quantity')
-            ->orderBy('warehouse_stock.current_quantity / warehouse_stock.minimum_quantity', 'ASC')
+            ->where('warehouse_stock.minimum_quantity > 0') // Avoid division by zero
+            ->orderBy('warehouse_stock.current_quantity', 'ASC')
             ->findAll();
     }
     

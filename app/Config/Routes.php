@@ -44,6 +44,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
         $routes->get('/', 'Materials::index');
         $routes->get('new', 'Materials::new');
         $routes->post('create', 'Materials::create');
+        $routes->post('store', 'Materials::create'); // Alternative route for consistency
         $routes->get('edit/(:num)', 'Materials::edit/$1');
         $routes->post('update/(:num)', 'Materials::update/$1');
         $routes->get('delete/(:num)', 'Materials::delete/$1');
@@ -76,6 +77,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
         $routes->get('/', 'Warehouses::index');
         $routes->get('new', 'Warehouses::new');
         $routes->post('create', 'Warehouses::create');
+        $routes->post('store', 'Warehouses::create'); // Alternative route for consistency
         $routes->get('view/(:num)', 'Warehouses::view/$1');
         $routes->get('edit/(:num)', 'Warehouses::edit/$1');
         $routes->post('update/(:num)', 'Warehouses::update/$1');
@@ -91,6 +93,7 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
         $routes->get('/', 'Suppliers::index');
         $routes->get('new', 'Suppliers::new');
         $routes->post('create', 'Suppliers::create');
+        $routes->post('store', 'Suppliers::create'); // Alternative route for consistency
         $routes->get('view/(:num)', 'Suppliers::view/$1');
         $routes->get('edit/(:num)', 'Suppliers::edit/$1');
         $routes->post('update/(:num)', 'Suppliers::update/$1');

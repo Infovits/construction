@@ -44,7 +44,7 @@ class DeliveryModel extends Model
         $db = \Config\Database::connect();
         $builder = $db->table('deliveries d');
         
-        $builder->select('d.*, s.name as supplier_name, m.name as material_name, m.unit_of_measure, w.name as warehouse_name');
+        $builder->select('d.*, s.name as supplier_name, m.name as material_name, m.unit, w.name as warehouse_name');
         $builder->join('suppliers s', 's.id = d.supplier_id');
         $builder->join('materials m', 'm.id = d.material_id');
         $builder->join('warehouses w', 'w.id = d.warehouse_id');

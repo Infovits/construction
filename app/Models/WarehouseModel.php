@@ -23,20 +23,46 @@ class WarehouseModel extends Model
     
     public function getWarehouses($companyId)
     {
-        return $this->select('warehouses.*, users.first_name, users.last_name, projects.name as project_name')
-            ->join('users', 'users.id = warehouses.manager_id', 'left')
-            ->join('projects', 'projects.id = warehouses.project_id', 'left')
-            ->where('warehouses.company_id', $companyId)
+        // Check if projects table exists and if project_id column exists in warehouses
+        $db = \Config\Database::connect();
+        $projectsTableExists = $db->tableExists('projects');
+        $projectIdColumnExists = $db->fieldExists('project_id', 'warehouses');
+
+        $canJoinProjects = $projectsTableExists && $projectIdColumnExists;
+
+        $builder = $this->select('warehouses.*, users.first_name, users.last_name' .
+                                ($canJoinProjects ? ', projects.name as project_name' : ', NULL as project_name'))
+            ->join('users', 'users.id = warehouses.manager_id', 'left');
+
+        // Only join projects table if both table and column exist
+        if ($canJoinProjects) {
+            $builder->join('projects', 'projects.id = warehouses.project_id', 'left');
+        }
+
+        return $builder->where('warehouses.company_id', $companyId)
             ->orderBy('warehouses.name', 'ASC')
             ->findAll();
     }
     
     public function getWarehouse($id)
     {
-        return $this->select('warehouses.*, users.first_name, users.last_name, projects.name as project_name')
-            ->join('users', 'users.id = warehouses.manager_id', 'left')
-            ->join('projects', 'projects.id = warehouses.project_id', 'left')
-            ->find($id);
+        // Check if projects table exists and if project_id column exists in warehouses
+        $db = \Config\Database::connect();
+        $projectsTableExists = $db->tableExists('projects');
+        $projectIdColumnExists = $db->fieldExists('project_id', 'warehouses');
+
+        $canJoinProjects = $projectsTableExists && $projectIdColumnExists;
+
+        $builder = $this->select('warehouses.*, users.first_name, users.last_name' .
+                                ($canJoinProjects ? ', projects.name as project_name' : ', NULL as project_name'))
+            ->join('users', 'users.id = warehouses.manager_id', 'left');
+
+        // Only join projects table if both table and column exist
+        if ($canJoinProjects) {
+            $builder->join('projects', 'projects.id = warehouses.project_id', 'left');
+        }
+
+        return $builder->find($id);
     }
     
     public function getProjectWarehouses($projectId)

@@ -12,9 +12,9 @@
                 <p class="text-gray-600">Manage warehouse locations and material storage</p>
             </div>
             <div>
-                <button type="button" onclick="openAddWarehouseModal()" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <a href="<?= base_url('admin/warehouses/new') ?>" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                     <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Add Warehouse
-                </button>
+                </a>
             </div>
         </div>
     </div>
@@ -29,9 +29,9 @@
                     </div>
                     <h3 class="text-xl font-medium text-gray-900 mb-2">No Warehouses Found</h3>
                     <p class="text-gray-500 mb-6">You haven't added any warehouses yet.</p>
-                    <button type="button" onclick="openAddWarehouseModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                        <i data-lucide="plus" class="w-4 h-4 inline mr-1"></i> Add Your First Warehouse
-                    </button>
+                    <a href="<?= base_url('admin/warehouses/new') ?>" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Add Your First Warehouse
+                    </a>
                 </div>
             </div>
         <?php else: ?>
@@ -40,38 +40,68 @@
                     <div class="px-6 py-4 border-b border-gray-200">
                         <div class="flex justify-between items-center">
                             <h3 class="text-lg font-semibold text-gray-900"><?= esc($warehouse['name']) ?></h3>
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $warehouse['is_active'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' ?>">
-                                <?= $warehouse['is_active'] ? 'Active' : 'Inactive' ?>
+                            <?php
+                            $statusClass = '';
+                            $statusText = '';
+                            $status = $warehouse['status'] ?? 'active';
+                            switch($status) {
+                                case 'active':
+                                    $statusClass = 'bg-green-100 text-green-800';
+                                    $statusText = 'Active';
+                                    break;
+                                case 'inactive':
+                                    $statusClass = 'bg-gray-100 text-gray-800';
+                                    $statusText = 'Inactive';
+                                    break;
+                                case 'maintenance':
+                                    $statusClass = 'bg-yellow-100 text-yellow-800';
+                                    $statusText = 'Maintenance';
+                                    break;
+                                default:
+                                    $statusClass = 'bg-gray-100 text-gray-800';
+                                    $statusText = 'Unknown';
+                            }
+                            ?>
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $statusClass ?>">
+                                <?= $statusText ?>
                             </span>
                         </div>
                     </div>
                     <div class="p-6">
                         <div class="space-y-4">
                             <div>
-                                <p class="text-sm text-gray-600">Location:</p>
-                                <p class="font-medium"><?= esc($warehouse['location']) ?></p>
+                                <p class="text-sm text-gray-600">Address:</p>
+                                <p class="font-medium"><?= esc($warehouse['address'] ?? 'Not specified') ?></p>
                             </div>
                             
                             <div>
                                 <p class="text-sm text-gray-600">Manager:</p>
-                                <p class="font-medium"><?= esc($warehouse['manager_name'] ?? 'Unassigned') ?></p>
+                                <?php
+                                $managerName = '';
+                                if (!empty($warehouse['first_name']) && !empty($warehouse['last_name'])) {
+                                    $managerName = $warehouse['first_name'] . ' ' . $warehouse['last_name'];
+                                } else {
+                                    $managerName = 'Unassigned';
+                                }
+                                ?>
+                                <p class="font-medium"><?= esc($managerName) ?></p>
                             </div>
-                            
+
                             <div>
                                 <p class="text-sm text-gray-600">Contact:</p>
-                                <p class="font-medium"><?= esc($warehouse['contact_info'] ?? 'N/A') ?></p>
+                                <p class="font-medium"><?= esc($warehouse['phone'] ?? $warehouse['email'] ?? 'N/A') ?></p>
                             </div>
                             
                             <div class="pt-2 border-t border-gray-100">
-                                <p class="text-sm text-gray-600">Inventory Stats:</p>
+                                <p class="text-sm text-gray-600">Warehouse Details:</p>
                                 <div class="grid grid-cols-2 gap-2 mt-1">
                                     <div class="bg-blue-50 p-2 rounded">
-                                        <p class="text-xs text-gray-600">Total Items</p>
-                                        <p class="text-lg font-bold"><?= $warehouse['total_items'] ?? 0 ?></p>
+                                        <p class="text-xs text-gray-600">Type</p>
+                                        <p class="text-sm font-medium"><?= ucfirst($warehouse['warehouse_type'] ?? 'main') ?></p>
                                     </div>
-                                    <div class="bg-amber-50 p-2 rounded">
-                                        <p class="text-xs text-gray-600">Low Stock</p>
-                                        <p class="text-lg font-bold"><?= $warehouse['low_stock_count'] ?? 0 ?></p>
+                                    <div class="bg-green-50 p-2 rounded">
+                                        <p class="text-xs text-gray-600">Code</p>
+                                        <p class="text-sm font-medium"><?= esc($warehouse['code'] ?? 'N/A') ?></p>
                                     </div>
                                 </div>
                             </div>
@@ -106,56 +136,23 @@
             </button>
         </div>
         
-        <form action="<?= base_url('admin/warehouses/store') ?>" method="POST">
-            <?= csrf_field() ?>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Warehouse Name <span class="text-red-500">*</span></label>
-                    <input type="text" name="name" id="name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                </div>
-                
-                <div>
-                    <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location <span class="text-red-500">*</span></label>
-                    <input type="text" name="location" id="location" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                    <p class="mt-1 text-xs text-gray-500">Address or description of where the warehouse is located</p>
-                </div>
-                
-                <div>
-                    <label for="manager_id" class="block text-sm font-medium text-gray-700 mb-1">Manager</label>
-                    <select name="manager_id" id="manager_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">Select Manager (Optional)</option>
-                        <?php foreach ($users as $user): ?>
-                        <option value="<?= $user['id'] ?>"><?= esc($user['first_name'] . ' ' . $user['last_name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                
-                <div>
-                    <label for="contact_info" class="block text-sm font-medium text-gray-700 mb-1">Contact Information</label>
-                    <input type="text" name="contact_info" id="contact_info" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <p class="mt-1 text-xs text-gray-500">Phone number, email, etc.</p>
-                </div>
-                
-                <div>
-                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea name="description" id="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                </div>
-                
-                <div class="flex items-center">
-                    <input type="checkbox" name="is_active" id="is_active" value="1" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" checked>
-                    <label for="is_active" class="ml-2 text-sm text-gray-700">Active Warehouse</label>
+        <div class="p-6">
+            <div class="text-center">
+                <i data-lucide="warehouse" class="w-16 h-16 text-blue-500 mx-auto mb-4"></i>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Create New Warehouse</h3>
+                <p class="text-gray-600 mb-6">Use the dedicated form to create a new warehouse with all the necessary details and validation.</p>
+
+                <div class="space-y-3">
+                    <a href="<?= base_url('admin/warehouses/new') ?>" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>Go to Creation Form
+                    </a>
+                    <br>
+                    <button type="button" onclick="closeAddWarehouseModal()" class="inline-flex items-center px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 text-sm font-medium rounded-lg transition-colors">
+                        Cancel
+                    </button>
                 </div>
             </div>
-            
-            <div class="px-6 py-4 border-t border-gray-200 flex justify-end">
-                <button type="button" onclick="closeAddWarehouseModal()" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors mr-2">
-                    Cancel
-                </button>
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    Add Warehouse
-                </button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
@@ -180,11 +177,11 @@
                 </div>
                 
                 <div>
-                    <label for="edit_location" class="block text-sm font-medium text-gray-700 mb-1">Location <span class="text-red-500">*</span></label>
-                    <input type="text" name="location" id="edit_location" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                    <label for="edit_address" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+                    <input type="text" name="address" id="edit_address" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     <p class="mt-1 text-xs text-gray-500">Address or description of where the warehouse is located</p>
                 </div>
-                
+
                 <div>
                     <label for="edit_manager_id" class="block text-sm font-medium text-gray-700 mb-1">Manager</label>
                     <select name="manager_id" id="edit_manager_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -194,21 +191,24 @@
                         <?php endforeach; ?>
                     </select>
                 </div>
-                
+
                 <div>
-                    <label for="edit_contact_info" class="block text-sm font-medium text-gray-700 mb-1">Contact Information</label>
-                    <input type="text" name="contact_info" id="edit_contact_info" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <p class="mt-1 text-xs text-gray-500">Phone number, email, etc.</p>
+                    <label for="edit_phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                    <input type="text" name="phone" id="edit_phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label for="edit_notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <textarea name="notes" id="edit_notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
                 </div>
                 
                 <div>
-                    <label for="edit_description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea name="description" id="edit_description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                </div>
-                
-                <div class="flex items-center">
-                    <input type="checkbox" name="is_active" id="edit_is_active" value="1" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    <label for="edit_is_active" class="ml-2 text-sm text-gray-700">Active Warehouse</label>
+                    <label for="edit_status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select name="status" id="edit_status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="maintenance">Under Maintenance</option>
+                    </select>
                 </div>
             </div>
             
@@ -247,11 +247,11 @@ function openEditWarehouseModal(id) {
                 const warehouse = data.data;
                 
                 document.getElementById('edit_name').value = warehouse.name;
-                document.getElementById('edit_location').value = warehouse.location;
+                document.getElementById('edit_address').value = warehouse.address || '';
                 document.getElementById('edit_manager_id').value = warehouse.manager_id || '';
-                document.getElementById('edit_contact_info').value = warehouse.contact_info || '';
-                document.getElementById('edit_description').value = warehouse.description || '';
-                document.getElementById('edit_is_active').checked = warehouse.is_active == 1;
+                document.getElementById('edit_phone').value = warehouse.phone || '';
+                document.getElementById('edit_notes').value = warehouse.notes || '';
+                document.getElementById('edit_status').value = warehouse.status || 'active';
                 
                 // Set form action URL
                 document.getElementById('editWarehouseForm').action = '<?= base_url('admin/warehouses/update') ?>/' + id;

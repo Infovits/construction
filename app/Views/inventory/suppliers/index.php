@@ -75,8 +75,29 @@
                                 <?= !empty($supplier['last_order_date']) ? date('M d, Y', strtotime($supplier['last_order_date'])) : 'No orders' ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $supplier['is_active'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' ?>">
-                                    <?= $supplier['is_active'] ? 'Active' : 'Inactive' ?>
+                                <?php
+                                $statusClass = '';
+                                $statusText = '';
+                                switch($supplier['status']) {
+                                    case 'active':
+                                        $statusClass = 'bg-green-100 text-green-800';
+                                        $statusText = 'Active';
+                                        break;
+                                    case 'inactive':
+                                        $statusClass = 'bg-gray-100 text-gray-800';
+                                        $statusText = 'Inactive';
+                                        break;
+                                    case 'blacklisted':
+                                        $statusClass = 'bg-red-100 text-red-800';
+                                        $statusText = 'Blacklisted';
+                                        break;
+                                    default:
+                                        $statusClass = 'bg-gray-100 text-gray-800';
+                                        $statusText = 'Unknown';
+                                }
+                                ?>
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $statusClass ?>">
+                                    <?= $statusText ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">

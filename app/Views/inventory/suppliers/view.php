@@ -165,7 +165,7 @@
                                 <tr>
                                     <td class="px-6 py-4">
                                         <div class="text-sm font-medium text-gray-900"><?= esc($material['name']) ?></div>
-                                        <div class="text-xs text-gray-500"><?= esc($material['sku']) ?></div>
+                                        <div class="text-xs text-gray-500"><?= esc($material['item_code']) ?></div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         $<?= number_format($material['unit_price'], 2) ?>
@@ -174,7 +174,7 @@
                                         <?= $material['lead_time'] ?? '-' ?> days
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <?= $material['min_order_qty'] ?? '-' ?> <?= esc($material['unit_of_measure']) ?>
+                                        <?= $material['min_order_qty'] ?? '-' ?> <?= esc($material['unit']) ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button type="button" onclick="editSupplierMaterial(<?= $material['id'] ?>)" class="text-indigo-600 hover:text-indigo-900 mr-3">
@@ -438,7 +438,7 @@ function showAddMaterialModal() {
             data.forEach(material => {
                 const option = document.createElement('option');
                 option.value = material.id;
-                option.textContent = `${material.name} (${material.sku})`;
+                option.textContent = `${material.name} (${material.item_code})`;
                 select.appendChild(option);
             });
         });

@@ -83,6 +83,7 @@
                                     <select name="status" id="status" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
                                         <option value="active" <?= old('status', $supplier['status']) == 'active' ? 'selected' : '' ?>>Active</option>
                                         <option value="inactive" <?= old('status', $supplier['status']) == 'inactive' ? 'selected' : '' ?>>Inactive</option>
+                                        <option value="blacklisted" <?= old('status', $supplier['status']) == 'blacklisted' ? 'selected' : '' ?>>Blacklisted</option>
                                     </select>
                                 </div>
                             </div>

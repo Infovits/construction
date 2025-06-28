@@ -12,10 +12,10 @@ class SupplierModel extends Model
     protected $returnType = 'array';
     
     protected $allowedFields = [
-        'company_id', 'supplier_code', 'name', 'contact_person', 'email', 
-        'phone', 'mobile', 'address', 'city', 'state', 'country', 
-        'tax_number', 'payment_terms', 'credit_limit', 'supplier_type', 
-        'rating', 'status', 'notes', 'website', 'last_order_date', 'is_active'
+        'company_id', 'supplier_code', 'name', 'contact_person', 'email',
+        'phone', 'mobile', 'address', 'city', 'state', 'country',
+        'tax_number', 'payment_terms', 'credit_limit', 'supplier_type',
+        'rating', 'status', 'notes', 'website', 'last_order_date'
     ];
     
     protected $useTimestamps = true;
@@ -52,13 +52,13 @@ class SupplierModel extends Model
     {
         $db = \Config\Database::connect();
         $builder = $db->table('deliveries d');
-        $builder->select('d.*, m.name as material_name, m.sku, m.unit_of_measure, w.name as warehouse_name');
+        $builder->select('d.*, m.name as material_name, m.item_code, m.unit, w.name as warehouse_name');
         $builder->join('materials m', 'm.id = d.material_id');
         $builder->join('warehouses w', 'w.id = d.warehouse_id');
         $builder->where('d.supplier_id', $supplierId);
         $builder->orderBy('d.delivery_date', 'DESC');
         $builder->limit(10); // Get the 10 most recent deliveries
-        
+
         return $builder->get()->getResultArray();
     }
     
@@ -72,11 +72,11 @@ class SupplierModel extends Model
     {
         $db = \Config\Database::connect();
         $builder = $db->table('supplier_materials sm');
-        $builder->select('sm.*, m.name, m.sku, m.description, m.unit_of_measure, m.barcode');
+        $builder->select('sm.*, m.name, m.item_code, m.description, m.unit, m.barcode');
         $builder->join('materials m', 'm.id = sm.material_id');
         $builder->where('sm.supplier_id', $supplierId);
         $builder->orderBy('m.name', 'ASC');
-        
+
         return $builder->get()->getResultArray();
     }
     
@@ -214,7 +214,10 @@ class SupplierModel extends Model
         $db = \Config\Database::connect();
         $builder = $db->table('suppliers s');
         
-        $builder->select('s.*, 
+        $builder->select('s.id, s.company_id, s.supplier_code, s.name, s.contact_person, s.email,
+            s.phone, s.mobile, s.address, s.city, s.state, s.country, s.tax_number,
+            s.payment_terms, s.credit_limit, s.supplier_type, s.rating, s.status, s.notes,
+            s.created_at, s.updated_at,
             (SELECT COUNT(*) FROM supplier_materials WHERE supplier_id = s.id) as material_count,
             (SELECT MAX(delivery_date) FROM deliveries WHERE supplier_id = s.id) as last_order_date');
         
@@ -257,11 +260,11 @@ class SupplierModel extends Model
     {
         $db = \Config\Database::connect();
         $builder = $db->table('supplier_materials sm');
-        $builder->select('sm.*, m.name, m.sku, m.unit_of_measure');
+        $builder->select('sm.*, m.name, m.item_code, m.unit');
         $builder->join('materials m', 'm.id = sm.material_id');
         $builder->where('sm.supplier_id', $supplierId);
         $builder->where('sm.material_id', $materialId);
-        
+
         $result = $builder->get()->getRowArray();
         return $result ?: null;
     }

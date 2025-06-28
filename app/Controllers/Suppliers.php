@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\SupplierModel;
+use App\Models\MaterialCategoryModel;
 
 class Suppliers extends BaseController
 {
@@ -39,23 +40,40 @@ class Suppliers extends BaseController
     
     public function new()
     {
-        $materialCategoryModel = model(MaterialCategoryModel::class);
         $companyId = session()->get('company_id');
-        
+
+        // Check if user is properly authenticated and has company_id
+        if (!$companyId) {
+            return redirect()->to('/auth/login')->with('error', 'Please log in to continue.');
+        }
+
+        $materialCategoryModel = new MaterialCategoryModel();
+
         $data = [
             'title' => 'Add New Supplier',
             'categories' => $materialCategoryModel->where('company_id', $companyId)->findAll()
         ];
-        
+
         return view('inventory/suppliers/create', $data);
     }
     
     public function create()
     {
         helper(['form', 'url']);
-        
+
         $companyId = session()->get('company_id');
+
+        // Check if user is properly authenticated and has company_id
+        if (!$companyId) {
+            return redirect()->to('/auth/login')->with('error', 'Please log in to continue.');
+        }
         
+        // Auto-generate supplier code if not provided
+        $supplierCode = $this->request->getVar('supplier_code');
+        if (empty($supplierCode)) {
+            $supplierCode = $this->generateSupplierCode($companyId);
+        }
+
         $rules = [
             'name' => 'required|min_length[3]|max_length[255]',
             'supplier_code' => 'required|is_unique[suppliers.supplier_code,company_id,'.$companyId.']',
@@ -68,7 +86,7 @@ class Suppliers extends BaseController
         $data = [
             'company_id' => $companyId,
             'name' => $this->request->getVar('name'),
-            'supplier_code' => $this->request->getVar('supplier_code'),
+            'supplier_code' => $supplierCode,
             'contact_person' => $this->request->getVar('contact_person'),
             'email' => $this->request->getVar('email'),
             'phone' => $this->request->getVar('phone'),
@@ -412,5 +430,30 @@ class Suppliers extends BaseController
         } else {
             return redirect()->back()->with('error', 'Failed to update delivery status');
         }
+    }
+
+    /**
+     * Generate a unique supplier code for the company
+     *
+     * @param int $companyId
+     * @return string
+     */
+    private function generateSupplierCode($companyId)
+    {
+        // Get the count of existing suppliers for this company
+        $count = $this->supplierModel->where('company_id', $companyId)->countAllResults();
+
+        // Generate code in format SUP001, SUP002, etc.
+        do {
+            $count++;
+            $code = 'SUP' . str_pad($count, 3, '0', STR_PAD_LEFT);
+
+            // Check if this code already exists
+            $existing = $this->supplierModel->where('company_id', $companyId)
+                                          ->where('supplier_code', $code)
+                                          ->first();
+        } while ($existing);
+
+        return $code;
     }
 }

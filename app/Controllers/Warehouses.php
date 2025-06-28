@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\WarehouseModel;
 use App\Models\WarehouseStockModel;
 use App\Models\MaterialModel;
+use App\Models\MaterialCategoryModel;
 use App\Models\ProjectModel;
 use App\Models\UserModel;
 
@@ -13,6 +14,7 @@ class Warehouses extends BaseController
     protected $warehouseModel;
     protected $warehouseStockModel;
     protected $materialModel;
+    protected $materialCategoryModel;
     protected $projectModel;
     protected $userModel;
     
@@ -21,6 +23,7 @@ class Warehouses extends BaseController
         $this->warehouseModel = new WarehouseModel();
         $this->warehouseStockModel = new WarehouseStockModel();
         $this->materialModel = new MaterialModel();
+        $this->materialCategoryModel = new MaterialCategoryModel();
         $this->projectModel = new ProjectModel();
         $this->userModel = new UserModel();
     }
@@ -28,12 +31,14 @@ class Warehouses extends BaseController
     public function index()
     {
         $companyId = session()->get('company_id');
-        
+
         $data = [
             'title' => 'Warehouses & Stock Locations',
             'warehouses' => $this->warehouseModel->getWarehouses($companyId),
+            'users' => $this->userModel->where('company_id', $companyId)->where('status', 'active')->findAll(),
+            'projects' => $this->projectModel->where('company_id', $companyId)->where('status', 'active')->findAll(),
         ];
-        
+
         return view('inventory/warehouses/index', $data);
     }
     
@@ -66,25 +71,58 @@ class Warehouses extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
         
+        // Check which columns exist in the warehouses table
+        $db = \Config\Database::connect();
+        $fields = $db->getFieldNames('warehouses');
+
+        // Build data array with only existing columns
         $data = [
             'company_id' => $companyId,
             'name' => $this->request->getVar('name'),
-            'code' => $this->request->getVar('code'),
+        ];
+
+        // Add code if it exists, otherwise generate one
+        if (in_array('code', $fields)) {
+            $code = $this->request->getVar('code');
+            if (empty($code)) {
+                $code = $this->generateWarehouseCode($companyId);
+            }
+            $data['code'] = $code;
+        }
+
+        // Add optional fields only if they exist in the table
+        $optionalFields = [
             'address' => $this->request->getVar('address'),
             'city' => $this->request->getVar('city'),
             'state' => $this->request->getVar('state'),
             'country' => $this->request->getVar('country'),
-            'manager_id' => $this->request->getVar('manager_id') ?: null,
             'phone' => $this->request->getVar('phone'),
             'email' => $this->request->getVar('email'),
             'warehouse_type' => $this->request->getVar('warehouse_type') ?? 'main',
             'capacity' => $this->request->getVar('capacity'),
-            'is_project_site' => $this->request->getVar('is_project_site') ? 1 : 0,
-            'project_id' => $this->request->getVar('project_id') ?: null,
             'status' => $this->request->getVar('status') ?? 'active',
             'notes' => $this->request->getVar('notes'),
             'created_by' => $userId,
         ];
+
+        foreach ($optionalFields as $field => $value) {
+            if (in_array($field, $fields)) {
+                $data[$field] = $value;
+            }
+        }
+
+        // Handle special fields
+        if (in_array('manager_id', $fields)) {
+            $data['manager_id'] = $this->request->getVar('manager_id') ?: null;
+        }
+
+        if (in_array('is_project_site', $fields)) {
+            $data['is_project_site'] = $this->request->getVar('is_project_site') ? 1 : 0;
+        }
+
+        if (in_array('project_id', $fields)) {
+            $data['project_id'] = $this->request->getVar('project_id') ?: null;
+        }
         
         $warehouseId = $this->warehouseModel->insert($data);
         
@@ -99,19 +137,45 @@ class Warehouses extends BaseController
     {
         $companyId = session()->get('company_id');
         $warehouse = $this->warehouseModel->getWarehouse($id);
-        
+
         if (!$warehouse || $warehouse['company_id'] != $companyId) {
             return redirect()->to('/admin/warehouses')->with('error', 'Warehouse not found');
         }
-        
+
         $data = [
             'title' => 'Warehouse Details - ' . $warehouse['name'],
             'warehouse' => $warehouse,
             'stock' => $this->warehouseStockModel->getWarehouseStock($id),
             'lowStockItems' => $this->warehouseStockModel->getLowStockItems($id),
+            'categories' => $this->materialCategoryModel->where('company_id', $companyId)
+                ->where('is_active', 1)
+                ->orderBy('name', 'ASC')
+                ->findAll(),
+            'allMaterials' => $this->materialModel->where('company_id', $companyId)
+                ->where('status', 'active')
+                ->orderBy('name', 'ASC')
+                ->findAll(),
         ];
-        
+
         return view('inventory/warehouses/view', $data);
+    }
+
+    public function get($id)
+    {
+        $companyId = session()->get('company_id');
+        $warehouse = $this->warehouseModel->find($id);
+
+        if (!$warehouse || $warehouse['company_id'] != $companyId) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Warehouse not found'
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => $warehouse
+        ]);
     }
     
     public function edit($id)
@@ -370,5 +434,30 @@ class Warehouses extends BaseController
         ];
         
         return view('inventory/warehouses/movements', $data);
+    }
+
+    /**
+     * Generate a unique warehouse code for the company
+     *
+     * @param int $companyId
+     * @return string
+     */
+    private function generateWarehouseCode($companyId)
+    {
+        // Get the count of existing warehouses for this company
+        $count = $this->warehouseModel->where('company_id', $companyId)->countAllResults();
+
+        // Generate code in format WH001, WH002, etc.
+        do {
+            $count++;
+            $code = 'WH' . str_pad($count, 3, '0', STR_PAD_LEFT);
+
+            // Check if this code already exists
+            $existing = $this->warehouseModel->where('company_id', $companyId)
+                                          ->where('code', $code)
+                                          ->first();
+        } while ($existing);
+
+        return $code;
     }
 }

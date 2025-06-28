@@ -25,25 +25,44 @@ class StockMovementModel extends Model
     
     public function getMaterialMovements($materialId)
     {
-        return $this->select('stock_movements.*, 
-                source.name as source_warehouse_name, 
+        // Check if tasks table exists and if task_id column exists in stock_movements
+        $db = \Config\Database::connect();
+        $tasksTableExists = $db->tableExists('tasks');
+        $taskIdColumnExists = $db->fieldExists('task_id', 'stock_movements');
+        $projectsTableExists = $db->tableExists('projects');
+        $projectIdColumnExists = $db->fieldExists('project_id', 'stock_movements');
+
+        $canJoinTasks = $tasksTableExists && $taskIdColumnExists;
+        $canJoinProjects = $projectsTableExists && $projectIdColumnExists;
+
+        $builder = $this->select('stock_movements.*,
+                source.name as source_warehouse_name,
                 destination.name as destination_warehouse_name,
                 materials.name as material_name,
                 materials.item_code,
                 performer.first_name as performer_first_name,
                 performer.last_name as performer_last_name,
                 approver.first_name as approver_first_name,
-                approver.last_name as approver_last_name,
-                projects.name as project_name,
-                tasks.title as task_name')
+                approver.last_name as approver_last_name' .
+                ($canJoinProjects ? ', projects.name as project_name' : ', NULL as project_name') .
+                ($canJoinTasks ? ', tasks.title as task_name' : ', NULL as task_name'))
             ->join('warehouses as source', 'source.id = stock_movements.source_warehouse_id', 'left')
             ->join('warehouses as destination', 'destination.id = stock_movements.destination_warehouse_id', 'left')
             ->join('materials', 'materials.id = stock_movements.material_id')
             ->join('users as performer', 'performer.id = stock_movements.performed_by', 'left')
-            ->join('users as approver', 'approver.id = stock_movements.approved_by', 'left')
-            ->join('projects', 'projects.id = stock_movements.project_id', 'left')
-            ->join('tasks', 'tasks.id = stock_movements.task_id', 'left')
-            ->where('stock_movements.material_id', $materialId)
+            ->join('users as approver', 'approver.id = stock_movements.approved_by', 'left');
+
+        // Only join projects table if both table and column exist
+        if ($canJoinProjects) {
+            $builder->join('projects', 'projects.id = stock_movements.project_id', 'left');
+        }
+
+        // Only join tasks table if both table and column exist
+        if ($canJoinTasks) {
+            $builder->join('tasks', 'tasks.id = stock_movements.task_id', 'left');
+        }
+
+        return $builder->where('stock_movements.material_id', $materialId)
             ->orderBy('stock_movements.created_at', 'DESC')
             ->findAll();
     }
@@ -301,21 +320,39 @@ class StockMovementModel extends Model
     
     public function getProjectUsageReport($companyId, $projectId = null, $startDate = null, $endDate = null)
     {
+        // Check if tasks table exists and if task_id column exists in stock_movements
+        $tasksTableExists = $this->db->tableExists('tasks');
+        $taskIdColumnExists = $this->db->fieldExists('task_id', 'stock_movements');
+        $projectsTableExists = $this->db->tableExists('projects');
+        $projectIdColumnExists = $this->db->fieldExists('project_id', 'stock_movements');
+
+        $canJoinTasks = $tasksTableExists && $taskIdColumnExists;
+        $canJoinProjects = $projectsTableExists && $projectIdColumnExists;
+
         $builder = $this->db->table('stock_movements');
-        $builder->select('stock_movements.*, 
-                materials.name as material_name, 
+        $builder->select('stock_movements.*,
+                materials.name as material_name,
                 materials.item_code,
                 materials.unit_cost,
                 material_categories.name as category_name,
-                source.name as source_warehouse_name,
-                projects.name as project_name,
-                tasks.title as task_name,
-                CONCAT(performer.first_name, " ", performer.last_name) as performed_by_name');
+                source.name as source_warehouse_name,' .
+                ($canJoinProjects ? 'projects.name as project_name,' : 'NULL as project_name,') .
+                ($canJoinTasks ? 'tasks.title as task_name,' : 'NULL as task_name,') .
+                'CONCAT(performer.first_name, " ", performer.last_name) as performed_by_name');
         $builder->join('materials', 'materials.id = stock_movements.material_id');
         $builder->join('material_categories', 'material_categories.id = materials.category_id', 'left');
         $builder->join('warehouses as source', 'source.id = stock_movements.source_warehouse_id', 'left');
-        $builder->join('projects', 'projects.id = stock_movements.project_id', 'left');
-        $builder->join('tasks', 'tasks.id = stock_movements.task_id', 'left');
+
+        // Only join projects table if both table and column exist
+        if ($canJoinProjects) {
+            $builder->join('projects', 'projects.id = stock_movements.project_id', 'left');
+        }
+
+        // Only join tasks table if both table and column exist
+        if ($canJoinTasks) {
+            $builder->join('tasks', 'tasks.id = stock_movements.task_id', 'left');
+        }
+
         $builder->join('users as performer', 'performer.id = stock_movements.performed_by', 'left');
         $builder->where('stock_movements.company_id', $companyId);
         $builder->where('stock_movements.movement_type', 'project_usage');
