@@ -38,6 +38,75 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
         $routes->get('supervisors', 'Users::getSupervisors');
         $routes->get('positions-by-department', 'Users::getPositionsByDepartment');
     });
+    
+    // Inventory Management Routes
+    $routes->group('materials', function($routes) {
+        $routes->get('/', 'Materials::index');
+        $routes->get('new', 'Materials::new');
+        $routes->post('create', 'Materials::create');
+        $routes->get('edit/(:num)', 'Materials::edit/$1');
+        $routes->post('update/(:num)', 'Materials::update/$1');
+        $routes->get('delete/(:num)', 'Materials::delete/$1');
+        $routes->get('stock-movement/(:num)', 'Materials::stockMovement/$1');
+        $routes->get('low-stock-notifications', 'Materials::lowStockNotifications');
+        $routes->post('save-notification-settings', 'Materials::saveNotificationSettings');
+        $routes->post('send-test-notification', 'Materials::sendTestNotification');
+        $routes->get('check-low-stock-api', 'Materials::checkLowStockApi');
+        $routes->get('send-auto-notifications', 'Materials::sendAutoLowStockNotifications');
+        $routes->get('create-purchase-order', 'Materials::createPurchaseOrder');
+        $routes->post('save-purchase-order', 'Materials::savePurchaseOrder');
+        $routes->post('record-stock-movement/(:num)', 'Materials::recordStockMovement/$1');
+        $routes->post('record-stock-movement', 'Materials::recordStockMovementAjax');
+        $routes->get('barcode-scanner', 'Materials::barcodeScanner');
+        $routes->post('get-material-by-barcode', 'Materials::getMaterialByBarcode');
+        $routes->get('report', 'Materials::generateReport');
+        $routes->post('report', 'Materials::generateReport');
+    });
+    
+    $routes->group('material-categories', function($routes) {
+        $routes->get('/', 'MaterialCategories::index');
+        $routes->get('new', 'MaterialCategories::new');
+        $routes->post('create', 'MaterialCategories::create');
+        $routes->get('edit/(:num)', 'MaterialCategories::edit/$1');
+        $routes->post('update/(:num)', 'MaterialCategories::update/$1');
+        $routes->get('delete/(:num)', 'MaterialCategories::delete/$1');
+    });
+    
+    $routes->group('warehouses', function($routes) {
+        $routes->get('/', 'Warehouses::index');
+        $routes->get('new', 'Warehouses::new');
+        $routes->post('create', 'Warehouses::create');
+        $routes->get('view/(:num)', 'Warehouses::view/$1');
+        $routes->get('edit/(:num)', 'Warehouses::edit/$1');
+        $routes->post('update/(:num)', 'Warehouses::update/$1');
+        $routes->get('delete/(:num)', 'Warehouses::delete/$1');
+        $routes->get('stock/(:num)', 'Warehouses::stock/$1');
+        $routes->post('update-stock/(:num)/(:num)', 'Warehouses::updateStock/$1/$2');
+        $routes->post('add-stock-item/(:num)', 'Warehouses::addStockItem/$1');
+        $routes->get('remove-stock-item/(:num)/(:num)', 'Warehouses::removeStockItem/$1/$2');
+        $routes->get('stock-movement/(:num)', 'Warehouses::stockMovement/$1');
+    });
+    
+    $routes->group('suppliers', function($routes) {
+        $routes->get('/', 'Suppliers::index');
+        $routes->get('new', 'Suppliers::new');
+        $routes->post('create', 'Suppliers::create');
+        $routes->get('view/(:num)', 'Suppliers::view/$1');
+        $routes->get('edit/(:num)', 'Suppliers::edit/$1');
+        $routes->post('update/(:num)', 'Suppliers::update/$1');
+        $routes->get('delete/(:num)', 'Suppliers::delete/$1');
+        $routes->post('rate/(:num)', 'Suppliers::rate/$1');
+        
+        // Supplier Materials Management
+        $routes->get('get-materials/(:num)', 'Suppliers::getMaterials/$1');
+        $routes->post('add_material/(:num)', 'Suppliers::addMaterial/$1');
+        $routes->get('remove_material/(:num)/(:num)', 'Suppliers::removeMaterial/$1/$2');
+        
+        // Delivery Management
+        $routes->post('record_delivery/(:num)', 'Suppliers::recordDelivery/$1');
+        $routes->get('delivery/(:num)', 'Suppliers::delivery/$1');
+        $routes->get('update-delivery-status/(:num)/(:any)', 'Suppliers::updateDeliveryStatus/$1/$2');
+    });
 
     // Department Management Routes
     $routes->group('departments', function($routes) {

@@ -215,23 +215,28 @@
                 </div>
                 
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
-                    <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'board-submenu')">
-                        <i data-lucide="kanban-square" class="w-5 h-5 flex-shrink-0"></i>
-                        <span class="sidebar-text overflow-hidden whitespace-nowrap">Project Views</span>
-                        <i data-lucide="chevron-down" class="w-4 h-4 ml-auto sidebar-text menu-chevron" id="board-chevron"></i>
+                    <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'inventory-submenu')">
+                        <i data-lucide="package" class="w-5 h-5 flex-shrink-0"></i>
+                        <span class="sidebar-text overflow-hidden whitespace-nowrap">Inventory</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 ml-auto sidebar-text menu-chevron" id="inventory-chevron"></i>
                         <div class="tooltip absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
-                            Project Views
+                            Inventory
                         </div>
                     </a>
-                    <div class="submenu" id="board-submenu">
+                    <div class="submenu" id="inventory-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
-                            <a href="<?= base_url('admin/projects/gantt') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Gantt Chart</a>
-                            <a href="<?= base_url('admin/tasks/calendar') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Calendar</a>
-                            <a href="<?= base_url('admin/projects/dashboard') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Dashboard</a>
-                            <a href="<?= base_url('admin/tasks') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Task Board</a>
+                            <a href="<?= base_url('admin/materials') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Materials</a>
+                            <a href="<?= base_url('admin/material-categories') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Categories</a>
+                            <a href="<?= base_url('admin/warehouses') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Warehouses</a>
+                            <a href="<?= base_url('admin/suppliers') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Suppliers</a>
+                            <a href="<?= base_url('admin/materials/barcode-scanner') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Barcode Scanner</a>
+                            <a href="<?= base_url('admin/materials/low-stock-notifications') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Low Stock</a>
+                            <a href="<?= base_url('admin/materials/report') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Reports</a>
                         </div>
                     </div>
                 </div>
+                
+               
                 
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'notification-submenu')">
@@ -247,6 +252,28 @@
                             <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Recent</a>
                             <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Unread</a>
                             <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Settings</a>
+                        </div>
+                    </div>
+                </div>
+                
+                
+
+                <!-- HR & Administration Section -->
+                <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
+                    <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'hr-submenu')">
+                        <i data-lucide="user-check" class="w-5 h-5 flex-shrink-0"></i>
+                        <span class="sidebar-text overflow-hidden whitespace-nowrap">HR & Admin</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 ml-auto sidebar-text menu-chevron" id="hr-chevron"></i>
+                        <div class="tooltip absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
+                            HR & Administration
+                        </div>
+                    </a>
+                    <div class="submenu" id="hr-submenu">
+                        <div class="sidebar-text ml-8 mt-2 space-y-1">
+                            <a href="<?= base_url('admin/users') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Users</a>
+                            <a href="<?= base_url('admin/roles') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Roles & Permissions</a>
+                            <a href="<?= base_url('admin/departments') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Departments</a>
+                            <a href="<?= base_url('admin/positions') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Job Positions</a>
                         </div>
                     </div>
                 </div>

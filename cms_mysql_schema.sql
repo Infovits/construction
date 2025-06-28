@@ -416,6 +416,25 @@ CREATE TABLE suppliers (
     INDEX idx_supplier_status (status)
 );
 
+CREATE TABLE supplier_materials (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    supplier_id BIGINT UNSIGNED NOT NULL,
+    material_id BIGINT UNSIGNED NOT NULL,
+    unit_price DECIMAL(15,2) DEFAULT 0.00,
+    min_order_qty DECIMAL(15,2) NULL,
+    lead_time INT NULL COMMENT 'Lead time in days',
+    notes TEXT NULL,
+    is_preferred TINYINT(1) DEFAULT 0 COMMENT '1=preferred supplier for this material, 0=not preferred',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
+    FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_supplier_material (supplier_id, material_id),
+    INDEX idx_supplier_material_supplier (supplier_id),
+    INDEX idx_supplier_material_material (material_id)
+);
+
 CREATE TABLE material_categories (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     company_id BIGINT UNSIGNED NOT NULL,
@@ -437,6 +456,7 @@ CREATE TABLE materials (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     company_id BIGINT UNSIGNED NOT NULL,
     category_id BIGINT UNSIGNED,
+    primary_supplier_id BIGINT UNSIGNED,
     item_code VARCHAR(100) NOT NULL,
     barcode VARCHAR(100),
     name VARCHAR(255) NOT NULL,
@@ -475,11 +495,13 @@ CREATE TABLE materials (
     
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES material_categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (primary_supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
     
     UNIQUE KEY unique_company_item_code (company_id, item_code),
     INDEX idx_material_company (company_id),
     INDEX idx_material_category (category_id),
+    INDEX idx_material_supplier (primary_supplier_id),
     INDEX idx_material_barcode (barcode),
     INDEX idx_material_stock (current_stock, minimum_stock)
 );
@@ -492,51 +514,93 @@ CREATE TABLE warehouses (
     address TEXT,
     city VARCHAR(100),
     state VARCHAR(100),
+    country VARCHAR(100),
     manager_id BIGINT UNSIGNED,
+    phone VARCHAR(50),
+    email VARCHAR(100),
     warehouse_type ENUM('main', 'site', 'temporary') DEFAULT 'main',
     capacity DECIMAL(12,2),
+    is_project_site BOOLEAN DEFAULT FALSE,
+    project_id BIGINT UNSIGNED,
     status ENUM('active', 'inactive', 'maintenance') DEFAULT 'active',
+    notes TEXT,
+    created_by BIGINT UNSIGNED,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
     FOREIGN KEY (manager_id) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
     UNIQUE KEY unique_company_warehouse_code (company_id, code),
-    INDEX idx_warehouse_company (company_id)
+    INDEX idx_warehouse_company (company_id),
+    INDEX idx_warehouse_project (project_id)
+);
+
+CREATE TABLE warehouse_stock (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    company_id BIGINT UNSIGNED NOT NULL,
+    warehouse_id BIGINT UNSIGNED NOT NULL,
+    material_id BIGINT UNSIGNED NOT NULL,
+    current_quantity DECIMAL(12,2) DEFAULT 0.00,
+    minimum_quantity DECIMAL(12,2) DEFAULT 0.00,
+    shelf_location VARCHAR(100),
+    last_stock_update TIMESTAMP NULL,
+    
+    FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+    FOREIGN KEY (warehouse_id) REFERENCES warehouses(id) ON DELETE CASCADE,
+    FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE CASCADE,
+    
+    UNIQUE KEY unique_material_warehouse (material_id, warehouse_id),
+    INDEX idx_warehouse_stock_company (company_id),
+    INDEX idx_warehouse_stock_warehouse (warehouse_id),
+    INDEX idx_warehouse_stock_material (material_id),
+    INDEX idx_warehouse_stock_quantity (current_quantity, minimum_quantity)
 );
 
 CREATE TABLE stock_movements (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     company_id BIGINT UNSIGNED NOT NULL,
     material_id BIGINT UNSIGNED NOT NULL,
-    warehouse_id BIGINT UNSIGNED,
+    source_warehouse_id BIGINT UNSIGNED,
+    destination_warehouse_id BIGINT UNSIGNED,
+    reference_number VARCHAR(50),
+    movement_type ENUM('purchase', 'stock_transfer', 'project_usage', 'return', 'adjustment', 'sale', 'disposal', 'loss') NOT NULL,
     project_id BIGINT UNSIGNED,
-    reference_type ENUM('purchase', 'sale', 'transfer', 'adjustment', 'return', 'consumption', 'production') NOT NULL,
-    reference_id BIGINT UNSIGNED,
-    movement_type ENUM('in', 'out') NOT NULL,
+    task_id BIGINT UNSIGNED,
     quantity DECIMAL(12,2) NOT NULL,
-    unit_cost DECIMAL(12,2) DEFAULT 0.00,
-    total_cost DECIMAL(12,2) DEFAULT 0.00,
-    previous_balance DECIMAL(12,2) DEFAULT 0.00,
-    new_balance DECIMAL(12,2) DEFAULT 0.00,
+    unit VARCHAR(20) NOT NULL,
+    unit_cost DECIMAL(12,2) NOT NULL,
+    total_cost DECIMAL(15,2) GENERATED ALWAYS AS (quantity * unit_cost) STORED,
     batch_number VARCHAR(100),
     serial_numbers JSON,
     expiry_date DATE,
     notes TEXT,
-    moved_by BIGINT UNSIGNED,
+    performed_by BIGINT UNSIGNED,
+    approved_by BIGINT UNSIGNED,
+    status ENUM('pending', 'approved', 'completed', 'cancelled') DEFAULT 'completed',
+    barcode_scanned BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
     FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE CASCADE,
-    FOREIGN KEY (warehouse_id) REFERENCES warehouses(id) ON DELETE SET NULL,
+    FOREIGN KEY (source_warehouse_id) REFERENCES warehouses(id) ON DELETE SET NULL,
+    FOREIGN KEY (destination_warehouse_id) REFERENCES warehouses(id) ON DELETE SET NULL,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
-    FOREIGN KEY (moved_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE SET NULL,
+    FOREIGN KEY (performed_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL,
     
-    INDEX idx_stock_company (company_id),
-    INDEX idx_stock_material (material_id),
-    INDEX idx_stock_warehouse (warehouse_id),
-    INDEX idx_stock_project (project_id),
-    INDEX idx_stock_created (created_at)
+    INDEX idx_stock_movement_company (company_id),
+    INDEX idx_stock_movement_material (material_id),
+    INDEX idx_stock_movement_source (source_warehouse_id),
+    INDEX idx_stock_movement_destination (destination_warehouse_id),
+    INDEX idx_stock_movement_project (project_id),
+    INDEX idx_stock_movement_task (task_id),
+    INDEX idx_stock_movement_type (movement_type),
+    INDEX idx_stock_created (created_at),
+    INDEX idx_stock_reference (reference_number)
 );
 
 -- =====================================================
