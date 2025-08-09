@@ -1,58 +1,5 @@
 <?= $this->extend('layouts/main') ?>
 
-<?= $this->section('head') ?>
-<!-- jQuery (required for Select2) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<style>
-    /* Custom Select2 styling to match Tailwind */
-    .select2-container--default .select2-selection--multiple {
-        border: 2px solid #d1d5db !important;
-        border-radius: 0.5rem !important;
-        padding: 0.375rem 0.75rem !important;
-        min-height: 2.5rem !important;
-        background-color: #ffffff !important;
-    }
-    
-    .select2-container--default .select2-selection--multiple:focus-within {
-        border-color: #6366f1 !important;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
-    }
-    
-    .select2-container--default .select2-selection--multiple .select2-selection__choice {
-        background-color: #6366f1 !important;
-        border: 1px solid #6366f1 !important;
-        color: white !important;
-        border-radius: 0.375rem !important;
-        padding: 0.125rem 0.5rem !important;
-        margin: 0.125rem !important;
-    }
-    
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-        color: white !important;
-        margin-right: 0.25rem !important;
-    }
-    
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
-        color: #fca5a5 !important;
-    }
-    
-    .select2-dropdown {
-        border: 2px solid #d1d5db !important;
-        border-radius: 0.5rem !important;
-    }
-    
-    .select2-container--default .select2-results__option--highlighted[aria-selected] {
-        background-color: #6366f1 !important;
-    }
-    
-    .select2-container {
-        width: 100% !important;
-    }
-</style>
-<?= $this->endSection() ?>
-
 <?= $this->section('content') ?>
 
 <!-- Milestone Create/Edit Page -->
@@ -233,11 +180,11 @@
                     </div>
 
                     <div>
-                        <label for="planned_end_date" class="block text-sm font-medium text-gray-700 mb-2">Due Date *</label>
-                        <input type="date" id="planned_end_date" name="planned_end_date" required
-                               value="<?= old('planned_end_date', isset($milestone) ? $milestone['planned_end_date'] : '') ?>"
+                        <label for="due_date" class="block text-sm font-medium text-gray-700 mb-2">Due Date *</label>
+                        <input type="date" id="due_date" name="planned_end_date" required
+                               value="<?= old('due_date', isset($milestone) ? $milestone['planned_end_date'] : '') ?>"
                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <div class="text-red-500 text-sm mt-1" id="planned_end_date-error"></div>
+                        <div class="text-red-500 text-sm mt-1" id="due_date-error"></div>
                     </div>
 
                     <div>
@@ -406,16 +353,8 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('js') ?>
-<!-- Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Select2 for dependency milestones
-    $('#dependency_milestones').select2({
-        placeholder: 'Select dependent milestones (optional)',
-        allowClear: true,
-        width: '100%'
-    });
     // Form validation
     const form = document.getElementById('milestoneForm');
     const submitBtn = document.getElementById('submitBtn');
@@ -435,7 +374,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let isValid = true;
 
         // Required field validation
-        const requiredFields = ['title', 'project_id', 'planned_end_date', 'priority', 'status'];
+        const requiredFields = ['title', 'project_id', 'due_date', 'priority', 'status'];
         requiredFields.forEach(field => {
             const element = document.getElementById(field);
             if (!element.value.trim()) {
@@ -446,11 +385,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Date validation
         const startDate = document.getElementById('start_date').value;
-        const dueDate = document.getElementById('planned_end_date').value;
+        const dueDate = document.getElementById('due_date').value;
         const completionDate = document.getElementById('completion_date').value;
 
         if (startDate && dueDate && new Date(startDate) > new Date(dueDate)) {
-            document.getElementById('planned_end_date-error').textContent = 'Due date must be after start date';
+            document.getElementById('due_date-error').textContent = 'Due date must be after start date';
             isValid = false;
         }
 
@@ -475,7 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (projectId) {
             loadProjectMilestones(projectId);
         } else {
-            $('#dependency_milestones').empty().trigger('change');
+            document.getElementById('dependency_milestones').innerHTML = '';
         }
     });
 
@@ -486,7 +425,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Validate dates on change
     document.getElementById('start_date').addEventListener('change', validateDates);
-    document.getElementById('planned_end_date').addEventListener('change', validateDates);
+    document.getElementById('due_date').addEventListener('change', validateDates);
     document.getElementById('completion_date').addEventListener('change', validateDates);
 
     // Auto-calculate budget variance
@@ -518,11 +457,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function loadProjectMilestones(projectId) {
-    const $depSelect = $('#dependency_milestones');
-    
-    // Clear existing options and show loading state
-    $depSelect.empty().trigger('change');
-    $depSelect.append('<option value="">Loading...</option>').trigger('change');
+    const depSelect = document.getElementById('dependency_milestones');
+    depSelect.innerHTML = '<option value="">Loading...</option>';
     
     fetch('<?= base_url('admin/milestones/getProjectMilestones') ?>/' + projectId)
         .then(response => {
@@ -532,7 +468,7 @@ function loadProjectMilestones(projectId) {
             return response.json();
         })
         .then(data => {
-            $depSelect.empty();
+            depSelect.innerHTML = '';
             
             if (data.milestones && data.milestones.length > 0) {
                 data.milestones.forEach(function(milestone) {
@@ -540,16 +476,17 @@ function loadProjectMilestones(projectId) {
                     <?php if (isset($milestone)): ?>
                     if (milestone.id != <?= $milestone['id'] ?>) {
                     <?php endif; ?>
-                        var option = new Option(milestone.title, milestone.id, false, false);
-                        $depSelect.append(option);
+                        var option = document.createElement('option');
+                        option.value = milestone.id;
+                        option.textContent = milestone.title;
+                        depSelect.appendChild(option);
                     <?php if (isset($milestone)): ?>
                     }
                     <?php endif; ?>
                 });
+            } else {
+                depSelect.innerHTML = '<option value="">No milestones available</option>';
             }
-
-            // Refresh Select2 to show new options
-            $depSelect.trigger('change');
 
             // Restore dependency selections if editing
             <?php if (isset($milestone) && isset($milestone_dependencies) && is_array($milestone_dependencies)): ?>
@@ -558,26 +495,30 @@ function loadProjectMilestones(projectId) {
             // Convert selectedDeps to strings for comparison
             selectedDeps = selectedDeps.map(String);
             
-            // Set selected values using Select2
-            $depSelect.val(selectedDeps).trigger('change');
+            // Set selected options
+            Array.from(depSelect.options).forEach(function(option) {
+                if (selectedDeps.includes(option.value)) {
+                    option.selected = true;
+                }
+            });
             <?php endif; ?>
         })
         .catch(error => {
             console.error('Failed to load project milestones:', error);
-            $depSelect.empty().append('<option value="">Error loading milestones</option>').trigger('change');
+            depSelect.innerHTML = '<option value="">Error loading milestones</option>';
         });
 }
 
 function validateDates() {
     var startDate = new Date(document.getElementById('start_date').value);
-    var dueDate = new Date(document.getElementById('planned_end_date').value);
+    var dueDate = new Date(document.getElementById('due_date').value);
     var completionDate = new Date(document.getElementById('completion_date').value);
     
     // Clear previous errors
-    document.getElementById('planned_end_date-error').textContent = '';
+    document.getElementById('due_date-error').textContent = '';
     
     if (startDate && dueDate && startDate > dueDate) {
-        document.getElementById('planned_end_date-error').textContent = 'Due date must be after start date';
+        document.getElementById('due_date-error').textContent = 'Due date must be after start date';
         return false;
     }
     
@@ -619,8 +560,8 @@ document.getElementById('project_id').addEventListener('change', function() {
     }
 });
 
-document.getElementById('planned_end_date').addEventListener('change', function() {
-    const errorEl = document.getElementById('planned_end_date-error');
+document.getElementById('due_date').addEventListener('change', function() {
+    const errorEl = document.getElementById('due_date-error');
     if (!this.value) {
         errorEl.textContent = 'Due date is required';
     } else {

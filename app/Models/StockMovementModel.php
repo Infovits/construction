@@ -13,10 +13,10 @@ class StockMovementModel extends Model
     
     protected $allowedFields = [
         'company_id', 'material_id', 'source_warehouse_id', 'destination_warehouse_id',
-        'reference_number', 'movement_type', 'project_id', 'task_id',
-        'quantity', 'unit', 'unit_cost', 'batch_number', 'serial_numbers',
-        'expiry_date', 'notes', 'performed_by', 'approved_by', 'status',
-        'barcode_scanned'
+        'reference_type', 'reference_id', 'movement_type', 'project_id', 'task_id',
+        'quantity', 'unit_cost', 'total_cost', 'previous_balance', 'new_balance',
+        'batch_number', 'serial_numbers', 'expiry_date', 'notes', 'moved_by',
+        'approved_by', 'performed_by'
     ];
     
     protected $useTimestamps = true;
@@ -106,27 +106,53 @@ class StockMovementModel extends Model
                                    $taskId = null, $notes = null, $performedBy = null, $referenceNumber = null, 
                                    $batchNumber = null, $serialNumbers = null, $expiryDate = null)
     {
+        // Convert movement type to match database enum values
+        $dbMovementType = $movementType;
+        switch ($movementType) {
+            case 'purchase':
+                $dbMovementType = 'in';
+                break;
+            case 'project_usage':
+                $dbMovementType = 'out';
+                break;
+            case 'stock_transfer':
+                $dbMovementType = 'transfer';
+                break;
+        }
+
         $data = [
             'company_id' => $companyId,
             'material_id' => $materialId,
             'source_warehouse_id' => $sourceWarehouseId,
             'destination_warehouse_id' => $destinationWarehouseId,
-            'reference_number' => $referenceNumber ?: 'SM' . date('YmdHis'),
-            'movement_type' => $movementType,
+            'reference_type' => 'manual',
+            'reference_id' => null,
+            'movement_type' => $dbMovementType,
             'project_id' => $projectId,
             'task_id' => $taskId,
             'quantity' => $quantity,
-            'unit' => $unit,
             'unit_cost' => $unitCost,
+            'total_cost' => $quantity * $unitCost,
             'batch_number' => $batchNumber,
             'serial_numbers' => $serialNumbers ? json_encode($serialNumbers) : null,
             'expiry_date' => $expiryDate,
             'notes' => $notes,
-            'performed_by' => $performedBy,
-            'status' => 'completed'
+            'moved_by' => $performedBy,
+            'performed_by' => $performedBy
         ];
-        
-        return $this->insert($data);
+
+        // Log the data being inserted for debugging
+        log_message('debug', 'Inserting stock movement data: ' . json_encode($data));
+
+        $result = $this->insert($data);
+
+        // Log any database errors
+        if (!$result) {
+            $error = $this->db->error();
+            log_message('error', 'Stock movement insert failed: ' . json_encode($error));
+        }
+
+        return $result;
     }
     
     public function processMovement($companyId, $materialId, $movementType, $quantity, $unit, $unitCost,
@@ -193,23 +219,20 @@ class StockMovementModel extends Model
                     break;
                     
                 case 'adjustment':
-                    // Check if it's a positive or negative adjustment
-                    if ($this->request->getVar('adjustment_type') == 'increase') {
-                        if (!$destinationWarehouseId) {
-                            throw new \Exception('Destination warehouse is required for stock increases');
-                        }
-                        
+                    // For adjustments, if destination warehouse is provided, it's an increase
+                    // If source warehouse is provided, it's a decrease
+                    if ($destinationWarehouseId) {
+                        // Stock increase
                         $warehouseStockModel->addInitialStock($companyId, $destinationWarehouseId, $materialId, $quantity);
-                    } else {
-                        if (!$sourceWarehouseId) {
-                            throw new \Exception('Source warehouse is required for stock decreases');
-                        }
-                        
+                    } elseif ($sourceWarehouseId) {
+                        // Stock decrease
                         if (!$warehouseStockModel->hasStock($sourceWarehouseId, $materialId, $quantity)) {
                             throw new \Exception('Insufficient stock in the source warehouse');
                         }
-                        
+
                         $warehouseStockModel->updateStockQuantity($sourceWarehouseId, $materialId, $quantity, 'subtract');
+                    } else {
+                        throw new \Exception('Either source or destination warehouse is required for adjustments');
                     }
                     break;
                     
@@ -247,7 +270,13 @@ class StockMovementModel extends Model
             );
             
             if (!$movementId) {
-                throw new \Exception('Failed to record stock movement');
+                // Get the last database error for more details
+                $error = $this->db->error();
+                $errorMessage = 'Failed to record stock movement';
+                if (!empty($error['message'])) {
+                    $errorMessage .= ': ' . $error['message'];
+                }
+                throw new \Exception($errorMessage);
             }
             
             // Update material's overall stock level

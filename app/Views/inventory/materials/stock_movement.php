@@ -94,7 +94,10 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800"><?= esc($movement['reference_number']) ?></span>
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                            <?= esc($movement['reference_type'] ?? 'manual') ?>
+                                            <?= $movement['reference_id'] ? ' #' . $movement['reference_id'] : '' ?>
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <?php
@@ -121,7 +124,7 @@
                                         <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full <?= $typeClass ?>"><?= ucfirst(str_replace('_', ' ', $movement['movement_type'])) ?></span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900"><?= number_format($movement['quantity'], 2) ?> <?= esc($movement['unit']) ?></div>
+                                        <div class="text-sm font-medium text-gray-900"><?= number_format($movement['quantity'], 2) ?> <?= esc($material['unit']) ?></div>
                                         <?php if ($movement['unit_cost'] > 0): ?>
                                             <div class="text-xs text-gray-500">@ $<?= number_format($movement['unit_cost'], 2) ?></div>
                                         <?php endif; ?>

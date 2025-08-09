@@ -93,7 +93,7 @@ Milestones Management
                                                 <?= esc($milestone['title']) ?>
                                             </a>
                                             (<?= esc($milestone['project_name']) ?>) - 
-                                            Due: <?= date('M d, Y', strtotime($milestone['due_date'])) ?>
+                                            Due: <?= date('M d, Y', strtotime($milestone['planned_end_date'])) ?>
                                         </li>
                                     <?php endforeach; ?>
                                 </ul>
@@ -221,9 +221,9 @@ Milestones Management
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <?php if ($milestone['due_date']): ?>
-                                        <div class="text-sm text-gray-900"><?= date('M d, Y', strtotime($milestone['due_date'])) ?></div>
-                                        <?php if (strtotime($milestone['due_date']) < time() && $milestone['status'] != 'completed'): ?>
+                                    <?php if ($milestone['planned_end_date']): ?>
+                                        <div class="text-sm text-gray-900"><?= date('M d, Y', strtotime($milestone['planned_end_date'])) ?></div>
+                                        <?php if (strtotime($milestone['planned_end_date']) < time() && $milestone['status'] != 'completed'): ?>
                                             <div class="text-xs text-red-600 flex items-center mt-1">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -237,8 +237,8 @@ Milestones Management
                                 </td>
                                 
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <?php if ($milestone['completion_date']): ?>
-                                        <div class="text-sm text-gray-900"><?= date('M d, Y', strtotime($milestone['completion_date'])) ?></div>
+                                    <?php if ($milestone['actual_end_date']): ?>
+                                        <div class="text-sm text-gray-900"><?= date('M d, Y', strtotime($milestone['actual_end_date'])) ?></div>
                                     <?php else: ?>
                                         <span class="text-sm text-gray-500">Not completed</span>
                                     <?php endif; ?>

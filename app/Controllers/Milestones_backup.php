@@ -28,7 +28,7 @@ class Milestones extends BaseController
         $projectId = $this->request->getGet('project_id');
         $status = $this->request->getGet('status');
 
-        $builder = $this->milestoneModel->select('tasks.*, projects.name as project_name, projects.project_code')
+        $builder = $this->milestoneModel->select('tasks.*, projects.name as project_name')
                                        ->join('projects', 'tasks.project_id = projects.id')
                                        ->where('projects.company_id', session('company_id'));
 
@@ -106,8 +106,7 @@ class Milestones extends BaseController
             'project_id' => 'required|numeric',
             'title' => 'required|min_length[3]|max_length[255]',
             'planned_end_date' => 'required|valid_date',
-            'priority' => 'required|in_list[low,medium,high,urgent]',
-            'status' => 'permit_empty|in_list[pending,in_progress,completed,cancelled]'
+            'priority' => 'required|in_list[low,medium,high,critical]'
         ]);
 
         if (!$validation->run($this->request->getPost())) {
@@ -119,19 +118,15 @@ class Milestones extends BaseController
             'title' => $this->request->getPost('title'),
             'description' => $this->request->getPost('description'),
             'priority' => $this->request->getPost('priority'),
-            'status' => $this->request->getPost('status') ?: 'pending',
-            'planned_start_date' => $this->request->getPost('start_date') ?: null,
-            'planned_end_date' => $this->request->getPost('planned_end_date'),
-            'task_type' => 'milestone',
-            'assigned_to' => $this->request->getPost('assigned_to') ?: null,
-            'progress_percentage' => $this->request->getPost('progress_percentage') ?: 0,
-            'company_id' => session('company_id')
+            'status' => 'not_started',
+            'planned_start_date' => $this->request->getPost('planned_start_date') ?: $this->request->getPost('planned_end_date'),
+            'planned_end_date' => $this->request->getPost('planned_end_date')
         ];
 
         $milestoneId = $this->milestoneModel->createMilestone($data);
 
         if ($milestoneId) {
-            return redirect()->to('/admin/milestones')->with('success', 'Milestone created successfully');
+            return redirect()->to('/milestones')->with('success', 'Milestone created successfully');
         }
 
         return redirect()->back()->withInput()->with('error', 'Failed to create milestone');
@@ -228,7 +223,7 @@ class Milestones extends BaseController
             // Update project progress
             $this->projectModel->updateProjectProgress($milestone['project_id']);
 
-            return redirect()->to('/admin/milestones/' . $id)->with('success', 'Milestone updated successfully');
+            return redirect()->to('/milestones/' . $id)->with('success', 'Milestone updated successfully');
         }
 
         return redirect()->back()->withInput()->with('error', 'Failed to update milestone');
@@ -393,34 +388,6 @@ class Milestones extends BaseController
         }
         
         return $events;
-    }
-
-    public function getProjectMilestones($projectId)
-    {
-        // Validate project access
-        $project = $this->projectModel->where('id', $projectId)
-                                     ->where('company_id', session('company_id'))
-                                     ->first();
-        
-        if (!$project) {
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Project not found or access denied',
-                'milestones' => []
-            ]);
-        }
-
-        // Get milestones for the project
-        $milestones = $this->milestoneModel->select('id, title, planned_end_date, status')
-                                          ->where('project_id', $projectId)
-                                          ->where('task_type', 'milestone')
-                                          ->orderBy('planned_end_date', 'ASC')
-                                          ->findAll();
-
-        return $this->response->setJSON([
-            'success' => true,
-            'milestones' => $milestones
-        ]);
     }
 
     private function getMilestoneStatusClass($status)

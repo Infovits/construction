@@ -161,9 +161,9 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                                 <div class="sm:col-span-1">
                                                     <dt class="text-sm font-medium text-gray-500">Due Date</dt>
                                                     <dd class="mt-1 text-sm text-gray-900">
-                                                        <?php if ($milestone['due_date']): ?>
-                                                            <?= date('M d, Y', strtotime($milestone['due_date'])) ?>
-                                                            <?php if (isOverdue($milestone['due_date'], $milestone['status'])): ?>
+                                                        <?php if ($milestone['planned_end_date']): ?>
+                                                            <?= date('M d, Y', strtotime($milestone['planned_end_date'])) ?>
+                                                            <?php if (isOverdue($milestone['planned_end_date'], $milestone['status'])): ?>
                                                                 <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
                                                                     <svg class="mr-1 h-3 w-3 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                                                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
@@ -258,9 +258,9 @@ Milestone Details - <?= esc($milestone['title']) ?>
 
                                     <div class="text-center mt-4">
                                         <p class="text-sm text-gray-500">
-                                            <?php if ($milestone['due_date']): ?>
+                                            <?php if ($milestone['planned_end_date']): ?>
                                                 <?php
-                                                $daysLeft = ceil((strtotime($milestone['due_date']) - time()) / (60 * 60 * 24));
+                                                $daysLeft = ceil((strtotime($milestone['planned_end_date']) - time()) / (60 * 60 * 24));
                                                 if ($daysLeft > 0): ?>
                                                     <span class="font-medium"><?= $daysLeft ?> days</span> remaining
                                                 <?php elseif ($daysLeft == 0): ?>
@@ -409,9 +409,9 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <?php if ($dep['due_date']): ?>
-                                                <?= date('M d, Y', strtotime($dep['due_date'])) ?>
-                                                <?php if (isOverdue($dep['due_date'], $dep['status'])): ?>
+                                            <?php if ($dep['planned_end_date']): ?>
+                                                <?= date('M d, Y', strtotime($dep['planned_end_date'])) ?>
+                                                <?php if (isOverdue($dep['planned_end_date'], $dep['status'])): ?>
                                                     <div class="mt-1">
                                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Overdue</span>
                                                     </div>
@@ -547,9 +547,9 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                             <?= $task['assigned_to'] ? esc($task['assigned_name']) : 'Unassigned' ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <?php if ($task['due_date']): ?>
-                                                <?= date('M d, Y', strtotime($task['due_date'])) ?>
-                                                <?php if (isOverdue($task['due_date'], $task['status'])): ?>
+                                            <?php if ($task['planned_end_date']): ?>
+                                                <?= date('M d, Y', strtotime($task['planned_end_date'])) ?>
+                                                <?php if (isOverdue($task['planned_end_date'], $task['status'])): ?>
                                                     <div class="mt-1">
                                                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">Overdue</span>
                                                     </div>

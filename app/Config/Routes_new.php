@@ -17,14 +17,6 @@ $routes->group('auth', function($routes) {
     $routes->post('send-reset-link', 'Auth::sendResetLink');
 });
 
-
-// Redirect milestones to admin/milestones for convenience
-$routes->get('milestones', function() {
-    return redirect()->to('/admin/milestones');
-});
-$routes->get('milestones/(.*)', function($path) {
-    return redirect()->to('/admin/milestones/' . $path);
-});
 // Admin Routes (Protected)
 $routes->group('admin', ['filter' => 'auth'], function($routes) {
     $routes->get('dashboard', 'Dashboard::index');
@@ -237,7 +229,6 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
         $routes->get('upcoming', 'Milestones::upcoming');
         $routes->get('calendar', 'Milestones::calendar');
         $routes->get('report', 'Milestones::report');
-        $routes->get('getProjectMilestones/(:num)', 'Milestones::getProjectMilestones/$1');
     });
 
     // Project Category Management Routes

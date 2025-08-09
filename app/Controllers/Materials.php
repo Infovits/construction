@@ -293,17 +293,54 @@ class Materials extends BaseController
         if ($movementType == 'project_usage' && !$projectId) {
             return redirect()->back()->withInput()->with('error', 'For project usage, you must select a project');
         }
-        
+
+        // Convert movement type and adjust warehouse parameters for compatibility with the processMovement method
+        $convertedMovementType = $movementType;
+        $adjustedSourceWarehouseId = $sourceWarehouseId;
+        $adjustedDestinationWarehouseId = $destinationWarehouseId;
+
+        switch ($movementType) {
+            case 'in':
+                $convertedMovementType = 'purchase';
+                // For stock in, the selected warehouse becomes the destination
+                $adjustedDestinationWarehouseId = $sourceWarehouseId;
+                $adjustedSourceWarehouseId = null;
+                break;
+            case 'out':
+                $convertedMovementType = 'project_usage';
+                // For stock out, the selected warehouse is the source
+                $adjustedSourceWarehouseId = $sourceWarehouseId;
+                $adjustedDestinationWarehouseId = null;
+                break;
+            case 'transfer':
+                $convertedMovementType = 'stock_transfer';
+                // For transfer, both warehouses are needed as provided
+                break;
+            case 'adjustment':
+                $convertedMovementType = 'adjustment';
+                // For adjustment, we'll need to determine if it's increase or decrease
+                // For now, treat as increase (destination warehouse)
+                $adjustedDestinationWarehouseId = $sourceWarehouseId;
+                $adjustedSourceWarehouseId = null;
+                break;
+            case 'project_usage':
+                $convertedMovementType = 'project_usage';
+                // For project usage, the selected warehouse is the source
+                $adjustedSourceWarehouseId = $sourceWarehouseId;
+                $adjustedDestinationWarehouseId = null;
+                break;
+        }
+
         // Process the stock movement
         $result = $this->stockMovementModel->processMovement(
             $companyId,
             $id,
-            $movementType,
+            $convertedMovementType,
             $quantity,
             $material['unit'],
             $this->request->getVar('unit_cost'),
-            $sourceWarehouseId,
-            $destinationWarehouseId,
+            $adjustedSourceWarehouseId,
+            $adjustedDestinationWarehouseId,
             $projectId,
             $taskId,
             $this->request->getVar('notes'),
@@ -313,7 +350,16 @@ class Materials extends BaseController
         );
         
         if (!$result['success']) {
-            return redirect()->back()->withInput()->with('error', $result['message']);
+            // Log the detailed error for debugging
+            log_message('error', 'Stock movement failed: ' . $result['message']);
+            log_message('error', 'Movement data: ' . json_encode([
+                'movement_type' => $convertedMovementType,
+                'quantity' => $quantity,
+                'source_warehouse' => $adjustedSourceWarehouseId,
+                'destination_warehouse' => $adjustedDestinationWarehouseId,
+                'material_id' => $id
+            ]));
+            return redirect()->back()->withInput()->with('error', 'Failed to record stock movement: ' . $result['message']);
         }
         
         return redirect()->to('/admin/materials/stock-movement/' . $id)->with('success', 'Stock movement recorded successfully');
