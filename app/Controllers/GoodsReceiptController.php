@@ -182,9 +182,13 @@ class GoodsReceiptController extends BaseController
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Goods receipt note not found');
         }
 
+        // Extract items from GRN data
+        $grnItems = $grn['items'] ?? [];
+
         $data = [
             'title' => 'Goods Receipt Note Details',
-            'grn' => $grn
+            'grn' => $grn,
+            'grnItems' => $grnItems
         ];
 
         return view('procurement/goods_receipt/view', $data);
