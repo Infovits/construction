@@ -239,6 +239,7 @@ class QualityInspectionController extends BaseController
         }
     }
 
+
     /**
      * Show edit quality inspection form
      */

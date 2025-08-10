@@ -1,4 +1,7 @@
 <?php
+// Create a minimal working routes file
+
+$routesContent = '<?php
 
 use CodeIgniter\Router\RouteCollection;
 
@@ -77,7 +80,7 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     });
 
     // Accounting Module Routes
-    $routes->group("accounting", ["namespace" => "App\Controllers\Accounting"], function($routes) {
+    $routes->group("accounting", ["namespace" => "App\\Controllers\\Accounting"], function($routes) {
         // Account Categories
         $routes->get("account-categories", "AccountCategoriesController::index");
         $routes->get("account-categories/create", "AccountCategoriesController::create");
@@ -104,3 +107,9 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
 $routes->get("/", function() {
     return session("user_id") ? redirect()->to("/admin/dashboard") : redirect()->to("/auth/login");
 });
+';
+
+file_put_contents('D:/Wamp64/www/construction/app/Config/Routes.php', $routesContent);
+
+echo "Minimal working routes file created!\n";
+?>

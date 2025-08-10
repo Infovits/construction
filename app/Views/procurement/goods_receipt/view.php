@@ -1,8 +1,6 @@
 <?php helper('currency'); ?>
 <?= $this->extend('layouts/main') ?>
 
-<!-- Add html2pdf.js CDN for proper PDF export -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <?= $this->section('title') ?><?= $title ?><?= $this->endSection() ?>
 
@@ -535,11 +533,25 @@
 }
 </style>
 
+<!-- Load html2pdf.js library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<!-- Fallback CDN if first one fails -->
+<script>
+if (typeof html2pdf === 'undefined') {
+    document.write('<script src="https://unpkg.com/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"><\/script>');
+}
+</script>
+
 <script>
 // Simple print functions that work
 function printPreview() {
+    var content = generateSimpleReceipt();
+    console.log('Generated content length:', content.length);
+    console.log('Generated content preview:', content.substring(0, 300));
+    
     document.getElementById('printPreviewModal').style.display = 'block';
-    document.getElementById('printContent').innerHTML = generateSimpleReceipt();
+    document.getElementById('printContent').innerHTML = content;
     
     // Add premium styles to the preview modal
     var existingStyle = document.getElementById('premium-preview-styles');
@@ -549,6 +561,8 @@ function printPreview() {
         style.innerHTML = getPremiumReceiptStyles();
         document.head.appendChild(style);
     }
+    
+    console.log('Preview modal opened, content loaded');
 }
 
 function closePreview() {
@@ -578,6 +592,14 @@ function printReceipt() {
 }
 
 function exportToPDF() {
+    // Check if html2pdf library is loaded
+    if (typeof html2pdf === 'undefined') {
+        // Fallback to print dialog if library not available
+        console.warn('html2pdf library not available, falling back to print');
+        printFromPreview();
+        return;
+    }
+    
     // Show loading state
     var exportBtn = document.getElementById('exportPdfBtn');
     var exportText = document.getElementById('exportText');
@@ -587,101 +609,89 @@ function exportToPDF() {
     exportBtn.classList.add('opacity-50', 'cursor-not-allowed');
     exportText.innerHTML = 'Generating PDF...';
     
-    // Get the exact content from the preview modal
-    var element = document.getElementById('printContent');
+    // Always generate fresh content for PDF (don't rely on preview modal)
+    var tempDiv = document.createElement('div');
+    tempDiv.style.position = 'fixed';
+    tempDiv.style.top = '0';
+    tempDiv.style.left = '0';
+    tempDiv.style.width = '800px';
+    tempDiv.style.backgroundColor = 'white';
+    tempDiv.style.padding = '20px';
+    tempDiv.style.zIndex = '9999';
+    tempDiv.style.visibility = 'visible';
+    tempDiv.style.opacity = '1';
     
-    if (!element || !element.innerHTML.trim()) {
-        // If preview hasn't been opened yet, generate content first
-        element = document.createElement('div');
-        element.innerHTML = generateSimpleReceipt();
-        
-        // Apply styles to the temporary element
-        var tempContainer = document.createElement('div');
-        tempContainer.style.position = 'absolute';
-        tempContainer.style.left = '-9999px';
-        tempContainer.appendChild(element);
-        document.body.appendChild(tempContainer);
-        
-        // Add the premium styles
-        var existingStyle = document.getElementById('premium-preview-styles');
-        if (!existingStyle) {
-            var style = document.createElement('style');
-            style.id = 'premium-preview-styles';
-            style.innerHTML = getPremiumReceiptStyles();
-            document.head.appendChild(style);
-        }
-        
-        // Configure PDF options
-        var opt = {
-            margin: 10,
-            filename: 'GRN-<?= esc($grn['grn_number']) ?>-<?= date('Y-m-d') ?>.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 2,
-                useCORS: true,
-                letterRendering: true,
-                allowTaint: false
-            },
-            jsPDF: { 
-                unit: 'mm', 
-                format: 'a4', 
-                orientation: 'portrait',
-                compress: true
-            }
-        };
-        
-        // Generate PDF
-        html2pdf().set(opt).from(element).save().then(function() {
-            // Clean up temporary element
-            document.body.removeChild(tempContainer);
-            // Reset loading state
-            exportBtn.disabled = false;
-            exportBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            exportText.innerHTML = originalText;
-        }).catch(function(error) {
-            console.error('PDF generation failed:', error);
-            // Reset loading state on error
-            exportBtn.disabled = false;
-            exportBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            exportText.innerHTML = originalText;
-            alert('Failed to generate PDF. Please try again.');
-        });
-        
-    } else {
-        // Use the existing preview content
-        var opt = {
-            margin: 10,
-            filename: 'GRN-<?= esc($grn['grn_number']) ?>-<?= date('Y-m-d') ?>.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 2,
-                useCORS: true,
-                letterRendering: true,
-                allowTaint: false
-            },
-            jsPDF: { 
-                unit: 'mm', 
-                format: 'a4', 
-                orientation: 'portrait',
-                compress: true
-            }
-        };
-        
-        // Generate PDF from the exact preview content
-        html2pdf().set(opt).from(element).save().then(function() {
-            // Reset loading state
-            exportBtn.disabled = false;
-            exportBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            exportText.innerHTML = originalText;
-        }).catch(function(error) {
-            console.error('PDF generation failed:', error);
-            // Reset loading state on error
-            exportBtn.disabled = false;
-            exportBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-            exportText.innerHTML = originalText;
-            alert('Failed to generate PDF. Please try again.');
-        });
+    // Generate fresh receipt content
+    var receiptContent = generateSimpleReceipt();
+    console.log('Fresh PDF Content length:', receiptContent.length);
+    console.log('Fresh PDF Content preview:', receiptContent.substring(0, 300));
+    
+    tempDiv.innerHTML = receiptContent;
+    document.body.appendChild(tempDiv);
+    
+    // Add the premium styles if not already present
+    var existingStyle = document.getElementById('premium-preview-styles');
+    if (!existingStyle) {
+        var style = document.createElement('style');
+        style.id = 'premium-preview-styles';
+        style.innerHTML = getPremiumReceiptStyles();
+        document.head.appendChild(style);
     }
+    
+    // Configure PDF options
+    var opt = {
+        margin: 10,
+        filename: 'GRN-<?= esc($grn['grn_number']) ?>-<?= date('Y-m-d') ?>.pdf',
+        image: { 
+            type: 'jpeg', 
+            quality: 0.98
+        },
+        html2canvas: { 
+            scale: 1,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#ffffff',
+            logging: true
+        },
+        jsPDF: { 
+            unit: 'mm', 
+            format: 'a4', 
+            orientation: 'portrait'
+        }
+    };
+    
+    // Wait for styles to apply, then generate PDF
+    setTimeout(function() {
+        // Hide the temp div from user view while keeping it renderable
+        tempDiv.style.zIndex = '-9999';
+        tempDiv.style.pointerEvents = 'none';
+        
+        console.log('Generating PDF from element:', tempDiv);
+        console.log('Element visible:', tempDiv.offsetHeight > 0);
+        
+        html2pdf().set(opt).from(tempDiv).save().then(function() {
+            // Clean up temporary element
+            if (document.body.contains(tempDiv)) {
+                document.body.removeChild(tempDiv);
+            }
+            // Reset loading state
+            exportBtn.disabled = false;
+            exportBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            exportText.innerHTML = originalText;
+            console.log('PDF generated successfully');
+        }).catch(function(error) {
+            console.error('PDF generation failed:', error);
+            // Clean up temporary element
+            if (document.body.contains(tempDiv)) {
+                document.body.removeChild(tempDiv);
+            }
+            // Reset loading state on error
+            exportBtn.disabled = false;
+            exportBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            exportText.innerHTML = originalText;
+            alert('Failed to generate PDF: ' + error.message);
+        });
+    }, 1500);
 }
 
 function generateSimpleReceipt() {

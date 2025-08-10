@@ -225,4 +225,56 @@ class MaterialRequestModel extends Model
             ->orderBy('material_requests.created_at', 'DESC')
             ->findAll();
     }
+
+    /**
+     * Get summary statistics for material requests based on filters
+     *
+     * @param array $filters Optional filters for date range, supplier, project
+     * @return array Summary statistics
+     */
+    public function getSummaryStats($filters = [])
+    {
+        $builder = $this->db->table($this->table);
+
+        // Apply date filters if provided
+        if (!empty($filters['date_from'])) {
+            $builder->where('request_date >=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $builder->where('request_date <=', $filters['date_to']);
+        }
+
+        // Apply project filter if provided
+        if (!empty($filters['project_id'])) {
+            $builder->where('project_id', $filters['project_id']);
+        }
+
+        // Get total count
+        $total = $builder->countAllResults(false);
+
+        // Get pending count
+        $pending = (clone $builder)->where('status', 'pending_approval')->countAllResults();
+
+        // Get approved count
+        $approved = (clone $builder)->where('status', 'approved')->countAllResults();
+
+        // Get rejected count
+        $rejected = (clone $builder)->where('status', 'rejected')->countAllResults();
+
+        // Get completed count
+        $completed = (clone $builder)->where('status', 'completed')->countAllResults();
+
+        // Get urgent priority count
+        $urgent = (clone $builder)->where('priority', 'urgent')->countAllResults();
+
+        return [
+            'total' => $total,
+            'pending' => $pending,
+            'approved' => $approved,
+            'rejected' => $rejected,
+            'completed' => $completed,
+            'urgent' => $urgent
+        ];
+    }
 }

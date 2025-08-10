@@ -392,5 +392,70 @@ class PurchaseOrderModel extends Model
             return false;
         }
     }
-}
 
+    /**
+     * Get purchase order by PO number
+     *
+     * @param string $poNumber The purchase order number
+     * @return array|null Purchase order details
+     */
+    public function getPurchaseOrderByNumber($poNumber)
+    {
+        return $this->where('po_number', $poNumber)->first();
+    }
+
+    /**
+     * Get summary statistics for purchase orders based on filters
+     *
+     * @param array $filters Optional filters for date range, supplier, project
+     * @return array Summary statistics
+     */
+    public function getSummaryStats($filters = [])
+    {
+        $builder = $this->db->table($this->table);
+
+        // Apply date filters if provided
+        if (!empty($filters['date_from'])) {
+            $builder->where('po_date >=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $builder->where('po_date <=', $filters['date_to']);
+        }
+
+        // Apply supplier filter if provided
+        if (!empty($filters['supplier_id'])) {
+            $builder->where('supplier_id', $filters['supplier_id']);
+        }
+
+        // Apply project filter if provided
+        if (!empty($filters['project_id'])) {
+            $builder->where('project_id', $filters['project_id']);
+        }
+
+        // Get total count
+        $total = $builder->countAllResults(false);
+
+        // Get pending count (draft + sent + acknowledged)
+        $pending = (clone $builder)
+            ->groupStart()
+                ->where('status', self::STATUS_DRAFT)
+                ->orWhere('status', self::STATUS_SENT)
+                ->orWhere('status', self::STATUS_ACKNOWLEDGED)
+            ->groupEnd()
+            ->countAllResults();
+
+        // Get completed count
+        $completed = (clone $builder)->where('status', self::STATUS_COMPLETED)->countAllResults();
+
+        // Get total value
+        $totalValue = (clone $builder)->selectSum('total_amount')->get()->getRowArray()['total_amount'] ?? 0;
+
+        return [
+            'total' => $total,
+            'pending' => $pending,
+            'completed' => $completed,
+            'total_value' => $totalValue
+        ];
+    }
+}

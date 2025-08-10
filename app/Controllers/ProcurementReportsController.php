@@ -33,10 +33,20 @@ class ProcurementReportsController extends BaseController
      */
     public function index()
     {
+        // Get counts for dashboard stats
+        $materialRequestsCount = $this->materialRequestModel->countAllResults();
+        $purchaseOrdersCount = $this->purchaseOrderModel->countAllResults();
+        $goodsReceiptsCount = $this->grnModel->countAllResults();
+        $inspectionsCount = $this->qualityInspectionModel->countAllResults();
+
         $data = [
             'title' => 'Procurement Reports',
             'suppliers' => $this->supplierModel->findAll(),
-            'projects' => $this->projectModel->findAll()
+            'projects' => $this->projectModel->findAll(),
+            'materialRequestsCount' => $materialRequestsCount,
+            'purchaseOrdersCount' => $purchaseOrdersCount,
+            'goodsReceiptsCount' => $goodsReceiptsCount,
+            'inspectionsCount' => $inspectionsCount
         ];
 
         return view('procurement/reports/index', $data);
@@ -99,9 +109,8 @@ class ProcurementReportsController extends BaseController
         }
 
         $data['title'] = $data['reportTitle'];
-        $data['filters'] = $filters;
-        $data['reportType'] = $reportType;
 
-        return view('procurement/reports/generate', $data);
+        // Render the report results view
+        return view('procurement/reports/report_results', $data);
     }
 }

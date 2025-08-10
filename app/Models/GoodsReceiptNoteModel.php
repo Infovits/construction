@@ -277,4 +277,80 @@ class GoodsReceiptNoteModel extends Model
     {
         return $this->getGRNsWithDetails(['status' => self::STATUS_PENDING_INSPECTION]);
     }
+
+    /**
+     * Get summary statistics for goods receipt notes based on filters
+     *
+     * @param array $filters Optional filters for date range, supplier, project
+     * @return array Summary statistics
+     */
+    public function getSummaryStats($filters = [])
+    {
+        $builder = $this->db->table($this->table);
+
+        // Apply date filters if provided
+        if (!empty($filters['date_from'])) {
+            $builder->where('delivery_date >=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $builder->where('delivery_date <=', $filters['date_to']);
+        }
+
+        // Apply supplier filter if provided
+        if (!empty($filters['supplier_id'])) {
+            $builder->where('supplier_id', $filters['supplier_id']);
+        }
+
+        // Apply project filter if provided (join with PO to get project)
+        if (!empty($filters['project_id'])) {
+            $builder->join('purchase_orders', 'purchase_orders.id = goods_receipt_notes.purchase_order_id', 'left')
+                   ->where('purchase_orders.project_id', $filters['project_id']);
+        }
+
+        // Get total count
+        $total = $builder->countAllResults(false);
+
+        // Get completed (accepted) count
+        $completed = (clone $builder)->where('status', self::STATUS_ACCEPTED)->countAllResults();
+
+        // Get pending count
+        $pending = (clone $builder)->where('status', self::STATUS_PENDING_INSPECTION)->countAllResults();
+
+        // Get total items count
+        $db = \Config\Database::connect();
+        $itemsQuery = $db->table('goods_receipt_items')
+                         ->select('COUNT(*) as total_items');
+
+        // Apply the same date filters to items through join
+        if (!empty($filters['date_from']) || !empty($filters['date_to']) || !empty($filters['supplier_id']) || !empty($filters['project_id'])) {
+            $itemsQuery->join('goods_receipt_notes', 'goods_receipt_notes.id = goods_receipt_items.goods_receipt_id', 'left');
+
+            if (!empty($filters['date_from'])) {
+                $itemsQuery->where('goods_receipt_notes.delivery_date >=', $filters['date_from']);
+            }
+
+            if (!empty($filters['date_to'])) {
+                $itemsQuery->where('goods_receipt_notes.delivery_date <=', $filters['date_to']);
+            }
+
+            if (!empty($filters['supplier_id'])) {
+                $itemsQuery->where('goods_receipt_notes.supplier_id', $filters['supplier_id']);
+            }
+
+            if (!empty($filters['project_id'])) {
+                $itemsQuery->join('purchase_orders', 'purchase_orders.id = goods_receipt_notes.purchase_order_id', 'left')
+                           ->where('purchase_orders.project_id', $filters['project_id']);
+            }
+        }
+
+        $totalItems = $itemsQuery->get()->getRow()->total_items ?? 0;
+
+        return [
+            'total' => $total,
+            'completed' => $completed,
+            'pending' => $pending,
+            'total_items' => $totalItems
+        ];
+    }
 }

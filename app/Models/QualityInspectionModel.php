@@ -53,11 +53,12 @@ class QualityInspectionModel extends Model
     {
         $builder = $this->select('quality_inspections.*, 
                 materials.name as material_name,
-                materials.item_code,
-                materials.unit,
                 inspector.first_name as inspector_first_name,
                 inspector.last_name as inspector_last_name,
+                CONCAT(inspector.first_name, " ", inspector.last_name) as inspector_name,
+                goods_receipt_items.grn_id,
                 goods_receipt_notes.grn_number,
+                goods_receipt_notes.supplier_id,
                 suppliers.name as supplier_name')
             ->join('materials', 'materials.id = quality_inspections.material_id', 'left')
             ->join('users as inspector', 'inspector.id = quality_inspections.inspector_id', 'left')
@@ -78,11 +79,24 @@ class QualityInspectionModel extends Model
             $builder->where('quality_inspections.inspector_id', $filters['inspector_id']);
         }
 
-        if (!empty($filters['material_id'])) {
-            $builder->where('quality_inspections.material_id', $filters['material_id']);
+        if (!empty($filters['supplier_id'])) {
+            $builder->where('goods_receipt_notes.supplier_id', $filters['supplier_id']);
         }
 
-        return $builder->orderBy('quality_inspections.created_at', 'DESC')->findAll();
+        if (!empty($filters['date_from'])) {
+            $builder->where('quality_inspections.inspection_date >=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $builder->where('quality_inspections.inspection_date <=', $filters['date_to']);
+        }
+
+        if (!empty($filters['project_id'])) {
+            $builder->join('purchase_orders', 'purchase_orders.id = goods_receipt_notes.purchase_order_id', 'left')
+                   ->where('purchase_orders.project_id', $filters['project_id']);
+        }
+
+        return $builder->orderBy('quality_inspections.inspection_date', 'DESC')->findAll();
     }
 
     /**
@@ -250,5 +264,60 @@ class QualityInspectionModel extends Model
     public function getInspectionsByInspector($inspectorId)
     {
         return $this->getInspectionsWithDetails(['inspector_id' => $inspectorId]);
+    }
+
+    /**
+     * Get summary statistics for quality inspections based on filters
+     *
+     * @param array $filters Optional filters for date range, supplier, project
+     * @return array Summary statistics
+     */
+    public function getSummaryStats($filters = [])
+    {
+        $builder = $this->db->table($this->table);
+
+        $builder->select('
+            COUNT(*) as total,
+            SUM(CASE WHEN status = "passed" THEN 1 ELSE 0 END) as passed,
+            SUM(CASE WHEN status = "failed" THEN 1 ELSE 0 END) as failed,
+            SUM(CASE WHEN status = "pending" OR status = "in_progress" THEN 1 ELSE 0 END) as pending,
+            SUM(quantity_passed) as total_quantity_passed,
+            SUM(quantity_failed) as total_quantity_failed'
+        );
+
+        // Join tables for filtering
+        $builder->join('goods_receipt_items', 'goods_receipt_items.id = quality_inspections.grn_item_id', 'left')
+                ->join('goods_receipt_notes', 'goods_receipt_notes.id = goods_receipt_items.grn_id', 'left');
+
+        // Apply date filters if provided
+        if (!empty($filters['date_from'])) {
+            $builder->where('quality_inspections.inspection_date >=', $filters['date_from']);
+        }
+
+        if (!empty($filters['date_to'])) {
+            $builder->where('quality_inspections.inspection_date <=', $filters['date_to']);
+        }
+
+        // Apply supplier filter if provided
+        if (!empty($filters['supplier_id'])) {
+            $builder->where('goods_receipt_notes.supplier_id', $filters['supplier_id']);
+        }
+
+        // Apply project filter if provided
+        if (!empty($filters['project_id'])) {
+            $builder->join('purchase_orders', 'purchase_orders.id = goods_receipt_notes.purchase_order_id', 'left')
+                   ->where('purchase_orders.project_id', $filters['project_id']);
+        }
+
+        $result = $builder->get()->getRowArray();
+
+        return [
+            'total' => (int)($result['total'] ?? 0),
+            'passed' => (int)($result['passed'] ?? 0),
+            'failed' => (int)($result['failed'] ?? 0),
+            'pending' => (int)($result['pending'] ?? 0),
+            'total_quantity_passed' => (float)($result['total_quantity_passed'] ?? 0),
+            'total_quantity_failed' => (float)($result['total_quantity_failed'] ?? 0)
+        ];
     }
 }
