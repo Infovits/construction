@@ -237,27 +237,6 @@
                 </div>
                 
                
-
-                <!-- Procurement Management Section -->
-                <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
-                    <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'procurement-submenu')">
-                        <i data-lucide="shopping-cart" class="w-5 h-5 flex-shrink-0"></i>
-                        <span class="sidebar-text overflow-hidden whitespace-nowrap">Procurement</span>
-                        <i data-lucide="chevron-down" class="w-4 h-4 ml-auto sidebar-text menu-chevron" id="procurement-chevron"></i>
-                        <div class="tooltip absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
-                            Procurement
-                        </div>
-                    </a>
-                    <div class="submenu" id="procurement-submenu">
-                        <div class="sidebar-text ml-8 mt-2 space-y-1">
-                            <a href="<?= base_url('admin/material-requests') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Material Requests</a>
-                            <a href="<?= base_url('admin/purchase-orders') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Purchase Orders</a>
-                            <a href="<?= base_url('admin/goods-receipt') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Goods Receipt</a>
-                            <a href="<?= base_url('admin/quality-inspections') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Quality Inspections</a>
-                            <a href="<?= base_url('admin/procurement/reports') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Procurement Reports</a>
-                        </div>
-                    </div>
-                </div>
                 
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'notification-submenu')">

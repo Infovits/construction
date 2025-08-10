@@ -264,6 +264,57 @@ $routes->group('admin', ['filter' => 'auth'], function($routes) {
         $routes->delete('delete/(:num)', 'Clients::delete/$1');
         $routes->post('toggle/(:num)', 'Clients::toggle/$1');
     });
+
+    // Procurement Management Routes
+    $routes->group('material-requests', function($routes) {
+        $routes->get('/', 'MaterialRequestController::index');
+        $routes->get('create', 'MaterialRequestController::create');
+        $routes->post('store', 'MaterialRequestController::store');
+        $routes->get('(:num)', 'MaterialRequestController::view/$1');
+        $routes->get('(:num)/edit', 'MaterialRequestController::edit/$1');
+        $routes->post('(:num)/update', 'MaterialRequestController::update/$1');
+        $routes->post('(:num)/approve', 'MaterialRequestController::approve/$1');
+        $routes->post('(:num)/reject', 'MaterialRequestController::reject/$1');
+        $routes->delete('(:num)', 'MaterialRequestController::delete/$1');
+    });
+
+    $routes->group('purchase-orders', function($routes) {
+        $routes->get('/', 'PurchaseOrderController::index');
+        $routes->get('create', 'PurchaseOrderController::create');
+        $routes->post('store', 'PurchaseOrderController::store');
+        $routes->get('(:num)', 'PurchaseOrderController::view/$1');
+        $routes->get('(:num)/edit', 'PurchaseOrderController::edit/$1');
+        $routes->post('(:num)/update', 'PurchaseOrderController::update/$1');
+        $routes->post('(:num)/send', 'PurchaseOrderController::send/$1');
+        $routes->post('(:num)/acknowledge', 'PurchaseOrderController::acknowledge/$1');
+        $routes->delete('(:num)', 'PurchaseOrderController::delete/$1');
+        $routes->get('(:num)/items', 'PurchaseOrderController::getPurchaseOrderItems/$1');
+        $routes->get('material-request-items/(:num)', 'PurchaseOrderController::getMaterialRequestItems/$1');
+    });
+
+    $routes->group('goods-receipt', function($routes) {
+        $routes->get('/', 'GoodsReceiptController::index');
+        $routes->get('create', 'GoodsReceiptController::create');
+        $routes->post('store', 'GoodsReceiptController::store');
+        $routes->get('(:num)', 'GoodsReceiptController::view/$1');
+        $routes->get('(:num)/edit', 'GoodsReceiptController::edit/$1');
+        $routes->post('(:num)/update', 'GoodsReceiptController::update/$1');
+        $routes->post('(:num)/accept', 'GoodsReceiptController::accept/$1');
+        $routes->post('(:num)/reject', 'GoodsReceiptController::reject/$1');
+        $routes->get('purchase-order-items/(:num)', 'GoodsReceiptController::getPurchaseOrderItems/$1');
+    });
+
+    $routes->group('quality-inspections', function($routes) {
+        $routes->get('/', 'QualityInspectionController::index');
+        $routes->get('create', 'QualityInspectionController::create');
+        $routes->post('store', 'QualityInspectionController::store');
+        $routes->get('(:num)', 'QualityInspectionController::view/$1');
+        $routes->get('(:num)/edit', 'QualityInspectionController::edit/$1');
+        $routes->post('(:num)/update', 'QualityInspectionController::update/$1');
+        $routes->post('(:num)/pass', 'QualityInspectionController::pass/$1');
+        $routes->post('(:num)/fail', 'QualityInspectionController::fail/$1');
+        $routes->delete('(:num)', 'QualityInspectionController::delete/$1');
+    });
 });
 
 // Default redirect to dashboard if logged in, login if not

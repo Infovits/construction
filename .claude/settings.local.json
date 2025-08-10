@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php spark serve:*)",
+      "Bash(php:*)",
+      "Bash(git restore:*)",
+      "Bash(rm:*)"
+    ],
+    "deny": []
+  }
+}
