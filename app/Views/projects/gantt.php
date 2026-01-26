@@ -39,13 +39,17 @@
                 <i data-lucide="maximize" class="w-4 h-4 mr-2"></i>
                 Fullscreen
             </button>
-            <button type="button" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors" onclick="exportToPDF()">
+            <button type="button" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors" onclick="exportToPDFServer()">
                 <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
                 Export PDF
             </button>
             <a href="<?= base_url('admin/projects/view/' . $project['id']) ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                 <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
                 Back to Project
+            </a>
+            <a href="<?= base_url('admin/projects/' . $project['id'] . '/gantt/pdf') ?>" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+                Export PDF
             </a>
         </div>
     </div>
@@ -580,40 +584,58 @@ function initGanttChart() {
     });
 }
 
-// Function to export the gantt chart to PDF
-function exportToPDF() {
-    try {
-        // First check if gantt is defined
-        if (typeof gantt === 'undefined') {
-            alert('Gantt chart library is not loaded. Please try refreshing the page.');
-            return;
-        }
-        
-        // Then check if exportToPDF function exists
-        if (!gantt.exportToPDF) {
-            console.error('exportToPDF function not available in the Gantt library');
-            alert('PDF export functionality is not available. Please ensure you have the Enterprise version of DHTMLX Gantt.');
-            return;
-        }
-        
-        // Check if the chart is properly initialized
-        const container = document.getElementById('gantt_here');
-        if (!container || container.style.display === 'none' || container.children.length === 0) {
-            alert('Gantt chart is not fully loaded or initialized. Please wait and try again.');
-            return;
-        }
+    // Function to export the gantt chart to PDF
+    function exportToPDF() {
+        try {
+            // First check if gantt is defined
+            if (typeof gantt === 'undefined') {
+                alert('Gantt chart library is not loaded. Please try refreshing the page.');
+                return;
+            }
+            
+            // Then check if exportToPDF function exists
+            if (!gantt.exportToPDF) {
+                console.error('exportToPDF function not available in the Gantt library');
+                alert('PDF export functionality is not available. Please ensure you have the Enterprise version of DHTMLX Gantt.');
+                return;
+            }
+            
+            // Check if the chart is properly initialized
+            const container = document.getElementById('gantt_here');
+            if (!container || container.style.display === 'none' || container.children.length === 0) {
+                alert('Gantt chart is not fully loaded or initialized. Please wait and try again.');
+                return;
+            }
 
-        // Execute the export
-        gantt.exportToPDF({
-            name: "project_gantt_<?= $project['project_code'] ?>_<?= date('Y-m-d') ?>.pdf",
-            header: "<h1><?= addslashes($project['name']) ?> - Project Timeline</h1>",
-            footer: "<div style='text-align:center'>Generated on <?= date('F j, Y') ?></div>"
-        });
-    } catch (error) {
-        console.error('Error during PDF export:', error);
-        alert('An error occurred while generating the PDF. Please try again later.');
+            // Execute the export
+            gantt.exportToPDF({
+                name: "project_gantt_<?= $project['project_code'] ?>_<?= date('Y-m-d') ?>.pdf",
+                header: "<h1><?= addslashes($project['name']) ?> - Project Timeline</h1>",
+                footer: "<div style='text-align:center'>Generated on <?= date('F j, Y') ?></div>"
+            });
+        } catch (error) {
+            console.error('Error during PDF export:', error);
+            alert('An error occurred while generating the PDF. Please try again later.');
+        }
     }
-}
+    
+    // Function to export using server-side PDF generation
+    function exportToPDFServer() {
+        try {
+            // Check if we have a valid project ID
+            const projectId = "<?= $project['id'] ?>";
+            if (!projectId) {
+                alert('Project ID not found. Please refresh the page and try again.');
+                return;
+            }
+            
+            // Redirect to server-side PDF generation
+            window.open("<?= base_url('admin/projects/' . $project['id'] . '/gantt/pdf') ?>", '_blank');
+        } catch (error) {
+            console.error('Error during server-side PDF export:', error);
+            alert('An error occurred while generating the PDF. Please try again later.');
+        }
+    }
 
 // Wait for both DOM and window load to ensure everything is ready
 window.addEventListener('load', function() {
