@@ -581,16 +581,39 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                             </div>
                                             <div class="text-xs text-gray-500 text-right mt-1"><?= $task['progress_percentage'] ?>%</div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <a href="<?= base_url('admin/tasks/view/' . $task['id']) ?>" class="text-indigo-600 hover:text-indigo-900">
-                                                <span class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200">
-                                                    <svg class="mr-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                    </svg>
-                                                    View
-                                                </span>
-                                            </a>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <div class="relative inline-block text-left">
+                                                <button type="button" class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500" id="menu-button-<?= $task['id'] ?>" onclick="toggleDropdown(<?= $task['id'] ?>)">
+                                                    Actions
+                                                    <i class="fas fa-chevron-down ml-2"></i>
+                                                </button>
+                                                <div class="origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 focus:outline-none hidden z-10" id="dropdown-<?= $task['id'] ?>">
+                                                    <div class="py-1">
+                                                        <a href="<?= base_url('admin/tasks/' . $task['id']) ?>" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                            <i class="fas fa-eye mr-3"></i> View Details
+                                                        </a>
+                                                        <a href="<?= base_url('admin/tasks/' . $task['id'] . '/edit') ?>" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                            <i class="fas fa-edit mr-3"></i> Edit
+                                                        </a>
+                                                        <hr class="my-1 border-gray-200">
+                                                        <?php if ($task['status'] !== 'completed'): ?>
+                                                        <a href="#" onclick="updateTaskStatus(<?= $task['id'] ?>, 'in_progress')" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                            <i class="fas fa-play mr-3"></i> Start Task
+                                                        </a>
+                                                        <a href="#" onclick="updateTaskStatus(<?= $task['id'] ?>, 'completed')" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                            <i class="fas fa-check mr-3"></i> Mark Complete
+                                                        </a>
+                                                        <?php endif; ?>
+                                                        <form method="POST" action="<?= base_url('admin/tasks/' . $task['id']) ?>" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this task? This action cannot be undone.')">
+                                                            <?= csrf_field() ?>
+                                                            <input type="hidden" name="_method" value="DELETE">
+                                                            <button type="submit" class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left">
+                                                                <i class="fas fa-trash mr-3"></i> Delete
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
@@ -725,6 +748,56 @@ function updateProgress() {
 
 function closeProgressModal() {
     document.getElementById('progressModal').classList.add('hidden');
+}
+
+function toggleDropdown(taskId) {
+    const dropdown = document.getElementById(`dropdown-${taskId}`);
+    const allDropdowns = document.querySelectorAll('[id^="dropdown-"]');
+
+    // Close all other dropdowns
+    allDropdowns.forEach(d => {
+        if (d.id !== `dropdown-${taskId}`) {
+            d.classList.add('hidden');
+        }
+    });
+
+    // Toggle current dropdown
+    dropdown.classList.toggle('hidden');
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('[id^="menu-button-"]') && !e.target.closest('[id^="dropdown-"]')) {
+        document.querySelectorAll('[id^="dropdown-"]').forEach(d => {
+            d.classList.add('hidden');
+        });
+    }
+});
+
+function updateTaskStatus(taskId, status = null) {
+    if (status) {
+        // Quick status update
+        const formData = new FormData();
+        formData.append('status', status);
+        formData.append('progress_percentage', status === 'completed' ? 100 : 0);
+
+        fetch(`<?= base_url('admin/tasks') ?>/${taskId}/status`, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating task status.');
+        });
+    }
 }
 </script>
 <?= $this->endSection() ?>

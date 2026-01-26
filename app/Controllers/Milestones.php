@@ -271,10 +271,16 @@ class Milestones extends BaseController
             $milestone = $this->milestoneModel->find($id);
             $this->projectModel->updateProjectProgress($milestone['project_id']);
 
-            return $this->response->setJSON(['success' => true, 'message' => 'Milestone marked as completed']);
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => true, 'message' => 'Milestone marked as completed']);
+            }
+            return redirect()->back()->with('success', 'Milestone marked as completed');
         }
 
-        return $this->response->setJSON(['success' => false, 'message' => 'Failed to complete milestone']);
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Failed to complete milestone']);
+        }
+        return redirect()->back()->with('error', 'Failed to complete milestone');
     }
 
     public function updateProgress($id)
@@ -333,14 +339,23 @@ class Milestones extends BaseController
         $milestone = $this->milestoneModel->find($id);
 
         if (!$milestone || !$milestone['is_milestone']) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Milestone not found']);
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => false, 'message' => 'Milestone not found']);
+            }
+            return redirect()->back()->with('error', 'Milestone not found');
         }
 
         if ($this->milestoneModel->delete($id)) {
-            return $this->response->setJSON(['success' => true, 'message' => 'Milestone deleted successfully']);
+            if ($this->request->isAJAX()) {
+                return $this->response->setJSON(['success' => true, 'message' => 'Milestone deleted successfully']);
+            }
+            return redirect()->back()->with('success', 'Milestone deleted successfully');
         }
 
-        return $this->response->setJSON(['success' => false, 'message' => 'Failed to delete milestone']);
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Failed to delete milestone']);
+        }
+        return redirect()->back()->with('error', 'Failed to delete milestone');
     }
 
     public function upcoming()
@@ -430,6 +445,339 @@ class Milestones extends BaseController
         ];
 
         return view('milestones/report', $data);
+    }
+
+    public function exportPdf()
+    {
+        $projectId = $this->request->getGet('project_id');
+        $dateFrom = $this->request->getGet('date_from') ?: date('Y-m-01');
+        $dateTo = $this->request->getGet('date_to') ?: date('Y-m-t');
+
+        $builder = $this->milestoneModel->select('tasks.*, projects.name as project_name')
+                                       ->join('projects', 'tasks.project_id = projects.id')
+                                       ->where('projects.company_id', session('company_id'))
+                                       ->where('tasks.is_milestone', 1)
+                                       ->where('tasks.planned_end_date >=', $dateFrom)
+                                       ->where('tasks.planned_end_date <=', $dateTo);
+
+        if ($projectId) {
+            $builder->where('tasks.project_id', $projectId);
+        }
+
+        $milestones = $builder->orderBy('tasks.planned_end_date', 'ASC')->findAll();
+
+        // Calculate statistics
+        $stats = [
+            'total' => count($milestones),
+            'completed' => count(array_filter($milestones, function($m) { return $m['status'] === 'completed'; })),
+            'overdue' => count(array_filter($milestones, function($m) { 
+                return $m['planned_end_date'] < date('Y-m-d') && $m['status'] !== 'completed'; 
+            })),
+            'upcoming' => count(array_filter($milestones, function($m) { 
+                return $m['planned_end_date'] >= date('Y-m-d') && $m['status'] !== 'completed'; 
+            }))
+        ];
+
+        $data = [
+            'title' => 'Milestone Report',
+            'milestones' => $milestones,
+            'projects' => $this->projectModel->getActiveProjects(),
+            'stats' => $stats,
+            'filters' => [
+                'project_id' => $projectId,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo
+            ],
+            'export_date' => date('F j, Y'),
+            'company_name' => session('company_name') ?? 'Construction Management System'
+        ];
+
+        // Load the PDF library
+        $mpdf = new \Mpdf\Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'P',
+            'margin_left' => 15,
+            'margin_right' => 15,
+            'margin_top' => 20,
+            'margin_bottom' => 20,
+            'margin_header' => 10,
+            'margin_footer' => 10
+        ]);
+
+        // Set header and footer
+        $mpdf->SetHTMLHeader('
+            <table width="100%" style="border-bottom: 2px solid #333; padding-bottom: 10px;">
+                <tr>
+                    <td style="font-size: 16px; font-weight: bold; color: #333;">' . $data['company_name'] . '</td>
+                    <td style="text-align: right; font-size: 12px; color: #666;">Report Generated: ' . $data['export_date'] . '</td>
+                </tr>
+                <tr>
+                    <td style="font-size: 14px; color: #666;">Milestone Report</td>
+                    <td style="text-align: right; font-size: 12px; color: #666;">Page {PAGENO} of {nbpg}</td>
+                </tr>
+            </table>
+        ');
+
+        $mpdf->SetHTMLFooter('
+            <table width="100%" style="border-top: 1px solid #ccc; padding-top: 10px;">
+                <tr>
+                    <td style="font-size: 10px; color: #999;">Confidential Document</td>
+                    <td style="text-align: right; font-size: 10px; color: #999;">Generated by Construction Management System</td>
+                </tr>
+            </table>
+        ');
+
+        // Generate the PDF content
+        $html = view('milestones/report_pdf', $data);
+        
+        $mpdf->WriteHTML($html);
+        
+        // Output the PDF
+        $filename = 'milestone_report_' . date('Y-m-d_H-i-s') . '.pdf';
+        $mpdf->Output($filename, 'D'); // D for download
+    }
+
+    public function exportExcel()
+    {
+        $milestones = $this->milestoneModel->select('tasks.*, projects.name as project_name')
+                                         ->join('projects', 'tasks.project_id = projects.id')
+                                         ->where('projects.company_id', session('company_id'))
+                                         ->where('tasks.is_milestone', 1)
+                                         ->orderBy('tasks.planned_end_date', 'ASC')
+                                         ->findAll();
+        
+        // Create Excel file
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Set company header
+        $sheet->setCellValue('A1', session('company_name') ?? 'Construction Management System');
+        $sheet->mergeCells('A1:I1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        
+        // Set report title
+        $sheet->setCellValue('A2', 'Milestone Report');
+        $sheet->mergeCells('A2:I2');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        
+        // Set report date
+        $sheet->setCellValue('A3', 'Generated: ' . date('F j, Y \a\t g:i A'));
+        $sheet->mergeCells('A3:I3');
+        $sheet->getStyle('A3')->getFont()->setItalic(true);
+        $sheet->getStyle('A3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        
+        // Set headers
+        $headers = [
+            'No.', 'Milestone Title', 'Project Name', 'Status', 'Priority', 
+            'Due Date', 'Completion Date', 'Progress (%)', 'Days Late', 'Assigned To'
+        ];
+        
+        $column = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($column . '5', $header);
+            $sheet->getStyle($column . '5')->getFont()->setBold(true);
+            $sheet->getStyle($column . '5')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('E3F2FD');
+            $column++;
+        }
+        
+        // Set column widths
+        $sheet->getColumnDimension('A')->setWidth(8);   // No.
+        $sheet->getColumnDimension('B')->setWidth(35);  // Milestone Title
+        $sheet->getColumnDimension('C')->setWidth(30);  // Project Name
+        $sheet->getColumnDimension('D')->setWidth(15);  // Status
+        $sheet->getColumnDimension('E')->setWidth(12);  // Priority
+        $sheet->getColumnDimension('F')->setWidth(15);  // Due Date
+        $sheet->getColumnDimension('G')->setWidth(18);  // Completion Date
+        $sheet->getColumnDimension('H')->setWidth(12);  // Progress
+        $sheet->getColumnDimension('I')->setWidth(12);  // Days Late
+        $sheet->getColumnDimension('J')->setWidth(25);  // Assigned To
+        
+        // Add data with numbering
+        $row = 6;
+        $counter = 1;
+        foreach ($milestones as $milestone) {
+            $daysLate = 0;
+            if ($milestone['planned_end_date'] && $milestone['status'] !== 'completed') {
+                $dueDate = strtotime($milestone['planned_end_date']);
+                $today = strtotime(date('Y-m-d'));
+                if ($today > $dueDate) {
+                    $daysLate = floor(($today - $dueDate) / (60 * 60 * 24));
+                }
+            } elseif ($milestone['actual_end_date'] && $milestone['planned_end_date']) {
+                $dueDate = strtotime($milestone['planned_end_date']);
+                $completedDate = strtotime($milestone['actual_end_date']);
+                if ($completedDate > $dueDate) {
+                    $daysLate = floor(($completedDate - $dueDate) / (60 * 60 * 24));
+                }
+            }
+            
+            $assignedTo = '';
+            if ($milestone['assigned_to']) {
+                $user = $this->userModel->find($milestone['assigned_to']);
+                if ($user) {
+                    $assignedTo = $user['first_name'] . ' ' . $user['last_name'];
+                }
+            }
+            
+            // Add row number
+            $sheet->setCellValue('A' . $row, $counter);
+            $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            
+            // Add milestone data
+            $sheet->setCellValue('B' . $row, $milestone['title']);
+            $sheet->setCellValue('C' . $row, $milestone['project_name']);
+            $sheet->setCellValue('D' . $row, ucwords(str_replace('_', ' ', $milestone['status'] ?: 'not_started')));
+            $sheet->setCellValue('E' . $row, ucwords($milestone['priority']));
+            $sheet->setCellValue('F' . $row, $milestone['planned_end_date'] ? date('M d, Y', strtotime($milestone['planned_end_date'])) : 'Not set');
+            $sheet->setCellValue('G' . $row, $milestone['status'] === 'completed' && $milestone['actual_end_date'] ? date('M d, Y', strtotime($milestone['actual_end_date'])) : 'Not completed');
+            $sheet->setCellValue('H' . $row, $milestone['progress_percentage']);
+            $sheet->getStyle('H' . $row)->getNumberFormat()->setFormatCode('0');
+            $sheet->setCellValue('I' . $row, $daysLate > 0 ? $daysLate : ($milestone['status'] === 'completed' && $daysLate <= 0 ? 0 : ''));
+            $sheet->getStyle('I' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->setCellValue('J' . $row, $assignedTo);
+            
+            $row++;
+            $counter++;
+        }
+        
+        // Add summary statistics
+        $totalMilestones = count($milestones);
+        $completedMilestones = count(array_filter($milestones, function($m) { return $m['status'] === 'completed'; }));
+        $overdueMilestones = count(array_filter($milestones, function($m) { 
+            return $m['planned_end_date'] < date('Y-m-d') && $m['status'] !== 'completed'; 
+        }));
+        $upcomingMilestones = count(array_filter($milestones, function($m) { 
+            return $m['planned_end_date'] >= date('Y-m-d') && $m['status'] !== 'completed'; 
+        }));
+        
+        $summaryRow = $row + 2;
+        $sheet->setCellValue('A' . $summaryRow, 'Summary Statistics:');
+        $sheet->getStyle('A' . $summaryRow)->getFont()->setBold(true);
+        
+        $summaryRow++;
+        $sheet->setCellValue('A' . $summaryRow, 'Total Milestones:');
+        $sheet->setCellValue('B' . $summaryRow, $totalMilestones);
+        $sheet->getStyle('B' . $summaryRow)->getFont()->setBold(true);
+        
+        $summaryRow++;
+        $sheet->setCellValue('A' . $summaryRow, 'Completed:');
+        $sheet->setCellValue('B' . $summaryRow, $completedMilestones);
+        $sheet->getStyle('B' . $summaryRow)->getFont()->setBold(true);
+        
+        $summaryRow++;
+        $sheet->setCellValue('A' . $summaryRow, 'Overdue:');
+        $sheet->setCellValue('B' . $summaryRow, $overdueMilestones);
+        $sheet->getStyle('B' . $summaryRow)->getFont()->setBold(true);
+        
+        $summaryRow++;
+        $sheet->setCellValue('A' . $summaryRow, 'Upcoming:');
+        $sheet->setCellValue('B' . $summaryRow, $upcomingMilestones);
+        $sheet->getStyle('B' . $summaryRow)->getFont()->setBold(true);
+        
+        // Create writer and output
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'milestone_report_' . date('Y-m-d_H-i-s') . '.xlsx';
+        
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        
+        $writer->save('php://output');
+        exit();
+    }
+
+    public function previewPdf()
+    {
+        $projectId = $this->request->getGet('project_id');
+        $dateFrom = $this->request->getGet('date_from') ?: date('Y-m-01');
+        $dateTo = $this->request->getGet('date_to') ?: date('Y-m-t');
+
+        $builder = $this->milestoneModel->select('tasks.*, projects.name as project_name')
+                                       ->join('projects', 'tasks.project_id = projects.id')
+                                       ->where('projects.company_id', session('company_id'))
+                                       ->where('tasks.is_milestone', 1)
+                                       ->where('tasks.planned_end_date >=', $dateFrom)
+                                       ->where('tasks.planned_end_date <=', $dateTo);
+
+        if ($projectId) {
+            $builder->where('tasks.project_id', $projectId);
+        }
+
+        $milestones = $builder->orderBy('tasks.planned_end_date', 'ASC')->findAll();
+
+        // Calculate statistics
+        $stats = [
+            'total' => count($milestones),
+            'completed' => count(array_filter($milestones, function($m) { return $m['status'] === 'completed'; })),
+            'overdue' => count(array_filter($milestones, function($m) { 
+                return $m['planned_end_date'] < date('Y-m-d') && $m['status'] !== 'completed'; 
+            })),
+            'upcoming' => count(array_filter($milestones, function($m) { 
+                return $m['planned_end_date'] >= date('Y-m-d') && $m['status'] !== 'completed'; 
+            }))
+        ];
+
+        $data = [
+            'title' => 'Milestone Report',
+            'milestones' => $milestones,
+            'projects' => $this->projectModel->getActiveProjects(),
+            'stats' => $stats,
+            'filters' => [
+                'project_id' => $projectId,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo
+            ],
+            'export_date' => date('F j, Y'),
+            'company_name' => session('company_name') ?? 'Construction Management System'
+        ];
+
+        // Load the PDF library
+        $mpdf = new \Mpdf\Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'P',
+            'margin_left' => 15,
+            'margin_right' => 15,
+            'margin_top' => 20,
+            'margin_bottom' => 20,
+            'margin_header' => 10,
+            'margin_footer' => 10
+        ]);
+
+        // Set header and footer
+        $mpdf->SetHTMLHeader('
+            <table width="100%" style="border-bottom: 2px solid #333; padding-bottom: 10px;">
+                <tr>
+                    <td style="font-size: 16px; font-weight: bold; color: #333;">' . $data['company_name'] . '</td>
+                    <td style="text-align: right; font-size: 12px; color: #666;">Report Generated: ' . $data['export_date'] . '</td>
+                </tr>
+                <tr>
+                    <td style="font-size: 14px; color: #666;">Milestone Report</td>
+                    <td style="text-align: right; font-size: 12px; color: #666;">Page {PAGENO} of {nbpg}</td>
+                </tr>
+            </table>
+        ');
+
+        $mpdf->SetHTMLFooter('
+            <table width="100%" style="border-top: 1px solid #ccc; padding-top: 10px;">
+                <tr>
+                    <td style="font-size: 10px; color: #999;">Confidential Document</td>
+                    <td style="text-align: right; font-size: 10px; color: #999;">Generated by Construction Management System</td>
+                </tr>
+            </table>
+        ');
+
+        // Generate the PDF content
+        $html = view('milestones/report_pdf', $data);
+        
+        $mpdf->WriteHTML($html);
+        
+        // Output the PDF for viewing (I for inline)
+        $filename = 'milestone_report_' . date('Y-m-d_H-i-s') . '.pdf';
+        $mpdf->Output($filename, 'I'); // I for inline viewing
     }
 
     private function calculateMilestoneCompletion($milestone, $relatedTasks)

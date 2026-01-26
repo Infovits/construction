@@ -108,6 +108,9 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->post("delete-attachment/(:num)", "Tasks::deleteAttachment/$1");
         $routes->get("attachment/(:num)/download", "Tasks::download/$1");
         $routes->post("(:num)/log-time", "Tasks::logTime/$1");
+        $routes->get("report", "Tasks::report");
+        $routes->get("report/export/pdf", "Tasks::exportPdf");
+        $routes->get("report/export/excel", "Tasks::exportExcel");
 
         // API routes for calendar
         $routes->get("api/calendar-events", "Tasks::apiCalendarEvents");
@@ -123,6 +126,9 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->get("upcoming", "Milestones::upcoming");
         $routes->get("calendar", "Milestones::calendar");
         $routes->get("report", "Milestones::report");
+        $routes->get("exportPdf", "Milestones::exportPdf");
+        $routes->get("exportExcel", "Milestones::exportExcel");
+        $routes->get("previewPdf", "Milestones::previewPdf");
         $routes->get("project/(:num)", "Milestones::getProjectMilestones/$1");
         $routes->get("(:num)/view", "Milestones::show/$1");
         $routes->get("(:num)/edit", "Milestones::edit/$1");
@@ -130,6 +136,7 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->post("(:num)", "Milestones::update/$1");
         $routes->post("(:num)/update-progress", "Milestones::updateProgress/$1");
         $routes->delete("(:num)", "Milestones::delete/$1");
+        $routes->post("(:num)/delete", "Milestones::delete/$1");
         $routes->post("(:num)/complete", "Milestones::complete/$1");
         $routes->get("api/calendar-events", "Milestones::apiCalendarEvents");
     });

@@ -15,7 +15,7 @@ class TaskModel extends Model
         'task_type', 'priority', 'status', 'progress_percentage', 'assigned_to', 'assigned_by',
         'planned_start_date', 'planned_end_date', 'actual_start_date', 'actual_end_date',
         'estimated_hours', 'actual_hours', 'estimated_cost', 'actual_cost', 'depends_on',
-        'is_critical_path', 'requires_approval', 'is_billable', 'created_by', 'tags', 'notes'
+        'is_critical_path', 'requires_approval', 'is_billable', 'is_milestone', 'created_by', 'tags', 'notes'
     ];
 
     protected $useTimestamps = true;

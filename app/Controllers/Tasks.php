@@ -32,7 +32,8 @@ class Tasks extends BaseController
         $builder = $this->taskModel->select('tasks.*, projects.name as project_name, CONCAT(u.first_name, " ", u.last_name) as assigned_name')
                                   ->join('projects', 'tasks.project_id = projects.id')
                                   ->join('users u', 'tasks.assigned_to = u.id', 'left')
-                                  ->where('projects.company_id', session('company_id'));
+                                  ->where('projects.company_id', session('company_id'))
+                                  ->where('tasks.is_milestone', 0);
 
         if ($status) {
             $builder->where('tasks.status', $status);
@@ -596,7 +597,8 @@ class Tasks extends BaseController
                                   ->join('users u', 'tasks.assigned_to = u.id', 'left')
                                   ->where('tasks.assigned_to', $userId)
                                   ->where('projects.company_id', session('company_id'))
-                                  ->where('tasks.status !=', 'cancelled');
+                                  ->where('tasks.status !=', 'cancelled')
+                                  ->where('tasks.is_milestone', 0);
 
         $tasks = $builder->orderBy('tasks.planned_end_date', 'ASC')->paginate(20);
 
@@ -624,6 +626,7 @@ class Tasks extends BaseController
                                       ->join('projects', 'tasks.project_id = projects.id')
                                       ->where('projects.company_id', session('company_id'))
                                       ->where('tasks.status !=', 'cancelled')
+                                      ->where('tasks.is_milestone', 0)
                                       ->findAll()
         ];
 
@@ -642,7 +645,8 @@ class Tasks extends BaseController
                                 ->join('projects', 'tasks.project_id = projects.id')
                                 ->join('users u', 'tasks.assigned_to = u.id', 'left')
                                 ->where('projects.company_id', session('company_id'))
-                                ->where('tasks.status !=', 'cancelled');
+                                ->where('tasks.status !=', 'cancelled')
+                                ->where('tasks.is_milestone', 0);
 
         if ($start && $end) {
             $tasks->where('tasks.planned_end_date >=', $start)
@@ -669,6 +673,294 @@ class Tasks extends BaseController
         }
 
         return $this->response->setJSON(['task' => $task]);
+    }
+
+    public function report()
+    {
+        $projectId = $this->request->getGet('project');
+        $status = $this->request->getGet('status');
+        $assignedTo = $this->request->getGet('assigned_to');
+
+        $builder = $this->taskModel->select('tasks.*, projects.name as project_name, projects.project_code, CONCAT(u.first_name, " ", u.last_name) as assigned_name')
+                                  ->join('projects', 'tasks.project_id = projects.id')
+                                  ->join('users u', 'tasks.assigned_to = u.id', 'left')
+                                  ->where('projects.company_id', session('company_id'))
+                                  ->where('tasks.is_milestone', 0);
+
+        if ($projectId) {
+            $builder->where('tasks.project_id', $projectId);
+        }
+        if ($status) {
+            $builder->where('tasks.status', $status);
+        }
+        if ($assignedTo) {
+            $builder->where('tasks.assigned_to', $assignedTo);
+        }
+
+        $tasks = $builder->orderBy('tasks.planned_end_date', 'ASC')->findAll();
+
+        // Calculate statistics
+        $stats = [
+            'total' => count($tasks),
+            'completed' => count(array_filter($tasks, function($t) { return $t['status'] === 'completed'; })),
+            'overdue' => count(array_filter($tasks, function($t) { 
+                return $t['planned_end_date'] < date('Y-m-d') && $t['status'] !== 'completed'; 
+            })),
+            'in_progress' => count(array_filter($tasks, function($t) { return $t['status'] === 'in_progress'; }))
+        ];
+
+        $data = [
+            'title' => 'Task Report',
+            'tasks' => $tasks,
+            'projects' => $this->projectModel->getActiveProjects(),
+            'users' => $this->userModel->where('status', 'active')->where('company_id', session('company_id'))->findAll(),
+            'stats' => $stats,
+            'filters' => [
+                'project' => $projectId,
+                'status' => $status,
+                'assigned_to' => $assignedTo
+            ]
+        ];
+
+        return view('tasks/report', $data);
+    }
+
+    public function exportPdf()
+    {
+        $projectId = $this->request->getGet('project');
+        $status = $this->request->getGet('status');
+        $assignedTo = $this->request->getGet('assigned_to');
+
+        $builder = $this->taskModel->select('tasks.*, projects.name as project_name, projects.project_code, CONCAT(u.first_name, " ", u.last_name) as assigned_name')
+                                  ->join('projects', 'tasks.project_id = projects.id')
+                                  ->join('users u', 'tasks.assigned_to = u.id', 'left')
+                                  ->where('projects.company_id', session('company_id'))
+                                  ->where('tasks.is_milestone', 0);
+
+        if ($projectId) {
+            $builder->where('tasks.project_id', $projectId);
+        }
+        if ($status) {
+            $builder->where('tasks.status', $status);
+        }
+        if ($assignedTo) {
+            $builder->where('tasks.assigned_to', $assignedTo);
+        }
+
+        $tasks = $builder->orderBy('tasks.planned_end_date', 'ASC')->findAll();
+
+        // Calculate statistics
+        $stats = [
+            'total' => count($tasks),
+            'completed' => count(array_filter($tasks, function($t) { return $t['status'] === 'completed'; })),
+            'overdue' => count(array_filter($tasks, function($t) { 
+                return $t['planned_end_date'] < date('Y-m-d') && $t['status'] !== 'completed'; 
+            })),
+            'in_progress' => count(array_filter($tasks, function($t) { return $t['status'] === 'in_progress'; }))
+        ];
+
+        $data = [
+            'title' => 'Task Report',
+            'tasks' => $tasks,
+            'projects' => $this->projectModel->getActiveProjects(),
+            'users' => $this->userModel->where('status', 'active')->where('company_id', session('company_id'))->findAll(),
+            'stats' => $stats,
+            'filters' => [
+                'project' => $projectId,
+                'status' => $status,
+                'assigned_to' => $assignedTo
+            ],
+            'export_date' => date('F j, Y'),
+            'company_name' => session('company_name') ?? 'Construction Management System'
+        ];
+
+        // Load the PDF library
+        $mpdf = new \Mpdf\Mpdf([
+            'mode' => 'utf-8',
+            'format' => 'A4',
+            'orientation' => 'P',
+            'margin_left' => 15,
+            'margin_right' => 15,
+            'margin_top' => 20,
+            'margin_bottom' => 20,
+            'margin_header' => 10,
+            'margin_footer' => 10
+        ]);
+
+        // Set header and footer
+        $mpdf->SetHTMLHeader('
+            <table width="100%" style="border-bottom: 2px solid #333; padding-bottom: 10px;">
+                <tr>
+                    <td style="font-size: 16px; font-weight: bold; color: #333;">' . $data['company_name'] . '</td>
+                    <td style="text-align: right; font-size: 12px; color: #666;">Report Generated: ' . $data['export_date'] . '</td>
+                </tr>
+                <tr>
+                    <td style="font-size: 14px; color: #666;">Task Report</td>
+                    <td style="text-align: right; font-size: 12px; color: #666;">Page {PAGENO} of {nbpg}</td>
+                </tr>
+            </table>
+        ');
+
+        $mpdf->SetHTMLFooter('
+            <table width="100%" style="border-top: 1px solid #ccc; padding-top: 10px;">
+                <tr>
+                    <td style="font-size: 10px; color: #999;">Confidential Document</td>
+                    <td style="text-align: right; font-size: 10px; color: #999;">Generated by Construction Management System</td>
+                </tr>
+            </table>
+        ');
+
+        // Generate the PDF content
+        $html = view('tasks/report_pdf', $data);
+        
+        $mpdf->WriteHTML($html);
+        
+        // Output the PDF
+        $filename = 'task_report_' . date('Y-m-d_H-i-s') . '.pdf';
+        $mpdf->Output($filename, 'D'); // D for download
+    }
+
+    public function exportExcel()
+    {
+        $builder = $this->taskModel->select('tasks.*, projects.name as project_name, projects.project_code, CONCAT(u.first_name, " ", u.last_name) as assigned_name')
+                                  ->join('projects', 'tasks.project_id = projects.id')
+                                  ->join('users u', 'tasks.assigned_to = u.id', 'left')
+                                  ->where('projects.company_id', session('company_id'))
+                                  ->where('tasks.is_milestone', 0)
+                                  ->orderBy('tasks.planned_end_date', 'ASC');
+
+        $tasks = $builder->findAll();
+        
+        // Create Excel file
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        // Set company header
+        $sheet->setCellValue('A1', session('company_name') ?? 'Construction Management System');
+        $sheet->mergeCells('A1:J1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        
+        // Set report title
+        $sheet->setCellValue('A2', 'Task Report');
+        $sheet->mergeCells('A2:J2');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        
+        // Set report date
+        $sheet->setCellValue('A3', 'Generated: ' . date('F j, Y \a\t g:i A'));
+        $sheet->mergeCells('A3:J3');
+        $sheet->getStyle('A3')->getFont()->setItalic(true);
+        $sheet->getStyle('A3')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+        
+        // Set headers
+        $headers = [
+            'No.', 'Task Title', 'Project Name', 'Assigned To', 'Priority', 
+            'Status', 'Progress (%)', 'Due Date', 'Days Late', 'Task Code'
+        ];
+        
+        $column = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($column . '5', $header);
+            $sheet->getStyle($column . '5')->getFont()->setBold(true);
+            $sheet->getStyle($column . '5')->getFill()->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('E3F2FD');
+            $column++;
+        }
+        
+        // Set column widths
+        $sheet->getColumnDimension('A')->setWidth(8);   // No.
+        $sheet->getColumnDimension('B')->setWidth(40);  // Task Title
+        $sheet->getColumnDimension('C')->setWidth(30);  // Project Name
+        $sheet->getColumnDimension('D')->setWidth(25);  // Assigned To
+        $sheet->getColumnDimension('E')->setWidth(12);  // Priority
+        $sheet->getColumnDimension('F')->setWidth(15);  // Status
+        $sheet->getColumnDimension('G')->setWidth(12);  // Progress
+        $sheet->getColumnDimension('H')->setWidth(15);  // Due Date
+        $sheet->getColumnDimension('I')->setWidth(12);  // Days Late
+        $sheet->getColumnDimension('J')->setWidth(15);  // Task Code
+        
+        // Add data with numbering
+        $row = 6;
+        $counter = 1;
+        foreach ($tasks as $task) {
+            $daysLate = 0;
+            if ($task['planned_end_date'] && $task['status'] !== 'completed') {
+                $dueDate = strtotime($task['planned_end_date']);
+                $today = strtotime(date('Y-m-d'));
+                if ($today > $dueDate) {
+                    $daysLate = floor(($today - $dueDate) / (60 * 60 * 24));
+                }
+            } elseif ($task['actual_end_date'] && $task['planned_end_date']) {
+                $dueDate = strtotime($task['planned_end_date']);
+                $completedDate = strtotime($task['actual_end_date']);
+                if ($completedDate > $dueDate) {
+                    $daysLate = floor(($completedDate - $dueDate) / (60 * 60 * 24));
+                }
+            }
+            
+            // Add row number
+            $sheet->setCellValue('A' . $row, $counter);
+            $sheet->getStyle('A' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            
+            // Add task data
+            $sheet->setCellValue('B' . $row, $task['title']);
+            $sheet->setCellValue('C' . $row, $task['project_name']);
+            $sheet->setCellValue('D' . $row, $task['assigned_name'] ?? 'Unassigned');
+            $sheet->setCellValue('E' . $row, ucwords($task['priority']));
+            $sheet->setCellValue('F' . $row, ucwords(str_replace('_', ' ', $task['status'])));
+            $sheet->setCellValue('G' . $row, $task['progress_percentage']);
+            $sheet->getStyle('G' . $row)->getNumberFormat()->setFormatCode('0');
+            $sheet->setCellValue('H' . $row, $task['planned_end_date'] ? date('M d, Y', strtotime($task['planned_end_date'])) : 'No due date');
+            $sheet->setCellValue('I' . $row, $daysLate > 0 ? $daysLate : ($task['status'] === 'completed' && $daysLate <= 0 ? 0 : ''));
+            $sheet->getStyle('I' . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->setCellValue('J' . $row, $task['task_code']);
+            
+            $row++;
+            $counter++;
+        }
+        
+        // Add summary statistics
+        $totalTasks = count($tasks);
+        $completedTasks = count(array_filter($tasks, function($t) { return $t['status'] === 'completed'; }));
+        $overdueTasks = count(array_filter($tasks, function($t) { 
+            return $t['planned_end_date'] < date('Y-m-d') && $t['status'] !== 'completed'; 
+        }));
+        $inProgressTasks = count(array_filter($tasks, function($t) { return $t['status'] === 'in_progress'; }));
+        
+        $summaryRow = $row + 2;
+        $sheet->setCellValue('A' . $summaryRow, 'Summary Statistics:');
+        $sheet->getStyle('A' . $summaryRow)->getFont()->setBold(true);
+        
+        $summaryRow++;
+        $sheet->setCellValue('A' . $summaryRow, 'Total Tasks:');
+        $sheet->setCellValue('B' . $summaryRow, $totalTasks);
+        $sheet->getStyle('B' . $summaryRow)->getFont()->setBold(true);
+        
+        $summaryRow++;
+        $sheet->setCellValue('A' . $summaryRow, 'Completed:');
+        $sheet->setCellValue('B' . $summaryRow, $completedTasks);
+        $sheet->getStyle('B' . $summaryRow)->getFont()->setBold(true);
+        
+        $summaryRow++;
+        $sheet->setCellValue('A' . $summaryRow, 'Overdue:');
+        $sheet->setCellValue('B' . $summaryRow, $overdueTasks);
+        $sheet->getStyle('B' . $summaryRow)->getFont()->setBold(true);
+        
+        $summaryRow++;
+        $sheet->setCellValue('A' . $summaryRow, 'In Progress:');
+        $sheet->setCellValue('B' . $summaryRow, $inProgressTasks);
+        $sheet->getStyle('B' . $summaryRow)->getFont()->setBold(true);
+        
+        // Create writer and output
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'task_report_' . date('Y-m-d_H-i-s') . '.xlsx';
+        
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        
+        $writer->save('php://output');
+        exit();
     }
 
     public function byProject($projectId)

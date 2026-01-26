@@ -18,6 +18,9 @@
                 <a href="<?= base_url('admin/tasks/my-tasks') ?>" class="inline-flex items-center px-4 py-2 bg-white text-green-600 border border-green-600 text-sm font-medium rounded-lg hover:bg-green-50 transition-colors">
                     <i class="fas fa-user mr-2"></i> My Tasks
                 </a>
+                <a href="<?= base_url('admin/tasks/report') ?>" class="inline-flex items-center px-4 py-2 bg-white text-purple-600 border border-purple-600 text-sm font-medium rounded-lg hover:bg-purple-50 transition-colors">
+                    <i class="fas fa-chart-bar mr-2"></i> Reports
+                </a>
             </div>
         </div>
     </div>

@@ -13,9 +13,14 @@ Milestone Report
                 <a href="<?= base_url('admin/milestones') ?>" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium">
                     <i class="fas fa-arrow-left mr-2"></i>Back to Milestones
                 </a>
-                <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
-                    <i class="fas fa-print mr-2"></i>Print Report
-                </button>
+                <a href="<?= base_url('admin/milestones/exportExcel') . '?' . http_build_query($filters) ?>" 
+                   class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                    <i class="fas fa-file-excel mr-2"></i>Export Excel
+                </a>
+                <a href="<?= base_url('admin/milestones/exportPdf') . '?' . http_build_query($filters) ?>" 
+                   class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                    <i class="fas fa-file-pdf mr-2"></i>Generate PDF Report
+                </a>
             </div>
         </div>
 
@@ -164,14 +169,17 @@ Milestone Report
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <?php
                                     $statusClasses = [
+                                        'not_started' => 'bg-gray-100 text-gray-800',
                                         'pending' => 'bg-yellow-100 text-yellow-800',
                                         'in_progress' => 'bg-blue-100 text-blue-800',
+                                        'review' => 'bg-purple-100 text-purple-800',
                                         'completed' => 'bg-green-100 text-green-800',
+                                        'on_hold' => 'bg-orange-100 text-orange-800',
                                         'cancelled' => 'bg-red-100 text-red-800'
                                     ][$milestone['status']] ?? 'bg-gray-100 text-gray-800';
                                     ?>
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?= $statusClasses ?>">
-                                        <?= ucwords(str_replace('_', ' ', $milestone['status'])) ?>
+                                        <?= ucwords(str_replace('_', ' ', $milestone['status'] ?: 'not_started')) ?>
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -183,10 +191,10 @@ Milestone Report
                                 </td>
 
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <?php if ($milestone['actual_end_date']): ?>
+                                    <?php if ($milestone['status'] === 'completed' && isset($milestone['actual_end_date']) && $milestone['actual_end_date'] && strtotime($milestone['actual_end_date']) > 0): ?>
                                         <div class="text-sm text-gray-900"><?= date('M d, Y', strtotime($milestone['actual_end_date'])) ?></div>
                                     <?php else: ?>
-                                        <span class="text-sm text-gray-500">-</span>
+                                        <span class="text-sm text-gray-500">Not completed</span>
                                     <?php endif; ?>
                                 </td>
 
@@ -243,9 +251,9 @@ Milestone Report
 
 <?= $this->section('scripts') ?>
 <script>
-$(document).ready(function() {
-    // Initialize DataTable if needed
-    if ($.fn.DataTable !== undefined) {
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize DataTable if available
+    if (typeof $ !== 'undefined' && $.fn.DataTable !== undefined) {
         $('#milestonesReportTable').DataTable({
             "pageLength": 50,
             "order": [[ 3, "asc" ]], // Order by due date

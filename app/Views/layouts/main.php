@@ -190,6 +190,7 @@
                             <a href="<?= base_url('admin/tasks/calendar') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Calendar View</a>
                             <a href="<?= base_url('admin/tasks?status=pending') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Pending Tasks</a>
                             <a href="<?= base_url('admin/tasks?status=in_progress') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">In Progress</a>
+                            <a href="<?= base_url('admin/tasks/report') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Reports</a>
                         </div>
                     </div>
                 </div>
