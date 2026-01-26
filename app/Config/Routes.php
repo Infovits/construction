@@ -97,6 +97,7 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->post("(:num)", "Tasks::update/$1");
         $routes->delete("(:num)", "Tasks::delete/$1");
         $routes->delete("(:num)/delete", "Tasks::delete/$1");
+        $routes->post("(:num)/delete", "Tasks::delete/$1");
         $routes->post("(:num)/status", "Tasks::updateStatus/$1");
         $routes->post("(:num)/comment", "Tasks::addComment/$1");
         $routes->post("add-comment/(:num)", "Tasks::addComment/$1");

@@ -191,9 +191,13 @@
                                                 <i class="fas fa-check mr-3"></i> Mark Complete
                                             </a>
                                             <?php endif; ?>
-                                            <a href="#" onclick="deleteTask(<?= $task['id'] ?>)" class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
-                                                <i class="fas fa-trash mr-3"></i> Delete
-                                            </a>
+                                            <form method="POST" action="<?= base_url('admin/tasks/' . $task['id']) ?>" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this task? This action cannot be undone.')">
+                                                <?= csrf_field() ?>
+                                                <input type="hidden" name="_method" value="DELETE">
+                                                <button type="submit" class="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left">
+                                                    <i class="fas fa-trash mr-3"></i> Delete
+                                                </button>
+                                            </form>
                                         </div>
                                     </div>
                                 </div>
@@ -351,28 +355,6 @@ function closeModal() {
     document.getElementById('statusUpdateModal').classList.add('hidden');
 }
 
-function deleteTask(taskId) {
-    if (confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
-        fetch(`<?= base_url('admin/tasks') ?>/${taskId}/delete`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting the task.');
-        });
-    }
-}
 </script>
 
 <?= $this->endSection() ?>
