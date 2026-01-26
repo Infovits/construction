@@ -96,10 +96,11 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php foreach ($tasks as $task): ?>
+                        <?php if ($task['is_milestone']) continue; ?>
                         <tr class="<?= getTaskRowClass($task) === 'table-warning' ? 'bg-yellow-50' : (getTaskRowClass($task) === 'table-success' ? 'bg-green-50' : '') ?> hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
-                                    <?php if ($task['task_type'] === 'milestone'): ?>
+                                    <?php if ($task['is_milestone']): ?>
                                     <i class="fas fa-flag text-red-500 mr-3"></i>
                                     <?php elseif ($task['is_critical_path']): ?>
                                     <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
