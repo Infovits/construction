@@ -149,32 +149,42 @@ class ProjectCategories extends BaseController
 
     public function delete($id)
     {
+        log_message('debug', 'Delete category called with ID: ' . $id);
+        
         $category = $this->categoryModel->find($id);
         
         if (!$category) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Project category not found']);
+            log_message('debug', 'Category not found: ' . $id);
+            return redirect()->to(base_url('admin/project-categories'))->with('error', 'Project category not found');
         }
+
+        log_message('debug', 'Category found: ' . $category['name']);
 
         // Check if category is being used by any projects
         $projectModel = new \App\Models\ProjectModel();
         $projectCount = $projectModel->where('category_id', $id)->countAllResults();
 
+        log_message('debug', 'Project count using category: ' . $projectCount);
+
         if ($projectCount > 0) {
-            return $this->response->setJSON([
-                'success' => false, 
-                'message' => "Cannot delete category. It is being used by {$projectCount} project(s)."
-            ]);
+            log_message('debug', 'Cannot delete - category in use by ' . $projectCount . ' projects');
+            return redirect()->to(base_url('admin/project-categories'))->with('error', "Cannot delete category. It is being used by {$projectCount} project(s).");
         }
 
         try {
+            log_message('debug', 'Attempting to delete category ID: ' . $id);
             if ($this->categoryModel->delete($id)) {
-                return $this->response->setJSON(['success' => true, 'message' => 'Project category deleted successfully']);
+                log_message('debug', 'Category deleted successfully: ' . $id);
+                return redirect()->to(base_url('admin/project-categories'))->with('success', 'Project category deleted successfully');
+            } else {
+                log_message('debug', 'Category delete failed: ' . $id);
             }
         } catch (\Exception $e) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error deleting category: ' . $e->getMessage()]);
+            log_message('debug', 'Exception during delete: ' . $e->getMessage());
+            return redirect()->to(base_url('admin/project-categories'))->with('error', 'Error deleting category: ' . $e->getMessage());
         }
 
-        return $this->response->setJSON(['success' => false, 'message' => 'Failed to delete project category']);
+        return redirect()->to(base_url('admin/project-categories'))->with('error', 'Failed to delete project category');
     }
 
     public function toggle($id)
@@ -182,7 +192,7 @@ class ProjectCategories extends BaseController
         $category = $this->categoryModel->find($id);
         
         if (!$category) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Project category not found']);
+            return redirect()->to(base_url('admin/project-categories'))->with('error', 'Project category not found');
         }
 
         $newStatus = $category['is_active'] ? 0 : 1;
@@ -190,13 +200,13 @@ class ProjectCategories extends BaseController
         try {
             if ($this->categoryModel->update($id, ['is_active' => $newStatus])) {
                 $message = $newStatus ? 'Project category activated' : 'Project category deactivated';
-                return $this->response->setJSON(['success' => true, 'message' => $message]);
+                return redirect()->to(base_url('admin/project-categories'))->with('success', $message);
             }
         } catch (\Exception $e) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Error updating status: ' . $e->getMessage()]);
+            return redirect()->to(base_url('admin/project-categories'))->with('error', 'Error updating status: ' . $e->getMessage());
         }
 
-        return $this->response->setJSON(['success' => false, 'message' => 'Failed to update category status']);
+        return redirect()->to(base_url('admin/project-categories'))->with('error', 'Failed to update category status');
     }
 
     public function getByCompany($companyId)

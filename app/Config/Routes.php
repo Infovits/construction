@@ -49,20 +49,21 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->group("projects", function($routes) {
         $routes->get("/", "Projects::index");
         $routes->get("create", "Projects::create");
-        $routes->post("store", "Projects::store");
+        $routes->post("/", "Projects::store");
         $routes->get("search", "Projects::search");
         $routes->get("(:num)", "Projects::show/$1");
         $routes->get("(:num)/view", "Projects::view/$1");
         $routes->get("view/(:num)", "Projects::view/$1");
         $routes->get("(:num)/edit", "Projects::edit/$1");
-        $routes->post("(:num)/update", "Projects::update/$1");
+        $routes->post("update/(:num)", "Projects::update/$1");
         $routes->delete("(:num)", "Projects::delete/$1");
         $routes->get("(:num)/team", "Projects::team/$1");
-        $routes->post("(:num)/team", "Projects::addTeamMember/$1");
+        $routes->post("(:num)/team/add", "Projects::addTeamMember/$1");
         $routes->post("(:num)/team/(:num)", "Projects::updateTeamMember/$1/$2");
         $routes->post("(:num)/team/(:num)/toggle", "Projects::toggleTeamMemberStatus/$1/$2");
         $routes->delete("(:num)/team/(:num)", "Projects::removeTeamMember/$1/$2");
         $routes->get("(:num)/gantt", "Projects::gantt/$1");
+        $routes->get("(:num)/gantt/pdf", "Projects::exportGanttPdf/$1");
         $routes->get("(:num)/dashboard", "Projects::dashboard/$1");
         $routes->post("(:num)/clone", "Projects::clone/$1");
     });
@@ -74,8 +75,10 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->post("/", "ProjectCategories::store");
         $routes->get("(:num)", "ProjectCategories::show/$1");
         $routes->get("(:num)/edit", "ProjectCategories::edit/$1");
-        $routes->post("(:num)", "ProjectCategories::update/$1");
+        $routes->post("update/(:num)", "ProjectCategories::update/$1");
         $routes->delete("(:num)", "ProjectCategories::delete/$1");
+        $routes->get("delete/(:num)", "ProjectCategories::delete/$1");
+        $routes->post("toggle/(:num)", "ProjectCategories::toggle/$1");
     });
 
     // Tasks Routes
@@ -395,6 +398,10 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->get("setup/journal-entries", "Admin\DatabaseSetupController::setupJournalEntries", ["namespace" => "App\Controllers"]);
     $routes->get("setup/cost-codes", "Admin\DatabaseSetupController::setupCostCodes", ["namespace" => "App\Controllers"]);
     $routes->get("setup/budget-tables", "Admin\SetupBudgetTablesController::setupBudgetTables", ["namespace" => "App\Controllers"]);
+
+    // Test routes
+    $routes->get("test/delete", "TestController::testDelete");
+    $routes->get("test/categories", "TestController::listCategories");
 
 });
 

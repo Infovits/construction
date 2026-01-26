@@ -36,7 +36,7 @@ class Filters extends BaseConfig
     public array $globals = [
         'before' => [
             // 'honeypot',
-            'csrf',
+            // 'csrf',  // ✅ Removed from globals - using route-specific instead
             // 'invalidchars',
         ],
         'after' => [
@@ -66,6 +66,20 @@ class Filters extends BaseConfig
      * Example:
      * 'isLoggedIn' => ['before' => ['account/*', 'profiles/*']]
      */
-    public array $filters = [];
+    public array $filters = [
+        'csrf' => [
+            'before' => [
+                'admin/project-categories/delete/*',
+                'admin/project-categories/toggle/*',
+                'admin/project-categories/*',
+                'admin/projects/*',
+            ]
+        ],
+        'auth' => [
+            'before' => [
+                'admin/*',
+            ]
+        ]
+    ];
 
 }

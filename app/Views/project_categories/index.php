@@ -122,10 +122,10 @@
                                         title="<?= $category['is_active'] ? 'Deactivate' : 'Activate' ?>">
                                     <i data-lucide="<?= $category['is_active'] ? 'pause-circle' : 'play-circle' ?>" class="w-4 h-4"></i>
                                 </button>
-                                <button onclick="deleteCategory(<?= $category['id'] ?>)" 
-                                        class="text-red-600 hover:text-red-900" title="Delete">
+                                <a href="<?= base_url('admin/project-categories/delete/' . $category['id']) ?>" 
+                                   class="text-red-600 hover:text-red-900" title="Delete">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                </button>
+                                </a>
                             </div>
                         </td>
                     </tr>
@@ -161,6 +161,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Get CSRF token
+    function getCsrfToken() {
+        const tokenInput = document.querySelector('input[name="<?= csrf_token() ?>"]');
+        return tokenInput ? tokenInput.value : '';
+    }
+
     // Initialize Lucide icons
     lucide.createIcons();
 });
@@ -168,49 +174,93 @@ document.addEventListener('DOMContentLoaded', function() {
 function toggleStatus(categoryId, currentStatus) {
     const action = currentStatus ? 'deactivate' : 'activate';
     
+    console.log('Toggle function called with categoryId:', categoryId, 'currentStatus:', currentStatus);
+    
     if (confirm(`Are you sure you want to ${action} this category?`)) {
+        console.log('User confirmed, making fetch request...');
+        
+        // Get CSRF token
+        const tokenInput = document.querySelector('input[name="<?= csrf_token() ?>"]');
+        const csrfToken = tokenInput ? tokenInput.value : '';
+        
         fetch(`<?= base_url('admin/project-categories/toggle') ?>/${categoryId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Toggle response status:', response.status);
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Toggle response data:', data);
             if (data.success) {
+                alert('✅ Success: ' + data.message);
                 location.reload();
             } else {
-                alert('Error: ' + data.message);
+                alert('❌ Error: ' + data.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while updating the category status.');
+            alert('An error occurred while updating the category status: ' + error.message);
         });
     }
 }
 
 function deleteCategory(categoryId) {
     if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
+        // Get CSRF token
+        const tokenInput = document.querySelector('input[name="<?= csrf_token() ?>"]');
+        const csrfToken = tokenInput ? tokenInput.value : '';
+        
+        console.log('Delete function called with categoryId:', categoryId);
+        console.log('CSRF token:', csrfToken);
+        
+        // Check if user is authenticated
+        console.log('Checking authentication...');
+        
         fetch(`<?= base_url('admin/project-categories/delete') ?>/${categoryId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            credentials: 'include'  // ✅ Include cookies for session
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
+            // Log all headers
+            response.headers.forEach((value, name) => {
+                console.log(`${name}: ${value}`);
+            });
+            
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('Response data:', data);
             if (data.success) {
+                alert('✅ Success: ' + data.message);
                 location.reload();
             } else {
-                alert('Error: ' + data.message);
+                alert('❌ Error: ' + data.message);
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while deleting the category.');
+            alert('An error occurred while deleting the category: ' + error.message);
         });
     }
 }

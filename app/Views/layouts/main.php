@@ -356,22 +356,6 @@
                     </div>
                 </div>
 
-                <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
-                    <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'notification-submenu')">
-                        <i data-lucide="bell" class="w-5 h-5 flex-shrink-0"></i>
-                        <span class="sidebar-text overflow-hidden whitespace-nowrap">Notification</span>
-                        <i data-lucide="chevron-down" class="w-4 h-4 ml-auto sidebar-text menu-chevron" id="notification-chevron"></i>
-                        <div class="tooltip absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
-                            Notification
-                        </div>
-                    <div class="submenu" id="notification-submenu">
-                        <div class="sidebar-text ml-8 mt-2 space-y-1">
-                            <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Recent</a>
-                            <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Unread</a>
-                            <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Settings</a>
-                        </div>
-                    </div>
-                </div>
 
 
 
@@ -467,9 +451,34 @@
                             <i data-lucide="search" class="w-5 h-5 text-gray-600"></i>
                         </button>
                         
-                        <div class="hidden md:flex items-center space-x-2">
-                            <span class="text-sm text-gray-600">ID</span>
-                            <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+                        <div class="flex items-center space-x-2 md:space-x-4">
+                            <!-- Notification Bell -->
+                            <div class="relative">
+                                <button id="notificationBtn" class="p-2 hover:bg-gray-100 rounded-lg relative" onclick="toggleNotifications()">
+                                    <i data-lucide="bell" class="w-5 h-5 text-gray-600"></i>
+                                    <span id="notificationBadge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+                                </button>
+                                
+                                <!-- Notification Dropdown -->
+                                <div id="notificationDropdown" class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 hidden z-50 max-h-96 overflow-y-auto">
+                                    <div class="p-4 border-b border-gray-200">
+                                        <h3 class="font-semibold text-gray-800">Notifications</h3>
+                                    </div>
+                                    <div id="notificationList" class="divide-y divide-gray-200">
+                                        <!-- Notifications will be loaded here -->
+                                    </div>
+                                    <div class="p-3 border-t border-gray-200">
+                                        <button onclick="viewAllNotifications()" class="w-full text-center text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                                            View All Notifications
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="hidden md:flex items-center space-x-2">
+                                <span class="text-sm text-gray-600">ID</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+                            </div>
                         </div>
                           <div class="relative">
                             <div class="flex items-center space-x-2 md:space-x-3 cursor-pointer" onclick="toggleUserDropdown()">
@@ -697,6 +706,144 @@
 
         // Set active states on page load
         setActiveStates();
+
+        // Load notifications on page load
+        loadNotifications();
+
+        // Notification functionality
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notificationDropdown');
+            const bellBtn = document.getElementById('notificationBtn');
+            
+            dropdown.classList.toggle('hidden');
+            
+            // Load notifications if dropdown is opened
+            if (!dropdown.classList.contains('hidden')) {
+                loadNotifications();
+            }
+        }
+        
+        // Load notifications
+        function loadNotifications() {
+            const notificationList = document.getElementById('notificationList');
+            const notificationBadge = document.getElementById('notificationBadge');
+            
+            // Mock notifications data - replace with actual API call
+            const mockNotifications = [
+                {
+                    id: 1,
+                    title: 'Project Deadline Approaching',
+                    message: 'Project "Construction Site A" deadline is in 2 days',
+                    time: '2 hours ago',
+                    type: 'warning',
+                    read: false
+                },
+                {
+                    id: 2,
+                    title: 'New Material Request',
+                    message: 'John Doe requested 50 units of Cement',
+                    time: '4 hours ago',
+                    type: 'info',
+                    read: false
+                },
+                {
+                    id: 3,
+                    title: 'Task Completed',
+                    message: 'Task "Foundation Work" has been completed',
+                    time: '1 day ago',
+                    type: 'success',
+                    read: true
+                },
+                {
+                    id: 4,
+                    title: 'Budget Alert',
+                    message: 'Project "Site B" has exceeded 80% of its budget',
+                    time: '2 days ago',
+                    type: 'danger',
+                    read: false
+                },
+                {
+                    id: 5,
+                    title: 'Quality Inspection Due',
+                    message: 'Quality inspection for "Material Delivery" is due tomorrow',
+                    time: '3 days ago',
+                    type: 'warning',
+                    read: true
+                }
+            ];
+            
+            // Render notifications
+            notificationList.innerHTML = '';
+            let unreadCount = 0;
+            
+            mockNotifications.forEach(notification => {
+                const notificationItem = document.createElement('div');
+                notificationItem.className = `p-4 ${notification.read ? 'bg-gray-50' : 'bg-white'}`;
+                
+                const iconColor = notification.type === 'danger' ? 'text-red-500' : 
+                                 notification.type === 'warning' ? 'text-yellow-500' :
+                                 notification.type === 'success' ? 'text-green-500' : 'text-blue-500';
+                
+                notificationItem.innerHTML = `
+                    <div class="flex items-start space-x-3">
+                        <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center ${iconColor}">
+                            <i data-lucide="${getNotificationIcon(notification.type)}" class="w-4 h-4"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h4 class="font-medium text-gray-900 text-sm">${notification.title}</h4>
+                            <p class="text-gray-600 text-sm mt-1">${notification.message}</p>
+                            <div class="flex items-center justify-between mt-2">
+                                <span class="text-xs text-gray-500">${notification.time}</span>
+                                ${!notification.read ? '<span class="w-2 h-2 bg-indigo-500 rounded-full"></span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                notificationList.appendChild(notificationItem);
+                
+                if (!notification.read) {
+                    unreadCount++;
+                }
+            });
+            
+            // Update badge
+            if (unreadCount > 0) {
+                notificationBadge.textContent = unreadCount;
+                notificationBadge.classList.remove('hidden');
+            } else {
+                notificationBadge.classList.add('hidden');
+            }
+            
+            // Initialize Lucide icons
+            lucide.createIcons();
+        }
+        
+        function getNotificationIcon(type) {
+            switch(type) {
+                case 'danger': return 'alert-triangle';
+                case 'warning': return 'alert-circle';
+                case 'success': return 'check-circle';
+                case 'info': return 'info';
+                default: return 'bell';
+            }
+        }
+        
+        function viewAllNotifications() {
+            // Redirect to notifications page or open modal
+            alert('Redirecting to notifications page...');
+        }
+        
+        // Close notification dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('notificationDropdown');
+            const bellBtn = document.getElementById('notificationBtn');
+            const bellIcon = bellBtn?.querySelector('i');
+            
+            if (bellBtn && !bellBtn.contains(event.target) && !dropdown.contains(event.target)) {
+                dropdown.classList.add('hidden');
+            }
+        });
 
         // User dropdown functionality
         function toggleUserDropdown() {

@@ -21,7 +21,7 @@
 
     <!-- Category Form -->
     <div class="bg-white rounded-lg shadow-sm border">
-        <form action="<?= isset($category) ? base_url('admin/project-categories/update/' . $category['id']) : base_url('admin/project-categories/store') ?>" method="post" class="p-6 space-y-6">
+        <form action="<?= isset($category) ? base_url('admin/project-categories/update/' . $category['id']) : base_url('admin/project-categories') ?>" method="post" class="p-6 space-y-6">
             <?= csrf_field() ?>
             
             <!-- Basic Information Section -->
