@@ -12,6 +12,7 @@ class Tasks extends BaseController
     protected $taskAttachmentModel;
     protected $userModel;
     protected $taskActivityLogModel;
+    protected $projectModel;
 
     public function __construct()
     {
@@ -82,7 +83,7 @@ class Tasks extends BaseController
         $validation->setRules([
             'project_id' => 'required|numeric',
             'title' => 'required|min_length[3]|max_length[255]',
-            'task_type' => 'required|in_list[task,milestone,subtask]',
+            'task_type' => 'required|in_list[task,subtask]',
             'priority' => 'required|in_list[low,medium,high,urgent]',
             'planned_start_date' => 'permit_empty|valid_date',
             'planned_end_date' => 'permit_empty|valid_date',
@@ -212,7 +213,7 @@ class Tasks extends BaseController
         $validation = \Config\Services::validation();
         $validation->setRules([
             'title' => 'required|min_length[3]|max_length[255]',
-            'task_type' => 'required|in_list[task,milestone,subtask]',
+            'task_type' => 'required|in_list[task,subtask]',
             'priority' => 'required|in_list[low,medium,high,urgent]',
             'status' => 'required|in_list[pending,in_progress,review,completed,cancelled,on_hold]',
             'planned_start_date' => 'permit_empty|valid_date',

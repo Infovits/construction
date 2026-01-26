@@ -133,6 +133,30 @@ Create New Milestone
                     </div>
                 </div>
 
+                <!-- Cost Information -->
+                <div class="mt-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Cost Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="estimated_cost" class="block text-sm font-medium text-gray-700 mb-2">Estimated Cost (MWK)</label>
+                            <input type="number" id="estimated_cost" name="estimated_cost"
+                                   value="<?= old('estimated_cost', 0) ?>" min="0" step="0.01"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="0.00">
+                            <p class="text-xs text-gray-500 mt-1">Estimated cost for this milestone in MWK</p>
+                        </div>
+
+                        <div>
+                            <label for="actual_cost" class="block text-sm font-medium text-gray-700 mb-2">Actual Cost (MWK)</label>
+                            <input type="number" id="actual_cost" name="actual_cost"
+                                   value="<?= old('actual_cost', 0) ?>" min="0" step="0.01"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="0.00">
+                            <p class="text-xs text-gray-500 mt-1">Actual cost incurred (can be updated later)</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="mt-8 flex justify-end space-x-3">
                     <a href="<?= base_url('admin/milestones') ?>" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
                         <i class="fas fa-times mr-2"></i>Cancel

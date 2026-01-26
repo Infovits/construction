@@ -76,7 +76,6 @@
                                         <label for="task_type" class="block text-sm font-medium text-gray-700 mb-2">Task Type <span class="text-red-500">*</span></label>
                                         <select name="task_type" id="task_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                                             <option value="task" <?= old('task_type') === 'task' ? 'selected' : '' ?>>Regular Task</option>
-                                            <option value="milestone" <?= old('task_type') === 'milestone' ? 'selected' : '' ?>>Milestone</option>
                                             <option value="subtask" <?= old('task_type') === 'subtask' ? 'selected' : '' ?>>Subtask</option>
                                         </select>
                                     </div>

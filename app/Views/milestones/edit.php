@@ -83,7 +83,7 @@ Edit Milestone
                             <option value="low" <?= old('priority', $milestone['priority']) == 'low' ? 'selected' : '' ?>>Low</option>
                             <option value="medium" <?= old('priority', $milestone['priority']) == 'medium' ? 'selected' : '' ?>>Medium</option>
                             <option value="high" <?= old('priority', $milestone['priority']) == 'high' ? 'selected' : '' ?>>High</option>
-                            <option value="critical" <?= old('priority', $milestone['priority']) == 'critical' ? 'selected' : '' ?>>Critical</option>
+                            <option value="urgent" <?= old('priority', $milestone['priority']) == 'urgent' ? 'selected' : '' ?>>Urgent</option>
                         </select>
                     </div>
 
@@ -112,7 +112,7 @@ Edit Milestone
                 <!-- Timeline -->
                 <div class="mt-8">
                     <h2 class="text-xl font-semibold text-gray-900 mb-4">Timeline</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                             <label for="planned_start_date" class="block text-sm font-medium text-gray-700 mb-2">Planned Start Date</label>
                             <input type="date" id="planned_start_date" name="planned_start_date"
@@ -128,17 +128,38 @@ Edit Milestone
                         </div>
 
                         <div>
-                            <label for="actual_start_date" class="block text-sm font-medium text-gray-700 mb-2">Actual Start Date</label>
-                            <input type="date" id="actual_start_date" name="actual_start_date"
-                                   value="<?= old('actual_start_date', $milestone['actual_start_date']) ?>"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Completion Date</label>
+                            <div class="px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700">
+                                <?php if ($milestone['status'] === 'completed' && isset($milestone['actual_end_date']) && $milestone['actual_end_date']): ?>
+                                    <?= date('M d, Y', strtotime($milestone['actual_end_date'])) ?>
+                                <?php else: ?>
+                                    Not completed
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cost Information -->
+                <div class="mt-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Cost Information</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="estimated_cost" class="block text-sm font-medium text-gray-700 mb-2">Estimated Cost (MWK)</label>
+                            <input type="number" id="estimated_cost" name="estimated_cost"
+                                   value="<?= old('estimated_cost', $milestone['estimated_cost'] ?? 0) ?>" min="0" step="0.01"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="0.00">
+                            <p class="text-xs text-gray-500 mt-1">Estimated cost for this milestone in MWK</p>
                         </div>
 
                         <div>
-                            <label for="actual_end_date" class="block text-sm font-medium text-gray-700 mb-2">Actual End Date</label>
-                            <input type="date" id="actual_end_date" name="actual_end_date"
-                                   value="<?= old('actual_end_date', $milestone['actual_end_date']) ?>"
-                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <label for="actual_cost" class="block text-sm font-medium text-gray-700 mb-2">Actual Cost (MWK)</label>
+                            <input type="number" id="actual_cost" name="actual_cost"
+                                   value="<?= old('actual_cost', $milestone['actual_cost'] ?? 0) ?>" min="0" step="0.01"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="0.00">
+                            <p class="text-xs text-gray-500 mt-1">Actual cost incurred for this milestone</p>
                         </div>
                     </div>
                 </div>
@@ -166,32 +187,21 @@ document.addEventListener('DOMContentLoaded', function() {
     // Validate dates
     const plannedStartInput = document.getElementById('planned_start_date');
     const plannedEndInput = document.getElementById('planned_end_date');
-    const actualStartInput = document.getElementById('actual_start_date');
-    const actualEndInput = document.getElementById('actual_end_date');
 
     function validateDates() {
         const plannedStart = new Date(plannedStartInput.value);
         const plannedEnd = new Date(plannedEndInput.value);
-        const actualStart = new Date(actualStartInput.value);
-        const actualEnd = new Date(actualEndInput.value);
 
         if (plannedStart && plannedEnd && plannedStart > plannedEnd) {
             alert('Planned end date must be after planned start date');
             plannedEndInput.value = '';
         }
-
-        if (actualStart && actualEnd && actualStart > actualEnd) {
-            alert('Actual end date must be after actual start date');
-            actualEndInput.value = '';
-        }
     }
 
     plannedStartInput.addEventListener('change', validateDates);
     plannedEndInput.addEventListener('change', validateDates);
-    actualStartInput.addEventListener('change', validateDates);
-    actualEndInput.addEventListener('change', validateDates);
 
-    // Auto-set actual dates and progress based on status
+    // Auto-set progress based on status
     const statusSelect = document.getElementById('status');
     const progressInput = document.getElementById('progress_percentage');
 
@@ -200,15 +210,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (status === 'completed') {
             progressInput.value = 100;
-            if (!actualEndInput.value) {
-                const today = new Date().toISOString().split('T')[0];
-                actualEndInput.value = today;
-            }
-        } else if (status === 'in_progress') {
-            if (!actualStartInput.value) {
-                const today = new Date().toISOString().split('T')[0];
-                actualStartInput.value = today;
-            }
         }
     });
 });

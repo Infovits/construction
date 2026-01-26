@@ -101,7 +101,7 @@
                         <select id="task_type" name="task_type"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="task" <?= old('task_type', isset($task) && isset($task['task_type']) ? $task['task_type'] : 'task') == 'task' ? 'selected' : '' ?>>Regular Task</option>
-                            <option value="milestone" <?= old('task_type', isset($task) && isset($task['task_type']) ? $task['task_type'] : 'task') == 'milestone' ? 'selected' : '' ?>>Milestone</option>
+                            <option value="subtask" <?= old('task_type', isset($task) && isset($task['task_type']) ? $task['task_type'] : 'task') == 'subtask' ? 'selected' : '' ?>>Subtask</option>
                         </select>
                     </div>
 

@@ -119,6 +119,7 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->get("/", "Milestones::index");
         $routes->get("create", "Milestones::create");
         $routes->post("/", "Milestones::store");
+        $routes->post("store", "Milestones::store"); // Alternative route
         $routes->get("upcoming", "Milestones::upcoming");
         $routes->get("calendar", "Milestones::calendar");
         $routes->get("report", "Milestones::report");
@@ -127,6 +128,7 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->get("(:num)/edit", "Milestones::edit/$1");
         $routes->get("(:num)", "Milestones::show/$1");
         $routes->post("(:num)", "Milestones::update/$1");
+        $routes->post("(:num)/update-progress", "Milestones::updateProgress/$1");
         $routes->delete("(:num)", "Milestones::delete/$1");
         $routes->post("(:num)/complete", "Milestones::complete/$1");
         $routes->get("api/calendar-events", "Milestones::apiCalendarEvents");

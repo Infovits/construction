@@ -6,7 +6,7 @@ use CodeIgniter\Model;
 
 class MilestoneModel extends Model
 {
-    protected $table = 'tasks'; // Using tasks table with task_type = 'milestone'
+    protected $table = 'tasks'; // Using tasks table with task_type = 'task'
     protected $primaryKey = 'id';
     protected $useAutoIncrement = true;
     protected $returnType = 'array';
@@ -15,13 +15,13 @@ class MilestoneModel extends Model
     
     // Updated to include all the new fields from the form
     protected $allowedFields = [
-        'project_id', 'parent_task_id', 'category_id', 'task_code', 'title', 'description', 
+        'project_id', 'parent_task_id', 'category_id', 'task_code', 'title', 'description',
         'task_type', 'priority', 'status', 'progress_percentage', 'assigned_to', 'assigned_by',
         'planned_start_date', 'planned_end_date', 'actual_start_date', 'actual_end_date',
         'estimated_hours', 'actual_hours', 'estimated_cost', 'actual_cost', 'depends_on',
-        'is_critical_path', 'requires_approval', 'is_billable', 'created_by',
+        'is_critical_path', 'requires_approval', 'is_billable', 'created_by', 'is_milestone',
         // Additional milestone-specific fields (these might need to be added to the tasks table)
-        'milestone_type', 'is_critical', 'deliverables', 'success_criteria', 
+        'milestone_type', 'is_critical', 'deliverables', 'success_criteria',
         'budget_variance', 'risk_level', 'risk_description', 'notes'
     ];
 
@@ -33,7 +33,7 @@ class MilestoneModel extends Model
         'project_id' => 'required|numeric',
         'title' => 'required|min_length[3]|max_length[255]',
         'planned_end_date' => 'required|valid_date',
-        'task_type' => 'required|in_list[milestone,task,subtask]',
+        'task_type' => 'required|in_list[task,subtask]',
         'priority' => 'required|in_list[low,medium,high,critical,urgent]',
         'status' => 'required|in_list[not_started,pending,in_progress,review,completed,cancelled,on_hold]'
     ];
@@ -61,11 +61,11 @@ class MilestoneModel extends Model
         parent::__construct();
     }
 
-    // Override insert to always set task_type to milestone
+    // Override insert to always set is_milestone to true
     public function insert($data = null, $returnID = true)
     {
         if (is_array($data)) {
-            $data['task_type'] = 'milestone';
+            $data['is_milestone'] = 1;
         }
         return parent::insert($data, $returnID);
     }
@@ -74,11 +74,11 @@ class MilestoneModel extends Model
     public function update($id = null, $data = null): bool
     {
         // Verify we're updating a milestone
-        $existing = $this->where('id', $id)->where('task_type', 'milestone')->first();
+        $existing = $this->where('id', $id)->where('is_milestone', 1)->first();
         if (!$existing) {
             return false;
         }
-        
+
         return parent::update($id, $data);
     }
 
@@ -86,26 +86,26 @@ class MilestoneModel extends Model
     public function find($id = null)
     {
         if ($id !== null) {
-            return $this->where('task_type', 'milestone')->where('id', $id)->first();
+            return $this->where('is_milestone', 1)->where('id', $id)->first();
         }
-        return $this->where('task_type', 'milestone')->findAll();
+        return $this->where('is_milestone', 1)->findAll();
     }
 
     // Override delete to ensure we only delete milestones
     public function delete($id = null, $purge = false)
     {
-        $existing = $this->where('id', $id)->where('task_type', 'milestone')->first();
+        $existing = $this->where('id', $id)->where('is_milestone', 1)->first();
         if (!$existing) {
             return false;
         }
-        
+
         return parent::delete($id, $purge);
     }
 
     public function getProjectMilestones($projectId)
     {
         return $this->where('project_id', $projectId)
-                   ->where('task_type', 'milestone')
+                   ->where('is_milestone', 1)
                    ->orderBy('planned_end_date', 'ASC')
                    ->findAll();
     }
@@ -114,7 +114,7 @@ class MilestoneModel extends Model
     {
         $endDate = date('Y-m-d', strtotime('+' . $days . ' days'));
         
-        $builder = $this->where('task_type', 'milestone')
+        $builder = $this->where('is_milestone', 1)
                        ->where('planned_end_date <=', $endDate)
                        ->where('planned_end_date >=', date('Y-m-d'))
                        ->whereNotIn('status', ['completed', 'cancelled']);
@@ -130,7 +130,7 @@ class MilestoneModel extends Model
     {
         $builder = $this->select('tasks.*, projects.name as project_name, projects.project_code')
                        ->join('projects', 'tasks.project_id = projects.id')
-                       ->where('tasks.task_type', 'milestone')
+                       ->where('tasks.is_milestone', 1)
                        ->where('tasks.planned_end_date <', date('Y-m-d'))
                        ->whereNotIn('tasks.status', ['completed', 'cancelled']);
 
@@ -143,15 +143,27 @@ class MilestoneModel extends Model
 
     public function createMilestone($data)
     {
-        $data['task_type'] = 'milestone';
+        $data['is_milestone'] = 1;
         $data['created_by'] = $data['created_by'] ?? session('user_id');
-        
+
         // Generate milestone code if not provided
         if (!isset($data['task_code']) || empty($data['task_code'])) {
             $data['task_code'] = $this->generateMilestoneCode($data['project_id']);
         }
 
-        return $this->insert($data, true);
+        log_message('info', 'MilestoneModel createMilestone final data: ' . json_encode($data));
+
+        $result = $this->insert($data, true);
+
+        if (!$result) {
+            $db = \Config\Database::connect();
+            $error = $db->error();
+            log_message('error', 'MilestoneModel createMilestone database error: ' . json_encode($error));
+        }
+
+        log_message('info', 'MilestoneModel createMilestone result: ' . ($result ? 'Success ID: ' . $result : 'Failed'));
+
+        return $result;
     }
 
     public function updateMilestone($milestoneId, $data)
@@ -206,7 +218,7 @@ class MilestoneModel extends Model
 
         // Find the last milestone for this project
         $lastMilestone = $this->where('project_id', $projectId)
-                             ->where('task_type', 'milestone')
+                             ->where('is_milestone', 1)
                              ->where('task_code LIKE', $projectCode . '-MS-%')
                              ->orderBy('id', 'DESC')
                              ->first();

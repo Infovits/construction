@@ -155,7 +155,7 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                                 <div class="sm:col-span-1">
                                                     <dt class="text-sm font-medium text-gray-500">Start Date</dt>
                                                     <dd class="mt-1 text-sm text-gray-900">
-                                                        <?= isset($milestone['start_date']) && $milestone['start_date'] ? date('M d, Y', strtotime($milestone['start_date'])) : 'Not set' ?>
+                                                        <?= isset($milestone['planned_start_date']) && $milestone['planned_start_date'] ? date('M d, Y', strtotime($milestone['planned_start_date'])) : 'Not set' ?>
                                                     </dd>
                                                 </div>
                                                 <div class="sm:col-span-1">
@@ -179,9 +179,14 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                                 <div class="sm:col-span-1">
                                                     <dt class="text-sm font-medium text-gray-500">Completion Date</dt>
                                                     <dd class="mt-1 text-sm text-gray-900">
-                                                        <?= isset($milestone['completion_date']) && $milestone['completion_date'] ? date('M d, Y', strtotime($milestone['completion_date'])) : 'Not completed' ?>
+                                                        <?php if ($milestone['status'] === 'completed' && isset($milestone['actual_end_date']) && $milestone['actual_end_date']): ?>
+                                                            <?= date('M d, Y', strtotime($milestone['actual_end_date'])) ?>
+                                                        <?php else: ?>
+                                                            <span class="text-gray-400">Not completed</span>
+                                                        <?php endif; ?>
                                                     </dd>
                                                 </div>
+
                                                 <div class="sm:col-span-1">
                                                     <dt class="text-sm font-medium text-gray-500">Assigned To</dt>
                                                     <dd class="mt-1 text-sm text-gray-900">
@@ -224,14 +229,14 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                         <?php if (isset($milestone['estimated_cost']) && $milestone['estimated_cost']): ?>
                                         <div class="text-center">
                                             <p class="text-sm font-medium text-gray-500">Estimated Cost</p>
-                                            <p class="mt-1 text-2xl font-semibold text-indigo-600">$<?= number_format($milestone['estimated_cost'], 2) ?></p>
+                                            <p class="mt-1 text-2xl font-semibold text-indigo-600">MWK <?= number_format($milestone['estimated_cost'], 2) ?></p>
                                         </div>
                                         <?php endif; ?>
                                         <?php if (isset($milestone['actual_cost']) && $milestone['actual_cost']): ?>
                                         <div class="text-center">
                                             <p class="text-sm font-medium text-gray-500">Actual Cost</p>
                                             <p class="mt-1 text-2xl font-semibold <?= isset($milestone['estimated_cost']) && $milestone['actual_cost'] > $milestone['estimated_cost'] ? 'text-red-600' : 'text-green-600' ?>">
-                                                $<?= number_format($milestone['actual_cost'], 2) ?>
+                                                MWK <?= number_format($milestone['actual_cost'], 2) ?>
                                             </p>
                                         </div>
                                         <?php endif; ?>
@@ -639,7 +644,7 @@ Milestone Details - <?= esc($milestone['title']) ?>
         </div>
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
         <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <form action="<?= base_url('admin/milestones/update-progress/' . $milestone['id']) ?>" method="post">
+            <form action="<?= base_url('admin/milestones/' . $milestone['id'] . '/update-progress') ?>" method="post">
                 <?= csrf_field() ?>
                 <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                     <div class="sm:flex sm:items-start">

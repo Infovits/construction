@@ -30,7 +30,8 @@ class Milestones extends BaseController
 
         $builder = $this->milestoneModel->select('tasks.*, projects.name as project_name, projects.project_code')
                                        ->join('projects', 'tasks.project_id = projects.id')
-                                       ->where('projects.company_id', session('company_id'));
+                                       ->where('projects.company_id', session('company_id'))
+                                       ->where('tasks.is_milestone', 1);
 
         if ($projectId) {
             $builder->where('tasks.project_id', $projectId);
@@ -118,22 +119,29 @@ class Milestones extends BaseController
             'project_id' => $this->request->getPost('project_id'),
             'title' => $this->request->getPost('title'),
             'description' => $this->request->getPost('description'),
+            'task_type' => 'task',
             'priority' => $this->request->getPost('priority'),
             'status' => $this->request->getPost('status') ?: 'pending',
             'planned_start_date' => $this->request->getPost('start_date') ?: null,
             'planned_end_date' => $this->request->getPost('planned_end_date'),
-            'task_type' => 'milestone',
+            'estimated_cost' => $this->request->getPost('estimated_cost') ?: 0,
+            'actual_cost' => $this->request->getPost('actual_cost') ?: 0,
+            'is_milestone' => 1,
             'assigned_to' => $this->request->getPost('assigned_to') ?: null,
             'progress_percentage' => $this->request->getPost('progress_percentage') ?: 0,
             'company_id' => session('company_id')
         ];
 
+        log_message('info', 'Attempting to create milestone with data: ' . json_encode($data));
+
         $milestoneId = $this->milestoneModel->createMilestone($data);
 
         if ($milestoneId) {
+            log_message('info', 'Milestone created successfully with ID: ' . $milestoneId);
             return redirect()->to('/admin/milestones')->with('success', 'Milestone created successfully');
         }
 
+        log_message('error', 'Failed to create milestone. Data: ' . json_encode($data));
         return redirect()->back()->withInput()->with('error', 'Failed to create milestone');
     }
 
@@ -142,7 +150,7 @@ class Milestones extends BaseController
         $milestone = $this->milestoneModel->select('tasks.*, projects.name as project_name, projects.project_code')
                                          ->join('projects', 'tasks.project_id = projects.id')
                                          ->where('tasks.id', $id)
-                                         ->where('tasks.task_type', 'milestone')
+                                         ->where('tasks.is_milestone', 1)
                                          ->first();
 
         if (!$milestone) {
@@ -163,7 +171,7 @@ class Milestones extends BaseController
                                        ->join('users u', 'tasks.assigned_to = u.id', 'left')
                                        ->where('tasks.project_id', $milestone['project_id'])
                                        ->where('tasks.planned_end_date <=', $milestone['planned_end_date'])
-                                       ->where('tasks.task_type !=', 'milestone')
+                                       ->where('tasks.id !=', $milestone['id']) // Exclude the milestone itself
                                        ->findAll();
 
         $data = [
@@ -182,7 +190,7 @@ class Milestones extends BaseController
     {
         $milestone = $this->milestoneModel->find($id);
 
-        if (!$milestone || $milestone['task_type'] !== 'milestone') {
+        if (!$milestone) {
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Milestone not found');
         }
         
@@ -203,9 +211,12 @@ class Milestones extends BaseController
 
     public function update($id)
     {
+        log_message('info', 'Milestone update called for ID: ' . $id);
+
         $milestone = $this->milestoneModel->find($id);
 
-        if (!$milestone || $milestone['task_type'] !== 'milestone') {
+        if (!$milestone || !$milestone['is_milestone']) {
+            log_message('error', 'Milestone not found or not a milestone: ' . $id);
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Milestone not found');
         }
 
@@ -213,11 +224,12 @@ class Milestones extends BaseController
         $validation->setRules([
             'title' => 'required|min_length[3]|max_length[255]',
             'planned_end_date' => 'required|valid_date',
-            'priority' => 'required|in_list[low,medium,high,critical]',
+            'priority' => 'required|in_list[low,medium,high,urgent]',
             'status' => 'required|in_list[not_started,in_progress,completed,cancelled,on_hold]'
         ]);
 
         if (!$validation->run($this->request->getPost())) {
+            log_message('error', 'Validation failed: ' . json_encode($validation->getErrors()));
             return redirect()->back()->withInput()->with('errors', $validation->getErrors());
         }
 
@@ -228,8 +240,8 @@ class Milestones extends BaseController
             'status' => $this->request->getPost('status'),
             'planned_start_date' => $this->request->getPost('planned_start_date'),
             'planned_end_date' => $this->request->getPost('planned_end_date'),
-            'actual_start_date' => $this->request->getPost('actual_start_date'),
-            'actual_end_date' => $this->request->getPost('actual_end_date'),
+            'estimated_cost' => $this->request->getPost('estimated_cost') ?: 0,
+            'actual_cost' => $this->request->getPost('actual_cost') ?: 0,
             'progress_percentage' => $this->request->getPost('progress_percentage') ?: 0
         ];
 
@@ -239,13 +251,17 @@ class Milestones extends BaseController
             $data['progress_percentage'] = 100;
         }
 
+        log_message('info', 'Attempting to update milestone with data: ' . json_encode($data));
+
         if ($this->milestoneModel->updateMilestone($id, $data)) {
+            log_message('info', 'Milestone updated successfully');
             // Update project progress
             $this->projectModel->updateProjectProgress($milestone['project_id']);
 
             return redirect()->to('/admin/milestones/' . $id)->with('success', 'Milestone updated successfully');
         }
 
+        log_message('error', 'Failed to update milestone in database');
         return redirect()->back()->withInput()->with('error', 'Failed to update milestone');
     }
 
@@ -254,18 +270,69 @@ class Milestones extends BaseController
         if ($this->milestoneModel->completeMilestone($id)) {
             $milestone = $this->milestoneModel->find($id);
             $this->projectModel->updateProjectProgress($milestone['project_id']);
-            
+
             return $this->response->setJSON(['success' => true, 'message' => 'Milestone marked as completed']);
         }
 
         return $this->response->setJSON(['success' => false, 'message' => 'Failed to complete milestone']);
     }
 
+    public function updateProgress($id)
+    {
+        $milestone = $this->milestoneModel->find($id);
+
+        if (!$milestone || !$milestone['is_milestone']) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Milestone not found']);
+        }
+
+        $validation = \Config\Services::validation();
+        $validation->setRules([
+            'progress_percentage' => 'required|numeric|greater_than_equal_to[0]|less_than_equal_to[100]',
+            'notes' => 'permit_empty|max_length[1000]'
+        ]);
+
+        if (!$validation->run($this->request->getPost())) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Validation failed: ' . implode(', ', $validation->getErrors())]);
+        }
+
+        $data = [
+            'progress_percentage' => $this->request->getPost('progress_percentage'),
+        ];
+
+        // Auto-set status based on progress
+        $progress = (int) $data['progress_percentage'];
+        if ($progress == 100) {
+            $data['status'] = 'completed';
+            $data['actual_end_date'] = date('Y-m-d');
+        } elseif ($progress > 0) {
+            $data['status'] = 'in_progress';
+            if (empty($milestone['actual_start_date'])) {
+                $data['actual_start_date'] = date('Y-m-d');
+            }
+        }
+
+        if ($this->milestoneModel->updateMilestone($id, $data)) {
+            // Update project progress
+            $this->projectModel->updateProjectProgress($milestone['project_id']);
+
+            // Log the progress update if notes were provided
+            $notes = $this->request->getPost('notes');
+            if (!empty($notes)) {
+                // You could add activity logging here if needed
+                log_message('info', 'Milestone progress updated: ' . $id . ' - ' . $progress . '% - ' . $notes);
+            }
+
+            return $this->response->setJSON(['success' => true, 'message' => 'Progress updated successfully']);
+        }
+
+        return $this->response->setJSON(['success' => false, 'message' => 'Failed to update progress']);
+    }
+
     public function delete($id)
     {
         $milestone = $this->milestoneModel->find($id);
 
-        if (!$milestone || $milestone['task_type'] !== 'milestone') {
+        if (!$milestone || !$milestone['is_milestone']) {
             return $this->response->setJSON(['success' => false, 'message' => 'Milestone not found']);
         }
 
@@ -284,6 +351,7 @@ class Milestones extends BaseController
         $builder = $this->milestoneModel->select('tasks.*, projects.name as project_name')
                                        ->join('projects', 'tasks.project_id = projects.id')
                                        ->where('projects.company_id', session('company_id'))
+                                       ->where('tasks.is_milestone', 1)
                                        ->where('tasks.planned_end_date <=', date('Y-m-d', strtotime('+' . $days . ' days')))
                                        ->where('tasks.planned_end_date >=', date('Y-m-d'))
                                        ->whereNotIn('tasks.status', ['completed', 'cancelled']);
@@ -327,6 +395,7 @@ class Milestones extends BaseController
         $builder = $this->milestoneModel->select('tasks.*, projects.name as project_name')
                                        ->join('projects', 'tasks.project_id = projects.id')
                                        ->where('projects.company_id', session('company_id'))
+                                       ->where('tasks.is_milestone', 1)
                                        ->where('tasks.planned_end_date >=', $dateFrom)
                                        ->where('tasks.planned_end_date <=', $dateTo);
 
@@ -417,7 +486,7 @@ class Milestones extends BaseController
         // Get milestones for the project
         $milestones = $this->milestoneModel->select('id, title, planned_end_date, status')
                                           ->where('project_id', $projectId)
-                                          ->where('task_type', 'milestone')
+                                          ->where('is_milestone', 1)
                                           ->orderBy('planned_end_date', 'ASC')
                                           ->findAll();
 
@@ -451,7 +520,7 @@ class Milestones extends BaseController
         $milestones = $this->milestoneModel->select('tasks.*, projects.name as project_name')
                                           ->join('projects', 'tasks.project_id = projects.id')
                                           ->where('projects.company_id', session('company_id'))
-                                          ->where('tasks.task_type', 'milestone')
+                                          ->where('tasks.is_milestone', 1)
                                           ->where('tasks.planned_end_date IS NOT NULL');
 
         if ($start && $end) {

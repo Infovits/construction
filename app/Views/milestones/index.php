@@ -237,7 +237,7 @@ Milestones Management
                                 </td>
                                 
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <?php if ($milestone['actual_end_date']): ?>
+                                    <?php if ($milestone['status'] === 'completed' && isset($milestone['actual_end_date']) && $milestone['actual_end_date'] && strtotime($milestone['actual_end_date']) > 0): ?>
                                         <div class="text-sm text-gray-900"><?= date('M d, Y', strtotime($milestone['actual_end_date'])) ?></div>
                                     <?php else: ?>
                                         <span class="text-sm text-gray-500">Not completed</span>
