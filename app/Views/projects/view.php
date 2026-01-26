@@ -22,7 +22,7 @@
                 <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
                 Back to Projects
             </a>
-            <a href="<?= base_url('admin/projects/edit/' . $project['id']) ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <a href="<?= base_url('admin/projects/' . $project['id'] . '/edit') ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                 <i data-lucide="edit" class="w-4 h-4 mr-2"></i>
                 Edit Project
             </a>
