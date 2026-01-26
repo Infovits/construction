@@ -210,7 +210,7 @@
                                         <div>
                                             <a href="<?= base_url('admin/tasks/download/' . $attachment['id']) ?>" target="_blank" 
                                                class="text-blue-600 hover:text-blue-800 font-medium">
-                                                <?= esc($attachment['original_name']) ?>
+                                                 <?= esc($attachment['file_name']) ?>
                                             </a>
                                             <p class="text-sm text-gray-500"><?= formatBytes($attachment['file_size'] ?? 0) ?></p>
                                         </div>
