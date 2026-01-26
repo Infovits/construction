@@ -48,7 +48,7 @@
 
     <!-- Project Form -->
     <div class="bg-white rounded-lg shadow-sm border">
-        <form action="<?= isset($project) ? base_url('admin/projects/update/' . $project['id']) : base_url('admin/projects/store') ?>" method="post" class="p-6 space-y-6">
+        <form action="<?= isset($project) ? base_url('admin/projects/update/' . $project['id']) : base_url('admin/projects') ?>" method="post" class="p-6 space-y-6">
             <?= csrf_field() ?>
             
             <!-- Basic Information Section -->

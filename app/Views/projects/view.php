@@ -26,6 +26,14 @@
                 <i data-lucide="edit" class="w-4 h-4 mr-2"></i>
                 Edit Project
             </a>
+            <a href="<?= base_url('admin/projects/' . $project['id'] . '/gantt') ?>" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                <i data-lucide="gantt-chart" class="w-4 h-4 mr-2"></i>
+                Gantt Chart
+            </a>
+            <a href="<?= base_url('admin/projects/' . $project['id'] . '/team') ?>" class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                <i data-lucide="users" class="w-4 h-4 mr-2"></i>
+                Team
+            </a>
         </div>
     </div>
 

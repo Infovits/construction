@@ -441,6 +441,112 @@ class Projects extends BaseController
         return view('projects/gantt', $data);
     }
 
+    public function exportGanttPdf($id)
+    {
+        $project = $this->projectModel->find($id);
+        
+        if (!$project) {
+            return redirect()->to('/admin/projects')->with('error', 'Project not found');
+        }
+        
+        // Get tasks and milestones for the PDF
+        $tasks = $this->taskModel->where('project_id', $id)
+            ->where('task_type !=', 'milestone')
+            ->findAll();
+            
+        $milestones = $this->milestoneModel->where('project_id', $id)->findAll();
+        
+        if (empty($milestones)) {
+            $milestones = $this->taskModel->where('project_id', $id)
+                ->where('task_type', 'milestone')
+                ->findAll();
+        }
+        
+        // Debug: Log what we found
+        log_message('info', 'PDF Export - Tasks found: ' . count($tasks));
+        log_message('info', 'PDF Export - Milestones found: ' . count($milestones));
+        
+        // If still no tasks/milestones, try to get them with valid dates
+        if (empty($tasks) && empty($milestones)) {
+            log_message('info', 'PDF Export - No tasks/milestones found, trying alternative query');
+            
+            // Try getting all tasks for the project regardless of type
+            $allTasks = $this->taskModel->where('project_id', $id)->findAll();
+            log_message('info', 'PDF Export - All tasks found: ' . count($allTasks));
+            
+            foreach ($allTasks as $task) {
+                if (!empty($task['planned_start_date']) && !empty($task['planned_end_date'])) {
+                    if ($task['task_type'] === 'milestone') {
+                        $milestones[] = $task;
+                    } else {
+                        $tasks[] = $task;
+                    }
+                }
+            }
+        }
+        
+        // Prepare data for PDF
+        foreach ($tasks as &$task) {
+            if (!empty($task['assigned_to'])) {
+                $assignedUser = $this->userModel->find($task['assigned_to']);
+                if ($assignedUser) {
+                    $task['assigned_name'] = $assignedUser['first_name'] . ' ' . $assignedUser['last_name'];
+                } else {
+                    $task['assigned_name'] = '';
+                }
+            } else {
+                $task['assigned_name'] = '';
+            }
+        }
+        
+        // Ensure valid dates
+        foreach ($tasks as $key => $task) {
+            if (empty($task['planned_start_date']) || empty($task['planned_end_date'])) {
+                unset($tasks[$key]);
+                continue;
+            }
+            $tasks[$key]['planned_start_date'] = date('Y-m-d', strtotime($task['planned_start_date']));
+            $tasks[$key]['planned_end_date'] = date('Y-m-d', strtotime($task['planned_end_date']));
+            if (!isset($task['progress_percentage'])) {
+                $tasks[$key]['progress_percentage'] = 0;
+            }
+        }
+        
+        foreach ($milestones as $key => $milestone) {
+            if (empty($milestone['planned_end_date'])) {
+                unset($milestones[$key]);
+                continue;
+            }
+            $milestones[$key]['planned_end_date'] = date('Y-m-d', strtotime($milestone['planned_end_date']));
+            if (!isset($milestone['progress_percentage'])) {
+                $milestones[$key]['progress_percentage'] = 0;
+            }
+        }
+        
+        $tasks = array_values($tasks);
+        $milestones = array_values($milestones);
+        
+        $data = [
+            'project' => $project,
+            'tasks' => $tasks,
+            'milestones' => $milestones,
+            'export_date' => date('Y-m-d H:i:s')
+        ];
+        
+        // Load the PDF view
+        $html = view('projects/gantt_pdf', $data);
+        
+        // Create PDF using Dompdf
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+        
+        // Output PDF
+        $filename = 'Gantt_Chart_' . $project['project_code'] . '_' . date('Y-m-d') . '.pdf';
+        $dompdf->stream($filename, ['Attachment' => 1]);
+    }
+
     public function dashboard($id)
     {
         $project = $this->projectModel->getProjectWithTeam($id);

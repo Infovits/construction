@@ -16,15 +16,19 @@
             <p class="text-gray-600"><?= esc($project['project_code']) ?> | <?= esc($project['client_name'] ?? 'No Client') ?></p>
         </div>
         <div class="flex flex-col sm:flex-row gap-2">
-            <a href="<?= base_url('admin/projects/gantt/' . $project['id']) ?>" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                <i data-lucide="bar-chart-3" class="w-4 h-4 mr-2"></i>
+            <a href="<?= base_url('admin/projects/' . $project['id']) ?>" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+                Back to Project
+            </a>
+            <a href="<?= base_url('admin/projects/' . $project['id'] . '/gantt') ?>" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                <i data-lucide="gantt-chart" class="w-4 h-4 mr-2"></i>
                 Gantt Chart
             </a>
-            <a href="<?= base_url('admin/projects/team/' . $project['id']) ?>" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+            <a href="<?= base_url('admin/projects/' . $project['id'] . '/team') ?>" class="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
                 <i data-lucide="users" class="w-4 h-4 mr-2"></i>
-                Team (<?= count($project['team_members'] ?? []) ?>)
+                Team
             </a>
-            <a href="<?= base_url('admin/projects/edit/' . $project['id']) ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <a href="<?= base_url('admin/projects/' . $project['id'] . '/edit') ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                 <i data-lucide="edit" class="w-4 h-4 mr-2"></i>
                 Edit Project
             </a>
