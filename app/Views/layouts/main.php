@@ -68,9 +68,19 @@
         .menu-chevron {
             transition: transform 0.3s ease;
         }
-        .nav-link.active {
+        .menu-chevron.rotated {
+            transform: rotate(180deg);
+        }
+        .nav-item.active {
             font-weight: 600;
             color: #4f46e5;
+            background-color: #eef2ff;
+        }
+        .submenu a.active {
+            font-weight: 600;
+            color: #4f46e5;
+            background-color: #f8fafc;
+            border-left: 3px solid #4f46e5;
         }
         .sidebar-collapsed .nav-item:hover .tooltip {
             visibility: visible;
@@ -590,9 +600,13 @@
     </div>
 
     <script>
+        // Global variables
+        const sidebar = document.getElementById('sidebar');
+
         // Set active states and open relevant dropdowns on page load
         function setActiveStates() {
             const currentPath = window.location.pathname;
+            console.log('Current path:', currentPath);
 
             // Define menu sections and their URL patterns
             const menuSections = {
@@ -653,6 +667,12 @@
             
             const submenu = document.getElementById(submenuId);
             const chevron = document.getElementById(submenuId.replace('-submenu', '-chevron'));
+            const menuItem = chevron?.parentElement;
+            
+            // If this submenu is active and already open, don't close it
+            if (menuItem && menuItem.classList.contains('active') && submenu.classList.contains('open')) {
+                return;
+            }
             
             // Close all other submenus
             document.querySelectorAll('.submenu').forEach(menu => {
@@ -670,7 +690,9 @@
             if (chevron) {
                 chevron.classList.toggle('rotated');
             }
-        }        // Initialize Lucide icons
+        }
+
+        // Initialize Lucide icons
         lucide.createIcons();
 
         // Set active states on page load
@@ -693,7 +715,6 @@
         });
         
         // Sidebar functionality
-        const sidebar = document.getElementById('sidebar');
         const mobileOverlay = document.getElementById('mobileOverlay');
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const sidebarToggle = document.getElementById('sidebarToggle');
@@ -790,98 +811,109 @@
         initializeSidebarState();
 
         // Client Statistics Chart
-        const clientCtx = document.getElementById('clientChart').getContext('2d');
-        new Chart(clientCtx, {
-            type: 'line',
-            data: {
-                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
-                datasets: [{
-                    label: 'US',
-                    data: [30, 35, 40, 45, 55, 50, 60],
-                    borderColor: '#6366f1',
-                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }, {
-                    label: 'UK',
-                    data: [25, 30, 35, 40, 50, 45, 55],
-                    borderColor: '#ef4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
+        const clientChart = document.getElementById('clientChart');
+        if (clientChart) {
+            const clientCtx = clientChart.getContext('2d');
+            new Chart(clientCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                    datasets: [{
+                        label: 'US',
+                        data: [30, 35, 40, 45, 55, 50, 60],
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'UK',
+                        data: [25, 30, 35, 40, 50, 45, 55],
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
                             display: false
                         }
                     },
-                    x: {
-                        grid: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                display: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Site Health Chart
+        const siteHealthChart = document.getElementById('siteHealthChart');
+        if (siteHealthChart) {
+            const siteCtx = siteHealthChart.getContext('2d');
+            new Chart(siteCtx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [84, 16],
+                        backgroundColor: ['#6366f1', '#e5e7eb'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
                             display: false
                         }
                     }
                 }
-            }
-        });
-
-        // Site Health Chart
-        const siteCtx = document.getElementById('siteHealthChart').getContext('2d');
-        new Chart(siteCtx, {
-            type: 'doughnut',
-            data: {
-                datasets: [{
-                    data: [84, 16],
-                    backgroundColor: ['#6366f1', '#e5e7eb'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
+            });
+        }
 
         // Online Sales Chart
-        const salesCtx = document.getElementById('onlineSalesChart').getContext('2d');
-        new Chart(salesCtx, {
-            type: 'doughnut',
-            data: {
-                datasets: [{
-                    data: [80, 20],
-                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                cutout: '70%',
-                plugins: {
-                    legend: {
-                        display: false
+        const onlineSalesChart = document.getElementById('onlineSalesChart');
+        if (onlineSalesChart) {
+            const salesCtx = onlineSalesChart.getContext('2d');
+            new Chart(salesCtx, {
+                type: 'doughnut',
+                data: {
+                    datasets: [{
+                        data: [80, 20],
+                        backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     </script>
     <?= $this->renderSection('js') ?>
     <?= $this->renderSection('scripts') ?>
 </body>
 </html>
+
+

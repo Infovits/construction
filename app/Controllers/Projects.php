@@ -36,6 +36,7 @@ class Projects extends BaseController
     {
         $data = [
             'title' => 'Projects',
+            'pageTitle' => 'Projects Management',
             'projects' => $this->projectModel->getProjectsWithDetails(),
             'stats' => $this->projectModel->getProjectStats(),
             'overdue_projects' => $this->projectModel->getOverdueProjects()
