@@ -4,38 +4,88 @@
 
 <?= $this->section('styles') ?>
 <style>
-.tree-line {
-    border-left: 1px solid #e5e7eb;
-    min-height: 20px;
+.tree-structure {
+    display: flex;
+    align-items: flex-start;
 }
 
-.tree-connector:last-child .tree-line {
-    border-left: none;
+.tree-indent {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.tree-line {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-left: 2px solid #e5e7eb;
+    position: relative;
+}
+
+.tree-line.has-children::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: -1px;
+    width: 12px;
+    height: 2px;
+    background: #e5e7eb;
+}
+
+.tree-connector {
+    width: 16px;
+    height: 16px;
+    border-left: 2px solid #d1d5db;
+    border-bottom: 2px solid #d1d5db;
+    border-bottom-left-radius: 4px;
 }
 
 .account-row:hover .tree-line {
     border-color: #6366f1;
 }
 
-.parent-account {
-    background: linear-gradient(to right, #f8fafc, #ffffff);
-}
-
-.child-account {
-    background: linear-gradient(to right, #f1f5f9, #ffffff);
+.account-row:hover .tree-connector {
+    border-color: #6366f1;
 }
 
 .account-depth-0 {
     font-weight: 600;
-    background: linear-gradient(to right, #eff6ff, #ffffff);
+    background: linear-gradient(135deg, #f0f9ff, #ffffff);
 }
 
 .account-depth-1 {
-    background: linear-gradient(to right, #f8fafc, #ffffff);
+    background: linear-gradient(135deg, #f8fafc, #ffffff);
 }
 
 .account-depth-2 {
-    background: linear-gradient(to right, #f1f5f9, #ffffff);
+    background: linear-gradient(135deg, #f1f5f9, #ffffff);
+}
+
+.account-depth-3 {
+    background: linear-gradient(135deg, #fafafa, #ffffff);
+}
+
+.parent-account-name {
+    font-weight: 600;
+    color: #374151;
+}
+
+.child-account-name {
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.tree-icon {
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.account-content {
+    flex: 1;
+    min-width: 0;
 }
 </style>
 <?= $this->endSection() ?>
@@ -101,6 +151,7 @@
         <?php endforeach; ?>
     </div>
     <?php endif; ?>
+
 
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow-sm border p-4">
@@ -173,44 +224,60 @@
                         </tr>
                     <?php else: ?>
                         <?php foreach ($accounts as $account): ?>
-                            <tr class="hover:bg-gray-50 account-row <?= isset($account['depth']) ? 'account-depth-' . min($account['depth'], 2) : 'account-depth-0' ?>">
+                            <tr class="hover:bg-gray-50 account-row <?= isset($account['depth']) ? 'account-depth-' . min($account['depth'], 3) : 'account-depth-0' ?>">
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <div class="flex items-center">
-                                        <?php if (isset($account['depth'])): ?>
-                                            <?php for ($i = 0; $i < $account['depth']; $i++): ?>
-                                                <div class="w-6 mr-1">
+                                    <div class="tree-structure">
+                                        <!-- Tree indentation -->
+                                        <div class="tree-indent">
+                                            <?php if (isset($account['depth']) && $account['depth'] > 0): ?>
+                                                <?php for ($i = 0; $i < $account['depth']; $i++): ?>
                                                     <?php if ($i == $account['depth'] - 1): ?>
-                                                        <i data-lucide="corner-down-right" class="w-4 h-4 text-gray-400"></i>
+                                                        <!-- Last level - show connector -->
+                                                        <div class="tree-connector"></div>
                                                     <?php else: ?>
-                                                        <div class="w-px h-6 bg-gray-300 mx-auto"></div>
+                                                        <!-- Intermediate levels - show vertical line -->
+                                                        <div class="tree-line"></div>
+                                                    <?php endif; ?>
+                                                <?php endfor; ?>
+                                            <?php endif; ?>
+                                        </div>
+                                        
+                                        <!-- Account content -->
+                                        <div class="account-content">
+                                            <div class="flex items-center">
+                                                <!-- Icon based on whether account has children -->
+                                                <div class="tree-icon">
+                                                    <?php if (!empty($account['children']) && count($account['children']) > 0): ?>
+                                                        <i data-lucide="folder" class="w-4 h-4 text-blue-600"></i>
+                                                    <?php else: ?>
+                                                        <i data-lucide="file-text" class="w-4 h-4 text-gray-500"></i>
                                                     <?php endif; ?>
                                                 </div>
-                                            <?php endfor; ?>
-                                        <?php endif; ?>
-                                        <div class="flex-1">
-                                            <div class="flex items-center">
-                                                <?php if (!empty($account['children']) && count($account['children']) > 0): ?>
-                                                    <i data-lucide="folder" class="w-4 h-4 mr-2 text-blue-500"></i>
-                                                <?php else: ?>
-                                                    <i data-lucide="file-text" class="w-4 h-4 mr-2 text-gray-400"></i>
-                                                <?php endif; ?>
-                                                <div class="text-sm font-medium text-gray-900 <?= isset($account['depth']) && $account['depth'] > 0 ? '' : 'font-bold' ?>">
+                                                
+                                                <!-- Account name -->
+                                                <div class="text-sm <?= isset($account['depth']) && $account['depth'] > 0 ? 'child-account-name' : 'parent-account-name' ?>">
                                                     <?= esc($account['account_name']) ?>
                                                 </div>
                                             </div>
+                                            
+                                            <!-- Description -->
                                             <?php if (!empty($account['description'])): ?>
-                                                <div class="text-sm text-gray-500 ml-6"><?= esc($account['description']) ?></div>
+                                                <div class="text-xs text-gray-500 mt-1 ml-6"><?= esc($account['description']) ?></div>
                                             <?php endif; ?>
-                                            <div class="flex items-center mt-1">
+                                            
+                                            <!-- Account tags -->
+                                            <div class="flex items-center gap-2 mt-1 ml-6">
                                                 <?php if ($account['is_system_account']): ?>
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 ml-6">
-                                                        System Account
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                                                        <i data-lucide="shield" class="w-3 h-3 mr-1"></i>
+                                                        System
                                                     </span>
                                                 <?php endif; ?>
-                                                <?php if (!empty($account['parent_account_name'])): ?>
-                                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 ml-2">
-                                                        <i data-lucide="link" class="w-3 h-3 mr-1"></i>
-                                                        Child of: <?= esc($account['parent_account_name']) ?>
+                                                
+                                                <?php if (!empty($account['parent_account_name']) && $account['depth'] > 0): ?>
+                                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
+                                                        <i data-lucide="arrow-up" class="w-3 h-3 mr-1"></i>
+                                                        <?= esc($account['parent_account_name']) ?>
                                                     </span>
                                                 <?php endif; ?>
                                             </div>

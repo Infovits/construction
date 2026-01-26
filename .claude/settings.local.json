@@ -4,7 +4,18 @@
       "Bash(php spark serve:*)",
       "Bash(php:*)",
       "Bash(git restore:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(curl:*)",
+      "Bash(mysql:*)",
+      "Bash(mkdir:*)",
+      "Read(//c/Users/misheck.kamuloni/Downloads/**)",
+      "Bash(\"C:\\wamp64\\bin\\php\\php8.3.10\\php.exe\" verify_budget_tables.php)",
+      "Bash(\"C:\\wamp64\\bin\\php\\php8.2.13\\php.exe\" verify_budget_tables.php)",
+      "Bash(where:*)",
+      "Bash(\"C:\\wamp64\\bin\\php\\php8.3.10\\php.exe\" -r:*)",
+      "Bash(\"C:\\wamp64\\bin\\php\\php8.3.10\\php.exe\" -r \"$db = new mysqli(''localhost'', ''root'', '''', ''construction_db''); if ($db->connect_error) { echo ''Connection failed: '' . $db->connect_error . PHP_EOL; exit(1); } $result = $db->query(''DESCRIBE projects''); if ($result) { echo ''Projects table columns:'' . PHP_EOL; while ($row = $result->fetch_assoc()) { echo ''  - '' . $row[''Field''] . '' ('' . $row[''Type''] . '')'' . PHP_EOL; } } else { echo ''Error: '' . $db->error . PHP_EOL; } $db->close();\")",
+      "Bash(xargs:*)",
+      "Bash(wc:*)"
     ],
     "deny": []
   }

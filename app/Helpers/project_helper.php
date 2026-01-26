@@ -332,9 +332,10 @@ if (!function_exists('formatCurrency')) {
      * @param string $currency
      * @return string
      */
-    function formatCurrency($amount, $currency = 'USD')
+    function formatCurrency($amount, $currency = 'MWK')
     {
         $symbols = [
+            'MWK' => 'MWK',
             'USD' => '$',
             'EUR' => '€',
             'GBP' => '£',
@@ -342,8 +343,8 @@ if (!function_exists('formatCurrency')) {
             'AUD' => 'A$',
             'JPY' => '¥'
         ];
-        
+
         $symbol = $symbols[$currency] ?? $currency;
-        return $symbol . number_format($amount, 2);
+        return $symbol . ' ' . number_format($amount, 2);
     }
 }

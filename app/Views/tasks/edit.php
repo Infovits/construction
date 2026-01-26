@@ -26,7 +26,7 @@
                 </div>
             <?php endif; ?>
 
-            <form action="<?= isset($task) ? base_url('admin/tasks/update/' . $task['id']) : base_url('admin/tasks/store') ?>" method="post" enctype="multipart/form-data">
+            <form action="<?= isset($task) ? base_url('admin/tasks/' . $task['id']) : base_url('admin/tasks/store') ?>" method="post" enctype="multipart/form-data">
                 <?= csrf_field() ?>
                 
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -34,15 +34,15 @@
                     <div class="lg:col-span-2 space-y-6">
                         <div>
                             <label for="title" class="block text-sm font-medium text-gray-700 mb-2">Task Title *</label>
-                            <input type="text" id="title" name="title" 
-                                   value="<?= old('title', isset($task) ? $task['title'] : '') ?>" required
+                            <input type="text" id="title" name="title"
+                                   value="<?= old('title', isset($task) && isset($task['title']) ? $task['title'] : '') ?>" required
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
 
                         <div>
                             <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
                             <textarea id="description" name="description" rows="4"
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"><?= old('description', isset($task) ? $task['description'] : '') ?></textarea>
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"><?= old('description', isset($task) && isset($task['description']) ? $task['description'] : '') ?></textarea>
                         </div>
                     </div>
 
@@ -53,8 +53,8 @@
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="">Select Project</option>
                                 <?php foreach($projects as $project): ?>
-                                    <option value="<?= $project['id'] ?>" 
-                                            <?= old('project_id', isset($task) ? $task['project_id'] : ($_GET['project_id'] ?? '')) == $project['id'] ? 'selected' : '' ?>>
+                                    <option value="<?= $project['id'] ?>"
+                                            <?= old('project_id', isset($task) && isset($task['project_id']) ? $task['project_id'] : ($_GET['project_id'] ?? '')) == $project['id'] ? 'selected' : '' ?>>
                                         <?= esc($project['name']) ?> (<?= esc($project['project_code']) ?>)
                                     </option>
                                 <?php endforeach; ?>
@@ -77,11 +77,11 @@
                         <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
                         <select id="status" name="status"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="pending" <?= old('status', isset($task) ? $task['status'] : 'pending') == 'pending' ? 'selected' : '' ?>>Pending</option>
-                            <option value="in_progress" <?= old('status', isset($task) ? $task['status'] : 'pending') == 'in_progress' ? 'selected' : '' ?>>In Progress</option>
-                            <option value="review" <?= old('status', isset($task) ? $task['status'] : 'pending') == 'review' ? 'selected' : '' ?>>Under Review</option>
-                            <option value="completed" <?= old('status', isset($task) ? $task['status'] : 'pending') == 'completed' ? 'selected' : '' ?>>Completed</option>
-                            <option value="cancelled" <?= old('status', isset($task) ? $task['status'] : 'pending') == 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
+                            <option value="pending" <?= old('status', isset($task) && isset($task['status']) ? $task['status'] : 'pending') == 'pending' ? 'selected' : '' ?>>Pending</option>
+                            <option value="in_progress" <?= old('status', isset($task) && isset($task['status']) ? $task['status'] : 'pending') == 'in_progress' ? 'selected' : '' ?>>In Progress</option>
+                            <option value="review" <?= old('status', isset($task) && isset($task['status']) ? $task['status'] : 'pending') == 'review' ? 'selected' : '' ?>>Under Review</option>
+                            <option value="completed" <?= old('status', isset($task) && isset($task['status']) ? $task['status'] : 'pending') == 'completed' ? 'selected' : '' ?>>Completed</option>
+                            <option value="cancelled" <?= old('status', isset($task) && isset($task['status']) ? $task['status'] : 'pending') == 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
                         </select>
                     </div>
 
@@ -89,10 +89,10 @@
                         <label for="priority" class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
                         <select id="priority" name="priority"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="low" <?= old('priority', isset($task) ? $task['priority'] : 'medium') == 'low' ? 'selected' : '' ?>>Low</option>
-                            <option value="medium" <?= old('priority', isset($task) ? $task['priority'] : 'medium') == 'medium' ? 'selected' : '' ?>>Medium</option>
-                            <option value="high" <?= old('priority', isset($task) ? $task['priority'] : 'medium') == 'high' ? 'selected' : '' ?>>High</option>
-                            <option value="urgent" <?= old('priority', isset($task) ? $task['priority'] : 'medium') == 'urgent' ? 'selected' : '' ?>>Urgent</option>
+                            <option value="low" <?= old('priority', isset($task) && isset($task['priority']) ? $task['priority'] : 'medium') == 'low' ? 'selected' : '' ?>>Low</option>
+                            <option value="medium" <?= old('priority', isset($task) && isset($task['priority']) ? $task['priority'] : 'medium') == 'medium' ? 'selected' : '' ?>>Medium</option>
+                            <option value="high" <?= old('priority', isset($task) && isset($task['priority']) ? $task['priority'] : 'medium') == 'high' ? 'selected' : '' ?>>High</option>
+                            <option value="urgent" <?= old('priority', isset($task) && isset($task['priority']) ? $task['priority'] : 'medium') == 'urgent' ? 'selected' : '' ?>>Urgent</option>
                         </select>
                     </div>
 
@@ -100,15 +100,15 @@
                         <label for="task_type" class="block text-sm font-medium text-gray-700 mb-2">Task Type</label>
                         <select id="task_type" name="task_type"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="task" <?= old('task_type', isset($task) ? $task['task_type'] : 'task') == 'task' ? 'selected' : '' ?>>Regular Task</option>
-                            <option value="milestone" <?= old('task_type', isset($task) ? $task['task_type'] : 'task') == 'milestone' ? 'selected' : '' ?>>Milestone</option>
+                            <option value="task" <?= old('task_type', isset($task) && isset($task['task_type']) ? $task['task_type'] : 'task') == 'task' ? 'selected' : '' ?>>Regular Task</option>
+                            <option value="milestone" <?= old('task_type', isset($task) && isset($task['task_type']) ? $task['task_type'] : 'task') == 'milestone' ? 'selected' : '' ?>>Milestone</option>
                         </select>
                     </div>
 
                     <div>
                         <label for="progress_percentage" class="block text-sm font-medium text-gray-700 mb-2">Progress (%)</label>
-                        <input type="number" id="progress_percentage" name="progress_percentage" 
-                               min="0" max="100" value="<?= old('progress_percentage', isset($task) ? $task['progress_percentage'] : 0) ?>"
+                        <input type="number" id="progress_percentage" name="progress_percentage"
+                               min="0" max="100" value="<?= old('progress_percentage', isset($task) && isset($task['progress_percentage']) ? $task['progress_percentage'] : 0) ?>"
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
@@ -123,8 +123,8 @@
                                     class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="">Unassigned</option>
                                 <?php foreach($users as $user): ?>
-                                    <option value="<?= $user['id'] ?>" 
-                                            <?= old('assigned_to', isset($task) ? $task['assigned_to'] : '') == $user['id'] ? 'selected' : '' ?>>
+                                    <option value="<?= $user['id'] ?>"
+                                            <?= old('assigned_to', isset($task) && isset($task['assigned_to']) ? $task['assigned_to'] : '') == $user['id'] ? 'selected' : '' ?>>
                                         <?= esc($user['first_name'] . ' ' . $user['last_name']) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -133,15 +133,15 @@
 
                         <div>
                             <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                            <input type="date" id="start_date" name="start_date" 
-                                   value="<?= old('start_date', isset($task) ? $task['start_date'] : '') ?>"
+                            <input type="date" id="start_date" name="start_date"
+                                   value="<?= old('start_date', isset($task) && isset($task['start_date']) ? $task['start_date'] : '') ?>"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
 
                         <div>
                             <label for="due_date" class="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
-                            <input type="date" id="due_date" name="due_date" 
-                                   value="<?= old('due_date', isset($task) ? $task['due_date'] : '') ?>"
+                            <input type="date" id="due_date" name="due_date"
+                                   value="<?= old('due_date', isset($task) && isset($task['due_date']) ? $task['due_date'] : '') ?>"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
                     </div>
@@ -153,22 +153,22 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
                             <label for="estimated_hours" class="block text-sm font-medium text-gray-700 mb-2">Estimated Hours</label>
-                            <input type="number" id="estimated_hours" name="estimated_hours" 
-                                   step="0.5" min="0" value="<?= old('estimated_hours', isset($task) ? $task['estimated_hours'] : '') ?>"
+                            <input type="number" id="estimated_hours" name="estimated_hours"
+                                   step="0.5" min="0" value="<?= old('estimated_hours', isset($task) && isset($task['estimated_hours']) ? $task['estimated_hours'] : '') ?>"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
 
                         <div>
                             <label for="actual_hours" class="block text-sm font-medium text-gray-700 mb-2">Actual Hours</label>
-                            <input type="number" id="actual_hours" name="actual_hours" 
-                                   step="0.5" min="0" value="<?= old('actual_hours', isset($task) ? $task['actual_hours'] : '') ?>"
+                            <input type="number" id="actual_hours" name="actual_hours"
+                                   step="0.5" min="0" value="<?= old('actual_hours', isset($task) && isset($task['actual_hours']) ? $task['actual_hours'] : '') ?>"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
 
                         <div>
                             <label for="estimated_cost" class="block text-sm font-medium text-gray-700 mb-2">Estimated Cost</label>
-                            <input type="number" id="estimated_cost" name="estimated_cost" 
-                                   step="0.01" min="0" value="<?= old('estimated_cost', isset($task) ? $task['estimated_cost'] : '') ?>"
+                            <input type="number" id="estimated_cost" name="estimated_cost"
+                                   step="0.01" min="0" value="<?= old('estimated_cost', isset($task) && isset($task['estimated_cost']) ? $task['estimated_cost'] : '') ?>"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
                     </div>
@@ -233,8 +233,8 @@
                     <div class="space-y-6">
                         <div>
                             <label for="tags" class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
-                            <input type="text" id="tags" name="tags" 
-                                   value="<?= old('tags', isset($task) ? $task['tags'] : '') ?>"
+                            <input type="text" id="tags" name="tags"
+                                   value="<?= old('tags', isset($task) && isset($task['tags']) ? $task['tags'] : '') ?>"
                                    placeholder="Enter tags separated by commas"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <p class="text-sm text-gray-500 mt-1">e.g., construction, electrical, safety</p>
@@ -243,7 +243,7 @@
                         <div>
                             <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
                             <textarea id="notes" name="notes" rows="3"
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"><?= old('notes', isset($task) ? $task['notes'] : '') ?></textarea>
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"><?= old('notes', isset($task) && isset($task['notes']) ? $task['notes'] : '') ?></textarea>
                         </div>
                     </div>
                 </div>

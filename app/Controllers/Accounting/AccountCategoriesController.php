@@ -16,9 +16,16 @@ class AccountCategoriesController extends BaseController
 
     public function index()
     {
+        $filters = [
+            'account_type' => $this->request->getGet('account_type'),
+            'is_active' => $this->request->getGet('is_active'),
+            'search' => $this->request->getGet('search')
+        ];
+
         $data = [
             'title' => 'Account Categories',
-            'categories' => $this->accountCategoryModel->getAccountCategoriesWithDetails()
+            'categories' => $this->accountCategoryModel->getAccountCategoriesWithDetails($filters),
+            'filters' => $filters
         ];
 
         return view('accounting/account_categories/index', $data);

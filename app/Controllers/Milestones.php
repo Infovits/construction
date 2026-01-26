@@ -141,26 +141,41 @@ class Milestones extends BaseController
     {
         $milestone = $this->milestoneModel->select('tasks.*, projects.name as project_name, projects.project_code')
                                          ->join('projects', 'tasks.project_id = projects.id')
-                                         ->find($id);
+                                         ->where('tasks.id', $id)
+                                         ->where('tasks.task_type', 'milestone')
+                                         ->first();
 
-        if (!$milestone || $milestone['task_type'] !== 'milestone') {
+        if (!$milestone) {
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Milestone not found');
         }
 
+        // Get project details
+        $project = $this->projectModel->find($milestone['project_id']);
+
+        // Get assigned user details
+        $assigned_user = null;
+        if ($milestone['assigned_to']) {
+            $assigned_user = $this->userModel->find($milestone['assigned_to']);
+        }
+
         // Get related tasks (tasks that should be completed by this milestone)
-        $relatedTasks = $this->taskModel->where('project_id', $milestone['project_id'])
-                                       ->where('planned_end_date <=', $milestone['planned_end_date'])
-                                       ->where('task_type !=', 'milestone')
+        $relatedTasks = $this->taskModel->select('tasks.*, CONCAT(u.first_name, " ", u.last_name) as assigned_name')
+                                       ->join('users u', 'tasks.assigned_to = u.id', 'left')
+                                       ->where('tasks.project_id', $milestone['project_id'])
+                                       ->where('tasks.planned_end_date <=', $milestone['planned_end_date'])
+                                       ->where('tasks.task_type !=', 'milestone')
                                        ->findAll();
 
         $data = [
             'title' => $milestone['title'],
             'milestone' => $milestone,
+            'project' => $project,
+            'assigned_user' => $assigned_user,
             'related_tasks' => $relatedTasks,
             'completion_stats' => $this->calculateMilestoneCompletion($milestone, $relatedTasks)
         ];
 
-        return view('milestones/show', $data);
+        return view('milestones/view', $data);
     }
 
     public function edit($id)
@@ -294,21 +309,10 @@ class Milestones extends BaseController
     {
         $projectId = $this->request->getGet('project_id');
 
-        $builder = $this->milestoneModel->select('tasks.*, projects.name as project_name')
-                                       ->join('projects', 'tasks.project_id = projects.id')
-                                       ->where('projects.company_id', session('company_id'));
-
-        if ($projectId) {
-            $builder->where('tasks.project_id', $projectId);
-        }
-
-        $milestones = $builder->findAll();
-
         $data = [
             'title' => 'Milestone Calendar',
-            'milestones' => $milestones,
             'projects' => $this->projectModel->getActiveProjects(),
-            'calendar_events' => $this->prepareCalendarEvents($milestones)
+            'project_id' => $projectId
         ];
 
         return view('milestones/calendar', $data);
@@ -434,5 +438,31 @@ class Milestones extends BaseController
         ];
 
         return $classes[$status] ?? 'fc-event-default';
+    }
+
+    /**
+     * API endpoint for calendar events
+     */
+    public function apiCalendarEvents()
+    {
+        $start = $this->request->getGet('start');
+        $end = $this->request->getGet('end');
+
+        $milestones = $this->milestoneModel->select('tasks.*, projects.name as project_name')
+                                          ->join('projects', 'tasks.project_id = projects.id')
+                                          ->where('projects.company_id', session('company_id'))
+                                          ->where('tasks.task_type', 'milestone')
+                                          ->where('tasks.planned_end_date IS NOT NULL');
+
+        if ($start && $end) {
+            $milestones->groupStart()
+                      ->where('tasks.planned_end_date >=', $start)
+                      ->where('tasks.planned_end_date <=', $end)
+                      ->groupEnd();
+        }
+
+        $milestones = $milestones->findAll();
+
+        return $this->response->setJSON(['milestones' => $milestones]);
     }
 }

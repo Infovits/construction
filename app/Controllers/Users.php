@@ -308,12 +308,278 @@ class Users extends BaseController
     }
 
     /**
+     * Show edit user form
+     */
+    public function edit($id)
+    {
+        // Debug logging
+        log_message('debug', 'Users::edit called with ID: ' . $id);
+        log_message('debug', 'Company ID: ' . (session('company_id') ?: 'NOT SET'));
+
+        try {
+            $user = $this->userModel->getUserWithDetails($id);
+
+            log_message('debug', 'User data: ' . json_encode($user));
+
+            if (!$user) {
+                log_message('error', 'User not found with ID: ' . $id);
+                throw new \CodeIgniter\Exceptions\PageNotFoundException('User not found');
+            }
+
+            // Check if user belongs to current company
+            if ($user['company_id'] != session('company_id')) {
+                log_message('error', 'User company mismatch. User company: ' . $user['company_id'] . ', Session company: ' . session('company_id'));
+                throw new \CodeIgniter\Exceptions\PageNotFoundException('User not found');
+            }
+
+            $data = [
+                'title' => 'Edit User',
+                'pageTitle' => 'Edit User',
+                'user' => $user,
+                'roles' => $this->roleModel->getActiveRoles(),
+                'departments' => $this->departmentModel->getActiveDepartments(),
+                'positions' => $this->jobPositionModel->getActivePositions(),
+                'validation' => \Config\Services::validation(),
+                'employmentTypes' => $this->getEmploymentTypes(),
+                'genderOptions' => $this->getGenderOptions()
+            ];
+
+            log_message('debug', 'Data prepared for view: ' . json_encode(array_keys($data)));
+
+            return view('admin/users/edit', $data);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Error in Users::edit: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+            throw $e;
+        }
+    }
+
+    /**
+     * Update user
+     */
+    public function update($id)
+    {
+        $user = $this->userModel->find($id);
+
+        if (!$user) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('User not found');
+        }
+
+        // Check if user belongs to current company
+        if ($user['company_id'] != session('company_id')) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('User not found');
+        }
+
+        // Validation rules (excluding current user for unique checks)
+        $rules = [
+            'username' => [
+                'rules' => 'required|min_length[3]|max_length[100]|is_unique[users.username,id,'.$id.']',
+                'errors' => [
+                    'required' => 'Username is required',
+                    'min_length' => 'Username must be at least 3 characters',
+                    'max_length' => 'Username cannot exceed 100 characters',
+                    'is_unique' => 'Username already exists'
+                ]
+            ],
+            'email' => [
+                'rules' => 'required|valid_email|is_unique[users.email,id,'.$id.']',
+                'errors' => [
+                    'required' => 'Email is required',
+                    'valid_email' => 'Please enter a valid email address',
+                    'is_unique' => 'Email already exists'
+                ]
+            ],
+            'first_name' => [
+                'rules' => 'required|min_length[2]|max_length[100]',
+                'errors' => [
+                    'required' => 'First name is required',
+                    'min_length' => 'First name must be at least 2 characters'
+                ]
+            ],
+            'last_name' => [
+                'rules' => 'required|min_length[2]|max_length[100]',
+                'errors' => [
+                    'required' => 'Last name is required',
+                    'min_length' => 'Last name must be at least 2 characters'
+                ]
+            ],
+            'phone' => [
+                'rules' => 'permit_empty|min_length[10]|max_length[20]',
+                'errors' => [
+                    'min_length' => 'Phone number must be at least 10 characters'
+                ]
+            ],
+            'role_id' => [
+                'rules' => 'required|numeric',
+                'errors' => [
+                    'required' => 'Role is required',
+                    'numeric' => 'Invalid role selected'
+                ]
+            ],
+            'department_id' => 'permit_empty|numeric',
+            'position_id' => 'permit_empty|numeric',
+            'hire_date' => 'permit_empty|valid_date',
+            'basic_salary' => 'permit_empty|numeric|greater_than_equal_to[0]'
+        ];
+
+        // Add password validation only if password is provided
+        if ($this->request->getPost('password')) {
+            $rules['password'] = [
+                'rules' => 'min_length[8]',
+                'errors' => [
+                    'min_length' => 'Password must be at least 8 characters'
+                ]
+            ];
+            $rules['password_confirm'] = [
+                'rules' => 'matches[password]',
+                'errors' => [
+                    'matches' => 'Passwords do not match'
+                ]
+            ];
+        }
+
+        // Perform validation
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput();
+        }
+
+        // Start database transaction
+        $this->db->transStart();
+
+        try {
+            // Prepare user data
+            $userData = [
+                'username' => trim($this->request->getPost('username')),
+                'email' => trim($this->request->getPost('email')),
+                'first_name' => trim($this->request->getPost('first_name')),
+                'last_name' => trim($this->request->getPost('last_name')),
+                'middle_name' => trim($this->request->getPost('middle_name')) ?: null,
+                'phone' => trim($this->request->getPost('phone')) ?: null,
+                'mobile' => trim($this->request->getPost('mobile')) ?: null,
+                'date_of_birth' => $this->request->getPost('date_of_birth') ?: null,
+                'gender' => $this->request->getPost('gender') ?: null,
+                'national_id' => trim($this->request->getPost('national_id')) ?: null,
+                'address' => trim($this->request->getPost('address')) ?: null,
+                'city' => trim($this->request->getPost('city')) ?: null,
+                'emergency_contact_name' => trim($this->request->getPost('emergency_contact_name')) ?: null,
+                'emergency_contact_phone' => trim($this->request->getPost('emergency_contact_phone')) ?: null,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            // Update password if provided
+            if ($this->request->getPost('password')) {
+                $userData['password'] = password_hash($this->request->getPost('password'), PASSWORD_DEFAULT);
+            }
+
+            // Update user
+            if (!$this->userModel->update($id, $userData)) {
+                throw new \Exception('Failed to update user');
+            }
+
+            // Update user role
+            $roleId = (int)$this->request->getPost('role_id');
+
+            // Remove existing role assignment
+            $this->db->table('user_roles')->where('user_id', $id)->delete();
+
+            // Assign new role
+            $roleData = [
+                'user_id' => $id,
+                'role_id' => $roleId,
+                'assigned_by' => session('user_id'),
+                'assigned_at' => date('Y-m-d H:i:s')
+            ];
+
+            if (!$this->db->table('user_roles')->insert($roleData)) {
+                throw new \Exception('Failed to update user role');
+            }
+
+            // Update or create employee details
+            $departmentId = $this->request->getPost('department_id');
+            $positionId = $this->request->getPost('position_id');
+            $hireDate = $this->request->getPost('hire_date');
+            $basicSalary = $this->request->getPost('basic_salary');
+
+            $employeeDetail = $this->employeeDetailModel->where('user_id', $id)->first();
+
+            if ($employeeDetail) {
+                // Update existing employee details
+                $employeeData = [
+                    'department_id' => $departmentId ?: null,
+                    'position_id' => $positionId ?: null,
+                    'hire_date' => $hireDate ?: $employeeDetail['hire_date'],
+                    'employment_type' => $this->request->getPost('employment_type') ?: $employeeDetail['employment_type'],
+                    'basic_salary' => (float)($basicSalary ?: $employeeDetail['basic_salary']),
+                    'bank_name' => trim($this->request->getPost('bank_name')) ?: $employeeDetail['bank_name'],
+                    'bank_account_number' => trim($this->request->getPost('bank_account_number')) ?: $employeeDetail['bank_account_number'],
+                    'bank_branch' => trim($this->request->getPost('bank_branch')) ?: $employeeDetail['bank_branch'],
+                    'tax_number' => trim($this->request->getPost('tax_number')) ?: $employeeDetail['tax_number'],
+                    'supervisor_id' => $this->request->getPost('supervisor_id') ?: $employeeDetail['supervisor_id'],
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                if (!$this->employeeDetailModel->update($employeeDetail['id'], $employeeData)) {
+                    throw new \Exception('Failed to update employee details');
+                }
+            } elseif ($departmentId || $positionId || $hireDate || $basicSalary) {
+                // Create new employee details
+                $employeeData = [
+                    'user_id' => $id,
+                    'department_id' => $departmentId ?: null,
+                    'position_id' => $positionId ?: null,
+                    'hire_date' => $hireDate ?: date('Y-m-d'),
+                    'employment_type' => $this->request->getPost('employment_type') ?: 'full_time',
+                    'employment_status' => 'active',
+                    'basic_salary' => (float)($basicSalary ?: 0.00),
+                    'currency' => 'MWK',
+                    'pay_frequency' => 'monthly',
+                    'bank_name' => trim($this->request->getPost('bank_name')) ?: null,
+                    'bank_account_number' => trim($this->request->getPost('bank_account_number')) ?: null,
+                    'bank_branch' => trim($this->request->getPost('bank_branch')) ?: null,
+                    'tax_number' => trim($this->request->getPost('tax_number')) ?: null,
+                    'supervisor_id' => $this->request->getPost('supervisor_id') ?: null,
+                    'annual_leave_balance' => 21.00,
+                    'sick_leave_balance' => 14.00,
+                    'created_at' => date('Y-m-d H:i:s'),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                if (!$this->employeeDetailModel->insert($employeeData)) {
+                    throw new \Exception('Failed to create employee details');
+                }
+            }
+
+            // Complete transaction
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \Exception('Database transaction failed');
+            }
+
+            // Log activity
+            $this->logActivity('user_updated', 'users', $id, $userData);
+
+            return redirect()->to(base_url('admin/users'))->with('success', 'User updated successfully');
+
+        } catch (\Exception $e) {
+            // Rollback transaction
+            $this->db->transRollback();
+
+            // Log error
+            log_message('error', 'User update failed: ' . $e->getMessage());
+
+            return redirect()->back()->withInput()->with('error', 'Failed to update user: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get positions by department ID - AJAX endpoint
      */
     public function getPositionsByDepartment()
     {
         $departmentId = $this->request->getGet('department_id');
-        
+
         if (!$departmentId) {
             return $this->response->setJSON([
                 'success' => false,
@@ -325,7 +591,7 @@ class Users extends BaseController
         $positions = $this->jobPositionModel->where('department_id', $departmentId)
                                            ->where('is_active', true)
                                            ->findAll();
-        
+
         return $this->response->setJSON([
             'success' => true,
             'message' => 'Found ' . count($positions) . ' positions',

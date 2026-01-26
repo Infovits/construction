@@ -104,7 +104,7 @@
                         <select name="material_id" id="material_id_2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">All Materials</option>
                             <?php foreach ($materials as $material): ?>
-                            <option value="<?= $material['id'] ?>"><?= esc($material['name']) ?> (<?= esc($material['sku']) ?>)</option>
+                            <option value="<?= $material['id'] ?>"><?= esc($material['name']) ?> (<?= esc($material['item_code']) ?>)</option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -324,7 +324,7 @@
                         <select name="material_id" id="material_id_6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500" required>
                             <option value="">Select Material</option>
                             <?php foreach ($materials as $material): ?>
-                            <option value="<?= $material['id'] ?>"><?= esc($material['name']) ?> (<?= esc($material['sku']) ?>)</option>
+                            <option value="<?= $material['id'] ?>"><?= esc($material['name']) ?> (<?= esc($material['item_code']) ?>)</option>
                             <?php endforeach; ?>
                         </select>
                     </div>

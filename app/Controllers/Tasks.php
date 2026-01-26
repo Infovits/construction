@@ -81,9 +81,9 @@ class Tasks extends BaseController
             'project_id' => 'required|numeric',
             'title' => 'required|min_length[3]|max_length[255]',
             'task_type' => 'required|in_list[task,milestone,subtask]',
-            'priority' => 'required|in_list[low,medium,high,critical]',
-            'planned_start_date' => 'required|valid_date',
-            'planned_end_date' => 'required|valid_date',
+            'priority' => 'required|in_list[low,medium,high,urgent]',
+            'planned_start_date' => 'permit_empty|valid_date',
+            'planned_end_date' => 'permit_empty|valid_date',
             'estimated_hours' => 'permit_empty|numeric|greater_than_equal_to[0]',
             'estimated_cost' => 'permit_empty|numeric|greater_than_equal_to[0]'
         ]);
@@ -152,7 +152,7 @@ class Tasks extends BaseController
             'activity_log' => $this->getTaskActivityLog($id)
         ];
 
-        return view('tasks/show', $data);
+        return view('tasks/view', $data);
     }
 
     public function edit($id)
@@ -208,10 +208,10 @@ class Tasks extends BaseController
         $validation->setRules([
             'title' => 'required|min_length[3]|max_length[255]',
             'task_type' => 'required|in_list[task,milestone,subtask]',
-            'priority' => 'required|in_list[low,medium,high,critical]',
-            'status' => 'required|in_list[not_started,in_progress,review,completed,cancelled,on_hold]',
-            'planned_start_date' => 'required|valid_date',
-            'planned_end_date' => 'required|valid_date'
+            'priority' => 'required|in_list[low,medium,high,urgent]',
+            'status' => 'required|in_list[pending,in_progress,review,completed,cancelled,on_hold]',
+            'planned_start_date' => 'permit_empty|valid_date',
+            'planned_end_date' => 'permit_empty|valid_date'
         ]);
 
         if (!$validation->run($this->request->getPost())) {
@@ -243,19 +243,28 @@ class Tasks extends BaseController
             'is_billable' => $this->request->getPost('is_billable') ? true : false
         ];
 
-        if ($this->taskModel->update($id, $data)) {
-            // Send notification if assignee changed
-            if ($originalAssignedTo != $newAssignedTo && $newAssignedTo) {
-                $this->sendTaskAssignmentNotification($id);
+        try {
+            $result = $this->taskModel->update($id, $data);
+            if ($result) {
+                // Send notification if assignee changed
+                if ($originalAssignedTo != $newAssignedTo && $newAssignedTo) {
+                    $this->sendTaskAssignmentNotification($id);
+                }
+
+                // Update project progress
+                $this->projectModel->updateProjectProgress($task['project_id']);
+
+                return redirect()->to('/tasks/' . $id)->with('success', 'Task updated successfully');
+            } else {
+                // Log the update failure
+                log_message('error', 'Task update failed for task ID: ' . $id . '. Data: ' . json_encode($data));
+                return redirect()->back()->withInput()->with('error', 'Failed to update task');
             }
-
-            // Update project progress
-            $this->projectModel->updateProjectProgress($task['project_id']);
-
-            return redirect()->to('/tasks/' . $id)->with('success', 'Task updated successfully');
+        } catch (\Exception $e) {
+            // Log the exception
+            log_message('error', 'Exception during task update: ' . $e->getMessage() . ' for task ID: ' . $id);
+            return redirect()->back()->withInput()->with('error', 'Failed to update task: ' . $e->getMessage());
         }
-
-        return redirect()->back()->withInput()->with('error', 'Failed to update task');
     }
 
     public function updateStatus($id)
@@ -558,17 +567,101 @@ class Tasks extends BaseController
     /**
      * Get tasks by project for AJAX requests
      */
+    public function myTasks()
+    {
+        $userId = session('user_id');
+
+        $builder = $this->taskModel->select('tasks.*, projects.name as project_name, projects.project_code, CONCAT(u.first_name, " ", u.last_name) as assigned_name')
+                                  ->join('projects', 'tasks.project_id = projects.id')
+                                  ->join('users u', 'tasks.assigned_to = u.id', 'left')
+                                  ->where('tasks.assigned_to', $userId)
+                                  ->where('projects.company_id', session('company_id'))
+                                  ->where('tasks.status !=', 'cancelled');
+
+        $tasks = $builder->orderBy('tasks.planned_end_date', 'ASC')->paginate(20);
+
+        $data = [
+            'title' => 'My Tasks',
+            'tasks' => $tasks,
+            'pager' => $this->taskModel->pager,
+            'projects' => $this->projectModel->getActiveProjects(),
+            'users' => $this->userModel->getActiveEmployees(),
+            'filters' => [
+                'status' => null,
+                'project' => null,
+                'assigned_to' => $userId
+            ]
+        ];
+
+        return view('tasks/index', $data);
+    }
+
+    public function calendar()
+    {
+        $data = [
+            'title' => 'Task Calendar',
+            'tasks' => $this->taskModel->select('tasks.*, projects.name as project_name')
+                                      ->join('projects', 'tasks.project_id = projects.id')
+                                      ->where('projects.company_id', session('company_id'))
+                                      ->where('tasks.status !=', 'cancelled')
+                                      ->findAll()
+        ];
+
+        return view('tasks/calendar', $data);
+    }
+
+    /**
+     * API endpoint for calendar events
+     */
+    public function apiCalendarEvents()
+    {
+        $start = $this->request->getGet('start');
+        $end = $this->request->getGet('end');
+
+        $tasks = $this->taskModel->select('tasks.*, projects.name as project_name, CONCAT(u.first_name, " ", u.last_name) as assigned_name')
+                                ->join('projects', 'tasks.project_id = projects.id')
+                                ->join('users u', 'tasks.assigned_to = u.id', 'left')
+                                ->where('projects.company_id', session('company_id'))
+                                ->where('tasks.status !=', 'cancelled');
+
+        if ($start && $end) {
+            $tasks->where('tasks.planned_end_date >=', $start)
+                  ->where('tasks.planned_end_date <=', $end);
+        }
+
+        $tasks = $tasks->findAll();
+
+        return $this->response->setJSON(['tasks' => $tasks]);
+    }
+
+    /**
+     * API endpoint for task details
+     */
+    public function apiTaskDetails($id)
+    {
+        $task = $this->taskModel->select('tasks.*, projects.name as project_name, projects.project_code, CONCAT(u.first_name, " ", u.last_name) as assigned_name')
+                               ->join('projects', 'tasks.project_id = projects.id')
+                               ->join('users u', 'tasks.assigned_to = u.id', 'left')
+                               ->find($id);
+
+        if (!$task) {
+            return $this->response->setJSON(['error' => 'Task not found'], 404);
+        }
+
+        return $this->response->setJSON(['task' => $task]);
+    }
+
     public function byProject($projectId)
     {
         if (!$projectId) {
             return $this->response->setJSON(['error' => 'Project ID is required'], 400);
         }
-        
+
         $tasks = $this->taskModel->where('project_id', $projectId)
                                 ->where('status !=', 'cancelled')
                                 ->select('id, title, task_code, task_type')
                                 ->findAll();
-        
+
         return $this->response->setJSON($tasks);
     }
 

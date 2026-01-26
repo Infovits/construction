@@ -105,13 +105,14 @@
 
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <label for="min_stock_level" class="block text-sm font-medium text-gray-700 mb-2">Minimum Stock Level</label>
-                                        <input type="number" name="min_stock_level" id="min_stock_level" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" min="0" step="1" value="<?= old('min_stock_level', $material['min_stock_level']) ?>">
+                                        <label for="minimum_stock" class="block text-sm font-medium text-gray-700 mb-2">Minimum Stock Level</label>
+                                        <input type="number" name="minimum_stock" id="minimum_stock" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" min="0" step="1" value="<?= old('minimum_stock', $material['minimum_stock']) ?>">
                                         <p class="mt-1 text-sm text-gray-500">Trigger low stock alerts below this level</p>
                                     </div>
                                     <div>
-                                        <label for="reorder_quantity" class="block text-sm font-medium text-gray-700 mb-2">Reorder Quantity</label>
-                                        <input type="number" name="reorder_quantity" id="reorder_quantity" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" min="0" step="1" value="<?= old('reorder_quantity', $material['reorder_quantity']) ?>">
+                                        <label for="reorder_level" class="block text-sm font-medium text-gray-700 mb-2">Reorder Level</label>
+                                        <input type="number" name="reorder_level" id="reorder_level" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" min="0" step="1" value="<?= old('reorder_level', $material['reorder_level']) ?>">
+                                        <p class="mt-1 text-sm text-gray-500">Trigger reorder alerts below this level</p>
                                     </div>
                                 </div>
 
@@ -148,16 +149,16 @@
 
                                 <div class="space-y-3">
                                     <div class="flex items-center">
-                                        <input type="checkbox" name="is_active" id="is_active" value="1" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" <?= old('is_active', $material['is_active']) ? 'checked' : '' ?>>
+                                        <input type="checkbox" name="is_active" id="is_active" value="1" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" <?= old('status', $material['status']) === 'active' ? 'checked' : '' ?>>
                                         <label for="is_active" class="ml-2 text-sm text-gray-700">
                                             Active Material
                                         </label>
                                     </div>
 
                                     <div class="flex items-center">
-                                        <input type="checkbox" name="is_bulk" id="is_bulk" value="1" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" <?= old('is_bulk', $material['is_bulk']) ? 'checked' : '' ?>>
-                                        <label for="is_bulk" class="ml-2 text-sm text-gray-700">
-                                            Bulk Material (Can be partially used)
+                                        <input type="checkbox" name="is_tracked" id="is_tracked" value="1" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" <?= old('is_tracked', $material['is_tracked']) ? 'checked' : '' ?>>
+                                        <label for="is_tracked" class="ml-2 text-sm text-gray-700">
+                                            Track Stock Movements
                                         </label>
                                     </div>
                                 </div>

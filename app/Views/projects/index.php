@@ -123,7 +123,7 @@
                         </td>
                         <td class="px-6 py-4">
                             <div>
-                                <a href="<?= base_url('admin/projects/view/' . $project['id']) ?>" class="text-indigo-600 hover:text-indigo-900 font-medium">
+                                <a href="<?= base_url('admin/projects/' . $project['id']) ?>" class="text-indigo-600 hover:text-indigo-900 font-medium">
                                     <?= esc($project['name']) ?>
                                 </a>
                                 <?php if (!empty($project['description'])): ?>
@@ -174,24 +174,24 @@
                                 </button>
                                 <div id="actions-<?= $project['id'] ?>" class="hidden origin-top-right absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
                                     <div class="py-1">
-                                        <a href="<?= base_url('admin/projects/view/' . $project['id']) ?>" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <a href="<?= base_url('admin/projects/' . $project['id']) ?>" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                             <i data-lucide="eye" class="w-4 h-4 mr-3"></i>
                                             View Details
                                         </a>
-                                        <a href="<?= base_url('admin/projects/dashboard/' . $project['id']) ?>" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <a href="<?= base_url('admin/projects/' . $project['id'] . '/dashboard') ?>" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                             <i data-lucide="bar-chart-3" class="w-4 h-4 mr-3"></i>
                                             Dashboard
                                         </a>
-                                        <a href="<?= base_url('admin/projects/gantt/' . $project['id']) ?>" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <a href="<?= base_url('admin/projects/' . $project['id'] . '/gantt') ?>" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                             <i data-lucide="gantt-chart" class="w-4 h-4 mr-3"></i>
                                             Gantt Chart
                                         </a>
-                                        <a href="<?= base_url('admin/projects/team/' . $project['id']) ?>" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <a href="<?= base_url('admin/projects/' . $project['id'] . '/team') ?>" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                             <i data-lucide="users" class="w-4 h-4 mr-3"></i>
                                             Team
                                         </a>
                                         <div class="border-t border-gray-100"></div>
-                                        <a href="<?= base_url('admin/projects/edit/' . $project['id']) ?>" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        <a href="<?= base_url('admin/projects/' . $project['id'] . '/edit') ?>" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                             <i data-lucide="edit" class="w-4 h-4 mr-3"></i>
                                             Edit
                                         </a>
@@ -228,7 +228,7 @@
                             <h4 class="font-medium text-gray-900"><?= esc($project['name']) ?></h4>
                             <p class="text-sm text-gray-600 mt-1">Client: <?= esc($project['client_name']) ?></p>
                             <p class="text-sm text-red-600 mt-1">Due: <?= formatDate($project['planned_end_date']) ?></p>
-                            <a href="<?= base_url('admin/projects/view/' . $project['id']) ?>" class="mt-2 inline-flex items-center text-sm text-indigo-600 hover:text-indigo-900">
+                            <a href="<?= base_url('admin/projects/' . $project['id']) ?>" class="mt-2 inline-flex items-center text-sm text-indigo-600 hover:text-indigo-900">
                                 View Project
                                 <i data-lucide="arrow-right" class="w-3 h-3 ml-1"></i>
                             </a>

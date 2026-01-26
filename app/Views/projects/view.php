@@ -317,7 +317,7 @@
                                         </div>
                                     </div>
                                     <div class="flex items-center space-x-2">
-                                        <a href="<?= base_url('admin/tasks/edit/' . $task['id']) ?>" 
+                                        <a href="<?= base_url('admin/tasks/' . $task['id'] . '/edit') ?>"
                                            class="text-gray-400 hover:text-indigo-600">
                                             <i data-lucide="edit" class="w-4 h-4"></i>
                                         </a>
@@ -362,7 +362,7 @@
                                 <div class="flex items-center justify-between">
                                     <div class="flex-1">
                                         <h4 class="font-medium text-gray-900">
-                                            <a href="<?= base_url('admin/milestones/view/' . $milestone['id']) ?>" 
+                                            <a href="<?= base_url('admin/milestones/' . $milestone['id']) ?>"
                                                class="hover:text-indigo-600">
                                                 <?= esc($milestone['title']) ?>
                                             </a>
@@ -377,7 +377,7 @@
                                            class="text-gray-400 hover:text-indigo-600">
                                             <i data-lucide="edit" class="w-4 h-4"></i>
                                         </a>
-                                        <a href="<?= base_url('admin/milestones/view/' . $milestone['id']) ?>" 
+                                        <a href="<?= base_url('admin/milestones/' . $milestone['id']) ?>"
                                            class="text-gray-400 hover:text-indigo-600">
                                             <i data-lucide="eye" class="w-4 h-4"></i>
                                         </a>

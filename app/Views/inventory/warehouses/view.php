@@ -170,27 +170,27 @@
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <?php
                                 $stockClass = 'text-green-600';
-                                if ($material['quantity'] <= 0) {
+                                if ($material['current_quantity'] <= 0) {
                                     $stockClass = 'text-red-600';
-                                } elseif ($material['quantity'] <= $material['min_stock_level']) {
+                                } elseif ($material['current_quantity'] <= $material['minimum_quantity']) {
                                     $stockClass = 'text-amber-600';
                                 }
                                 ?>
                                 <span class="text-sm font-medium <?= $stockClass ?>">
-                                    <?= number_format($material['quantity']) ?> <?= esc($material['unit']) ?>
+                                    <?= number_format($material['current_quantity']) ?> <?= esc($material['unit']) ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <?= number_format($material['min_stock_level']) ?> <?= esc($material['unit']) ?>
+                                <?= number_format($material['minimum_quantity']) ?> <?= esc($material['unit']) ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                $<?= number_format($material['quantity'] * $material['unit_cost'], 2) ?>
+                                $<?= number_format($material['current_quantity'] * $material['unit_cost'], 2) ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <?= date('M d, Y', strtotime($material['last_updated'])) ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                <button type="button" onclick="openUpdateStockModal(<?= $material['material_id'] ?>, '<?= esc($material['name']) ?>', <?= $material['quantity'] ?>)" class="text-blue-600 hover:text-blue-900 mx-1">
+                                <button type="button" onclick="openUpdateStockModal(<?= $material['material_id'] ?>, '<?= esc($material['name']) ?>', <?= $material['current_quantity'] ?>)" class="text-blue-600 hover:text-blue-900 mx-1">
                                     <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                                 </button>
                                 <a href="<?= base_url('admin/materials/view/' . $material['material_id']) ?>" class="text-indigo-600 hover:text-indigo-900 mx-1">

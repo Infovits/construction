@@ -62,10 +62,15 @@
             transition: max-height 0.3s ease;
         }
         .submenu.open {
-            max-height: 200px;
+            max-height: 500px;
+            overflow-y: auto;
         }
         .menu-chevron {
             transition: transform 0.3s ease;
+        }
+        .nav-link.active {
+            font-weight: 600;
+            color: #4f46e5;
         }
         .sidebar-collapsed .nav-item:hover .tooltip {
             visibility: visible;
@@ -79,6 +84,30 @@
             top: 0;
             z-index: 30;
         }
+        /* Custom Scrollbar for Sidebar */
+        nav::-webkit-scrollbar {
+            width: 4px;
+        }
+        nav::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        nav::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+        nav::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .submenu::-webkit-scrollbar {
+            width: 3px;
+        }
+        .submenu::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+        .submenu::-webkit-scrollbar-thumb {
+            background: #e2e8f0;
+            border-radius: 2px;
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -87,7 +116,7 @@
         <div id="mobileOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
         
         <!-- Sidebar -->
-        <div id="sidebar" class="fixed md:relative z-50 bg-white shadow-lg sidebar-transition sidebar-expanded sidebar-mobile h-full">
+        <div id="sidebar" class="fixed md:relative z-50 bg-white shadow-lg sidebar-transition sidebar-expanded sidebar-mobile h-full flex flex-col">
             <div class="p-4 md:p-6">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -100,7 +129,7 @@
                 </div>
             </div>
             
-            <nav class="mt-6 md:mt-8">
+            <nav class="mt-6 md:mt-8 flex-1 overflow-y-auto pb-20">
                 <div class="px-4 md:px-6 py-3 bg-indigo-50 border-r-4 border-indigo-500">
                     <a href="#" class="flex items-center space-x-3 text-indigo-600 nav-item relative" onclick="toggleSubmenu(event, 'dashboard-submenu')">
                         <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
@@ -111,7 +140,7 @@
                         </div>
                     <div class="submenu" id="dashboard-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
-                            <a href="#" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Analytics</a>
+                            <a href="<?php echo base_url('admin/dashboard') ?>" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Analytics</a>
                             <a href="#" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Reports</a>
                             <a href="#" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Overview</a>
                         </div>
@@ -248,10 +277,10 @@
                     </a>
                     <div class="submenu" id="procurement-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
-                            <a href="<?= base_url('admin/material-requests') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Material Requests</a>
-                            <a href="<?= base_url('admin/purchase-orders') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Purchase Orders</a>
-                            <a href="<?= base_url('admin/goods-receipt') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Goods Receipt</a>
-                            <a href="<?= base_url('admin/quality-inspections') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Quality Inspections</a>
+                            <a href="<?= base_url('admin/procurement/material-requests') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Material Requests</a>
+                            <a href="<?= base_url('admin/procurement/purchase-orders') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Purchase Orders</a>
+                            <a href="<?= base_url('admin/procurement/goods-receipt') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Goods Receipt</a>
+                            <a href="<?= base_url('admin/procurement/quality-inspections') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Quality Inspections</a>
                             <a href="<?= base_url('admin/procurement/reports') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Procurement Reports</a>
                         </div>
                     </div>
@@ -269,30 +298,50 @@
                     </a>
                     <div class="submenu" id="accounting-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
-                            <!-- Chart of Accounts -->
-                            <a href="<?= base_url('admin/accounting/chart-of-accounts') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Chart of Accounts</a>
-                            <a href="<?= base_url('admin/accounting/account-categories') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Account Categories</a>
+                            <!-- Setup & Configuration -->
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide py-1 border-b border-gray-200 mb-2">Setup</div>
+                            <a href="<?= base_url('admin/accounting/chart-of-accounts') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Chart of Accounts</a>
+
+                            <!-- Core Transactions -->
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide py-1 border-b border-gray-200 mb-2 mt-4">Transactions</div>
+                            <a href="<?= base_url('admin/accounting/journal-entries') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Journal Entries</a>
+                            <a href="<?= base_url('admin/accounting/general-ledger') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">General Ledger</a>
                             
-                            <!-- Journal Entries -->
-                            <a href="<?= base_url('admin/accounting/journal-entries') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Journal Entries</a>
-                            
+                            <!-- Job Costing -->
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide py-1 border-b border-gray-200 mb-2 mt-4">Job Costing</div>
+                            <a href="<?= base_url('admin/accounting/job-cost-tracking') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Job Cost Tracking</a>
+                            <a href="<?= base_url('admin/accounting/job-budgets') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Job Budgets</a>
+                            <a href="<?= base_url('admin/accounting/budget-categories') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Budget Categories</a>
+                            <a href="<?= base_url('admin/accounting/cost-codes') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Cost Codes</a>
+
                             <!-- Accounts Payable -->
-                            <a href="<?= base_url('admin/accounting/supplier-invoices') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Supplier Invoices</a>
-                            <a href="<?= base_url('admin/accounting/supplier-payments') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Supplier Payments</a>
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide py-1 border-b border-gray-200 mb-2 mt-4">Accounts Payable</div>
+                            <a href="<?= base_url('admin/accounting/vendor-bills') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Vendor Bills</a>
+                            <a href="<?= base_url('admin/accounting/bill-payments') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Bill Payments</a>
+                            <a href="<?= base_url('admin/accounting/vendors') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Vendor Management</a>
                             
                             <!-- Accounts Receivable -->
-                            <a href="<?= base_url('admin/accounting/invoices') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Customer Invoices</a>
-                            <a href="<?= base_url('admin/accounting/payments') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Customer Payments</a>
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide py-1 border-b border-gray-200 mb-2 mt-4">Accounts Receivable</div>
+                            <a href="<?= base_url('admin/accounting/customer-invoices') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Customer Invoices</a>
+                            <a href="<?= base_url('admin/accounting/invoice-payments') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Invoice Payments</a>
+                            <a href="<?= base_url('admin/accounting/retainage') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Retainage Management</a>
+                            <a href="<?= base_url('admin/accounting/progress-billing') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Progress Billing</a>
                             
-                            <!-- Budget Management -->
-                            <a href="<?= base_url('admin/accounting/budgets') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Budgets</a>
-                            <a href="<?= base_url('admin/accounting/budget-categories') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Budget Categories</a>
+                            <!-- Banking & Cash -->
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide py-1 border-b border-gray-200 mb-2 mt-4">Banking</div>
+                            <a href="<?= base_url('admin/accounting/bank-accounts') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Bank Accounts</a>
+                            <a href="<?= base_url('admin/accounting/bank-reconciliation') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Bank Reconciliation</a>
+                            <a href="<?= base_url('admin/accounting/cash-flow') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Cash Flow</a>
                             
-                            <!-- Reports -->
-                            <a href="<?= base_url('admin/accounting/reports') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Financial Reports</a>
-                            <a href="<?= base_url('admin/accounting/trial-balance') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Trial Balance</a>
-                            <a href="<?= base_url('admin/accounting/profit-loss') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Profit & Loss</a>
-                            <a href="<?= base_url('admin/accounting/balance-sheet') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Balance Sheet</a>
+                            <!-- Financial Reports -->
+                            <div class="text-xs font-semibold text-gray-400 uppercase tracking-wide py-1 border-b border-gray-200 mb-2 mt-4">Reports</div>
+                            <a href="<?= base_url('admin/accounting/reports') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Financial Reports</a>
+                            <a href="<?= base_url('admin/accounting/trial-balance') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Trial Balance</a>
+                            <a href="<?= base_url('admin/accounting/profit-loss') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Profit & Loss</a>
+                            <a href="<?= base_url('admin/accounting/balance-sheet') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Balance Sheet</a>
+                            <a href="<?= base_url('admin/accounting/cash-flow-statement') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Cash Flow Statement</a>
+                            <a href="<?= base_url('admin/accounting/job-cost-reports') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Job Cost Reports</a>
+                            <a href="<?= base_url('admin/accounting/aging-reports') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 px-2 rounded">Aging Reports</a>
                         </div>
                     </div>
                 </div>
@@ -541,6 +590,55 @@
     </div>
 
     <script>
+        // Set active states and open relevant dropdowns on page load
+        function setActiveStates() {
+            const currentPath = window.location.pathname;
+
+            // Define menu sections and their URL patterns
+            const menuSections = {
+                'dashboard-submenu': /^\/admin\/dashboard/,
+                'project-submenu': /^\/admin\/projects/,
+                'tasks-submenu': /^\/admin\/tasks/,
+                'milestones-submenu': /^\/admin\/milestones/,
+                'clients-submenu': /^\/admin\/clients/,
+                'message-submenu': /^\/admin\/message/,
+                'inventory-submenu': /^\/admin\/materials|^\/admin\/material-categories|^\/admin\/warehouses|^\/admin\/suppliers/,
+                'procurement-submenu': /^\/admin\/procurement/,
+                'accounting-submenu': /^\/admin\/accounting/,
+                'notification-submenu': /^\/admin\/notification/,
+                'hr-submenu': /^\/admin\/users|^\/admin\/roles|^\/admin\/departments|^\/admin\/positions/,
+                'settings-submenu': /^\/admin\/settings/
+            };
+
+            // Find matching section
+            let activeSection = null;
+            for (const [section, pattern] of Object.entries(menuSections)) {
+                if (pattern.test(currentPath)) {
+                    activeSection = section;
+                    break;
+                }
+            }
+
+            // Open the active section's dropdown
+            if (activeSection) {
+                const submenu = document.getElementById(activeSection);
+                const chevron = document.getElementById(activeSection.replace('-submenu', '-chevron'));
+                if (submenu && chevron) {
+                    submenu.classList.add('open');
+                    chevron.classList.add('rotated');
+                }
+
+                // Find and highlight the active link within the submenu
+                const submenuLinks = submenu.querySelectorAll('a');
+                submenuLinks.forEach(link => {
+                    const linkPath = new URL(link.href, window.location.origin).pathname;
+                    if (linkPath === currentPath) {
+                        link.classList.add('active');
+                    }
+                });
+            }
+        }
+
         // Submenu toggle functionality
         function toggleSubmenu(event, submenuId) {
             event.preventDefault();
@@ -571,7 +669,10 @@
             }
         }        // Initialize Lucide icons
         lucide.createIcons();
-        
+
+        // Set active states on page load
+        setActiveStates();
+
         // User dropdown functionality
         function toggleUserDropdown() {
             const dropdown = document.getElementById('userDropdown');
@@ -593,9 +694,18 @@
         const mobileOverlay = document.getElementById('mobileOverlay');
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const sidebarToggle = document.getElementById('sidebarToggle');
-        
-        let isCollapsed = false;
+
+        let isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
         let isMobileMenuOpen = false;
+
+        // Initialize sidebar state on load
+        if (isCollapsed) {
+            sidebar.classList.remove('sidebar-expanded');
+            sidebar.classList.add('sidebar-collapsed');
+        } else {
+            sidebar.classList.remove('sidebar-collapsed');
+            sidebar.classList.add('sidebar-expanded');
+        }
         
         // Mobile menu toggle
         mobileMenuBtn.addEventListener('click', () => {
@@ -622,8 +732,23 @@
         
         // Desktop sidebar toggle
         sidebarToggle.addEventListener('click', () => {
+            // Check if any submenu is open
+            const openSubmenus = document.querySelectorAll('.submenu.open');
+            if (openSubmenus.length > 0) {
+                // Close all open submenus before collapsing
+                openSubmenus.forEach(menu => {
+                    menu.classList.remove('open');
+                    const chevronId = menu.id.replace('-submenu', '-chevron');
+                    const chevron = document.getElementById(chevronId);
+                    if (chevron) {
+                        chevron.classList.remove('rotated');
+                    }
+                });
+            }
+
             isCollapsed = !isCollapsed;
-            
+            localStorage.setItem('sidebarCollapsed', isCollapsed.toString());
+
             if (isCollapsed) {
                 sidebar.classList.remove('sidebar-expanded');
                 sidebar.classList.add('sidebar-collapsed');

@@ -1,632 +1,195 @@
 <?= $this->extend('layouts/main') ?>
 
-<?= $this->section('head') ?>
-<!-- jQuery (required for Select2) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- Select2 CSS -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<style>
-    /* Custom Select2 styling to match Tailwind */
-    .select2-container--default .select2-selection--multiple {
-        border: 2px solid #d1d5db !important;
-        border-radius: 0.5rem !important;
-        padding: 0.375rem 0.75rem !important;
-        min-height: 2.5rem !important;
-        background-color: #ffffff !important;
-    }
-    
-    .select2-container--default .select2-selection--multiple:focus-within {
-        border-color: #6366f1 !important;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
-    }
-    
-    .select2-container--default .select2-selection--multiple .select2-selection__choice {
-        background-color: #6366f1 !important;
-        border: 1px solid #6366f1 !important;
-        color: white !important;
-        border-radius: 0.375rem !important;
-        padding: 0.125rem 0.5rem !important;
-        margin: 0.125rem !important;
-    }
-    
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
-        color: white !important;
-        margin-right: 0.25rem !important;
-    }
-    
-    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
-        color: #fca5a5 !important;
-    }
-    
-    .select2-dropdown {
-        border: 2px solid #d1d5db !important;
-        border-radius: 0.5rem !important;
-    }
-    
-    .select2-container--default .select2-results__option--highlighted[aria-selected] {
-        background-color: #6366f1 !important;
-    }
-    
-    .select2-container {
-        width: 100% !important;
-    }
-</style>
+<?= $this->section('title') ?>
+Create New Milestone
 <?= $this->endSection() ?>
 
 <?= $this->section('content') ?>
-
-<!-- Milestone Create/Edit Page -->
-<div class="space-y-6">
-    <!-- Header Section -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900"><?= isset($milestone) ? 'Edit Milestone' : 'Create New Milestone' ?></h1>
-            <p class="text-gray-600">Configure milestone details and settings</p>
-        </div>
-        
-        <div class="flex flex-col sm:flex-row gap-2">
-            <a href="<?= base_url('admin/milestones') ?>" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
-                <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
-                Back to Milestones
+<div class="p-6">
+    <div class="bg-white rounded-lg shadow-sm border">
+        <div class="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold text-gray-900">Create New Milestone</h1>
+            <a href="<?= base_url('admin/milestones') ?>" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-sm font-medium">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Milestones
             </a>
         </div>
-    </div>
+        <div class="p-6">
+            <?php if (session()->getFlashdata('error')): ?>
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                    <?= session()->getFlashdata('error') ?>
+                </div>
+            <?php endif; ?>
 
-    <!-- Flash Messages -->
-    <?php if (session('error')): ?>
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <i data-lucide="alert-circle" class="w-5 h-5 mr-2"></i>
-                </div>
-                <div>
-                    <p class="font-medium"><?= session('error') ?></p>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
-
-    <?php if (session('success')): ?>
-        <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <i data-lucide="check-circle" class="w-5 h-5 mr-2"></i>
-                </div>
-                <div>
-                    <p class="font-medium"><?= session('success') ?></p>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
-
-    <!-- Validation Errors -->
-    <?php if (session('errors')): ?>
-        <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <i data-lucide="alert-circle" class="w-5 h-5 mr-2"></i>
-                </div>
-                <div>
-                    <p class="font-medium">Please fix the following errors:</p>
-                    <ul class="list-disc list-inside mt-2">
-                        <?php foreach (session('errors') as $error): ?>
+            <?php if (session()->getFlashdata('errors')): ?>
+                <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+                    <ul class="list-disc list-inside">
+                        <?php foreach (session()->getFlashdata('errors') as $error): ?>
                             <li><?= esc($error) ?></li>
                         <?php endforeach; ?>
                     </ul>
                 </div>
-            </div>
-        </div>
-    <?php endif; ?>
+            <?php endif; ?>
 
-    <!-- Milestone Form -->
-    <div class="bg-white rounded-lg shadow-sm border">
-        <form action="<?= isset($milestone) ? base_url('admin/milestones/update/' . $milestone['id']) : base_url('admin/milestones/store') ?>" method="post" class="p-6 space-y-6" id="milestoneForm">
-            <?= csrf_field() ?>
-            
-            <!-- Basic Information Section -->
-            <div>
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="title" class="block text-sm font-medium text-gray-700 mb-2">Milestone Title *</label>
-                        <input type="text" id="title" name="title" required
-                               value="<?= old('title', isset($milestone) ? $milestone['title'] : '') ?>"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <div class="text-red-500 text-sm mt-1" id="title-error"></div>
+            <form action="<?= base_url('admin/milestones/store') ?>" method="post">
+                <?= csrf_field() ?>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Basic Information -->
+                    <div class="lg:col-span-2 space-y-6">
+                        <div>
+                            <label for="title" class="block text-sm font-medium text-gray-700 mb-2">Milestone Title *</label>
+                            <input type="text" id="title" name="title"
+                                   value="<?= old('title') ?>" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                   placeholder="Enter milestone title">
+                        </div>
+
+                        <div>
+                            <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <textarea id="description" name="description" rows="4"
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      placeholder="Describe this milestone..."><?= old('description') ?></textarea>
+                        </div>
                     </div>
-                    
-                    <div>
-                        <label for="project_id" class="block text-sm font-medium text-gray-700 mb-2">Project *</label>
-                        <select id="project_id" name="project_id" required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="">Select Project</option>
-                            <?php if(isset($projects) && is_array($projects)): ?>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label for="project_id" class="block text-sm font-medium text-gray-700 mb-2">Project *</label>
+                            <select id="project_id" name="project_id" required
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">Select Project</option>
                                 <?php foreach($projects as $project): ?>
-                                    <option value="<?= $project['id'] ?>" 
-                                            <?= old('project_id', isset($milestone) ? $milestone['project_id'] : ($selected_project ?? '')) == $project['id'] ? 'selected' : '' ?>>
+                                    <option value="<?= $project['id'] ?>"
+                                            <?= (old('project_id', $selected_project ?? '')) == $project['id'] ? 'selected' : '' ?>>
                                         <?= esc($project['name']) ?> (<?= esc($project['project_code']) ?>)
                                     </option>
                                 <?php endforeach; ?>
-                            <?php endif; ?>
-                        </select>
-                        <div class="text-red-500 text-sm mt-1" id="project_id-error"></div>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
-                <div class="mt-6">
-                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
-                    <textarea id="description" name="description" rows="4"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"><?= old('description', isset($milestone) ? $milestone['description'] : '') ?></textarea>
-                </div>
-            </div>
-
-            <!-- Milestone Details Section -->
-            <div class="border-t pt-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Milestone Details</h3>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mt-6">
                     <div>
-                        <label for="milestone_type" class="block text-sm font-medium text-gray-700 mb-2">Milestone Type</label>
-                        <select id="milestone_type" name="milestone_type"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="planning" <?= old('milestone_type', isset($milestone) ? $milestone['milestone_type'] : 'planning') == 'planning' ? 'selected' : '' ?>>Planning</option>
-                            <option value="design" <?= old('milestone_type', isset($milestone) ? $milestone['milestone_type'] : 'planning') == 'design' ? 'selected' : '' ?>>Design</option>
-                            <option value="construction" <?= old('milestone_type', isset($milestone) ? $milestone['milestone_type'] : 'planning') == 'construction' ? 'selected' : '' ?>>Construction</option>
-                            <option value="inspection" <?= old('milestone_type', isset($milestone) ? $milestone['milestone_type'] : 'planning') == 'inspection' ? 'selected' : '' ?>>Inspection</option>
-                            <option value="delivery" <?= old('milestone_type', isset($milestone) ? $milestone['milestone_type'] : 'planning') == 'delivery' ? 'selected' : '' ?>>Delivery</option>
-                            <option value="other" <?= old('milestone_type', isset($milestone) ? $milestone['milestone_type'] : 'planning') == 'other' ? 'selected' : '' ?>>Other</option>
+                        <label for="priority" class="block text-sm font-medium text-gray-700 mb-2">Priority</label>
+                        <select id="priority" name="priority"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="low" <?= old('priority', 'medium') == 'low' ? 'selected' : '' ?>>Low</option>
+                            <option value="medium" <?= old('priority', 'medium') == 'medium' ? 'selected' : '' ?>>Medium</option>
+                            <option value="high" <?= old('priority', 'medium') == 'high' ? 'selected' : '' ?>>High</option>
+                            <option value="urgent" <?= old('priority', 'medium') == 'urgent' ? 'selected' : '' ?>>Urgent</option>
                         </select>
                     </div>
 
                     <div>
-                        <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status *</label>
-                        <select id="status" name="status" required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="pending" <?= old('status', isset($milestone) ? $milestone['status'] : 'pending') == 'pending' ? 'selected' : '' ?>>Pending</option>
-                            <option value="in_progress" <?= old('status', isset($milestone) ? $milestone['status'] : 'pending') == 'in_progress' ? 'selected' : '' ?>>In Progress</option>
-                            <option value="completed" <?= old('status', isset($milestone) ? $milestone['status'] : 'pending') == 'completed' ? 'selected' : '' ?>>Completed</option>
-                            <option value="cancelled" <?= old('status', isset($milestone) ? $milestone['status'] : 'pending') == 'cancelled' ? 'selected' : '' ?>>Cancelled</option>
-                        </select>
-                        <div class="text-red-500 text-sm mt-1" id="status-error"></div>
+                        <label for="progress_percentage" class="block text-sm font-medium text-gray-700 mb-2">Initial Progress (%)</label>
+                        <input type="number" id="progress_percentage" name="progress_percentage"
+                               min="0" max="100" value="<?= old('progress_percentage', 0) ?>"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
-                    <div>
-                        <label for="priority" class="block text-sm font-medium text-gray-700 mb-2">Priority *</label>
-                        <select id="priority" name="priority" required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="low" <?= old('priority', isset($milestone) ? $milestone['priority'] : 'medium') == 'low' ? 'selected' : '' ?>>Low</option>
-                            <option value="medium" <?= old('priority', isset($milestone) ? $milestone['priority'] : 'medium') == 'medium' ? 'selected' : '' ?>>Medium</option>
-                            <option value="high" <?= old('priority', isset($milestone) ? $milestone['priority'] : 'medium') == 'high' ? 'selected' : '' ?>>High</option>
-                            <option value="urgent" <?= old('priority', isset($milestone) ? $milestone['priority'] : 'medium') == 'urgent' ? 'selected' : '' ?>>Urgent</option>
-                        </select>
-                        <div class="text-red-500 text-sm mt-1" id="priority-error"></div>
-                    </div>
-
-                    <div>
-                        <label for="progress_percentage" class="block text-sm font-medium text-gray-700 mb-2">Progress (%)</label>
-                        <input type="number" id="progress_percentage" name="progress_percentage" min="0" max="100"
-                               value="<?= old('progress_percentage', isset($milestone) ? $milestone['progress_percentage'] : 0) ?>"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-                </div>
-                
-                <div class="mt-6">
-                    <div class="flex items-center">
-                        <input type="checkbox" id="is_critical" name="is_critical" value="1"
-                               <?= old('is_critical', isset($milestone) ? $milestone['is_critical'] : 0) ? 'checked' : '' ?>
-                               class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
-                        <label for="is_critical" class="ml-2 block text-sm text-gray-900">
-                            Mark as Critical Milestone
-                        </label>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Timeline Section -->
-            <div class="border-t pt-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Timeline</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                        <input type="date" id="start_date" name="start_date"
-                               value="<?= old('start_date', isset($milestone) ? $milestone['planned_start_date'] : '') ?>"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-
-                    <div>
-                        <label for="planned_end_date" class="block text-sm font-medium text-gray-700 mb-2">Due Date *</label>
-                        <input type="date" id="planned_end_date" name="planned_end_date" required
-                               value="<?= old('planned_end_date', isset($milestone) ? $milestone['planned_end_date'] : '') ?>"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <div class="text-red-500 text-sm mt-1" id="planned_end_date-error"></div>
-                    </div>
-
-                    <div>
-                        <label for="completion_date" class="block text-sm font-medium text-gray-700 mb-2">Completion Date</label>
-                        <input type="date" id="completion_date" name="completion_date" 
-                               value="<?= old('completion_date', isset($milestone) ? $milestone['actual_end_date'] : '') ?>"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <p class="mt-1 text-xs text-gray-500">Leave empty if not completed yet</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Assignment Section -->
-            <div class="border-t pt-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Assignment</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="assigned_to" class="block text-sm font-medium text-gray-700 mb-2">Assigned To</label>
                         <select id="assigned_to" name="assigned_to"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="">Unassigned</option>
-                            <?php if(isset($users) && is_array($users)): ?>
-                                <?php foreach($users as $user): ?>
-                                    <option value="<?= $user['id'] ?>" 
-                                            <?= old('assigned_to', isset($milestone) ? $milestone['assigned_to'] : '') == $user['id'] ? 'selected' : '' ?>>
-                                        <?= esc($user['first_name'] . ' ' . $user['last_name']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
+                            <?php foreach($users as $user): ?>
+                                <option value="<?= $user['id'] ?>"
+                                        <?= old('assigned_to') == $user['id'] ? 'selected' : '' ?>>
+                                    <?= esc($user['first_name'] . ' ' . $user['last_name']) ?>
+                                </option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
 
                     <div>
-                        <label for="reviewer_id" class="block text-sm font-medium text-gray-700 mb-2">Reviewer</label>
-                        <select id="reviewer_id" name="reviewer_id"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="">No Reviewer</option>
-                            <?php if(isset($users) && is_array($users)): ?>
-                                <?php foreach($users as $user): ?>
-                                    <option value="<?= $user['id'] ?>" 
-                                            <?= old('reviewer_id', isset($milestone) ? ($milestone['reviewer_id'] ?? '') : '') == $user['id'] ? 'selected' : '' ?>>
-                                        <?= esc($user['first_name'] . ' ' . $user['last_name']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </select>
+                        <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                        <input type="date" id="start_date" name="start_date"
+                               value="<?= old('start_date') ?>"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
-            </div>
 
-            <!-- Deliverables & Success Criteria Section -->
-            <div class="border-t pt-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Deliverables & Success Criteria</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="deliverables" class="block text-sm font-medium text-gray-700 mb-2">Expected Deliverables</label>
-                        <textarea id="deliverables" name="deliverables" rows="4"
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                  placeholder="List the expected deliverables for this milestone..."><?= old('deliverables', isset($milestone) ? $milestone['deliverables'] : '') ?></textarea>
-                    </div>
+                <!-- Timeline -->
+                <div class="mt-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4">Timeline</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="planned_end_date" class="block text-sm font-medium text-gray-700 mb-2">Planned End Date *</label>
+                            <input type="date" id="planned_end_date" name="planned_end_date"
+                                   value="<?= old('planned_end_date') ?>" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <p class="text-xs text-gray-500 mt-1">When should this milestone be completed?</p>
+                        </div>
 
-                    <div>
-                        <label for="success_criteria" class="block text-sm font-medium text-gray-700 mb-2">Success Criteria</label>
-                        <textarea id="success_criteria" name="success_criteria" rows="4"
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                  placeholder="Define the criteria for milestone completion..."><?= old('success_criteria', isset($milestone) ? $milestone['success_criteria'] : '') ?></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Dependencies Section -->
-            <div class="border-t pt-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Dependencies</h3>
-                <div>
-                    <label for="dependency_milestones" class="block text-sm font-medium text-gray-700 mb-2">Dependent Milestones</label>
-                    <select id="dependency_milestones" name="dependency_milestones[]" multiple
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                        <!-- Will be populated dynamically based on project selection -->
-                    </select>
-                    <p class="mt-1 text-xs text-gray-500">Select milestones that must be completed before this milestone can start.</p>
-                </div>
-            </div>
-
-            <!-- Budget Information Section -->
-            <div class="border-t pt-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Budget Information</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label for="estimated_cost" class="block text-sm font-medium text-gray-700 mb-2">Estimated Cost</label>
-                        <input type="number" id="estimated_cost" name="estimated_cost" step="0.01" min="0"
-                               value="<?= old('estimated_cost', isset($milestone) ? $milestone['estimated_cost'] : '') ?>"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-
-                    <div>
-                        <label for="actual_cost" class="block text-sm font-medium text-gray-700 mb-2">Actual Cost</label>
-                        <input type="number" id="actual_cost" name="actual_cost" step="0.01" min="0"
-                               value="<?= old('actual_cost', isset($milestone) ? $milestone['actual_cost'] : '') ?>"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                    </div>
-
-                    <div>
-                        <label for="budget_variance" class="block text-sm font-medium text-gray-700 mb-2">Budget Variance (%)</label>
-                        <input type="number" id="budget_variance" name="budget_variance" step="0.01" readonly
-                               value="<?= old('budget_variance', isset($milestone) ? $milestone['budget_variance'] : '') ?>"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-50">
+                        <div>
+                            <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Initial Status</label>
+                            <select id="status" name="status"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="pending" <?= old('status', 'pending') == 'pending' ? 'selected' : '' ?>>Pending</option>
+                                <option value="in_progress" <?= old('status', 'pending') == 'in_progress' ? 'selected' : '' ?>>In Progress</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Risk Assessment Section -->
-            <div class="border-t pt-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Risk Assessment</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div>
-                        <label for="risk_level" class="block text-sm font-medium text-gray-700 mb-2">Risk Level</label>
-                        <select id="risk_level" name="risk_level"
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="low" <?= old('risk_level', isset($milestone) ? $milestone['risk_level'] : 'low') == 'low' ? 'selected' : '' ?>>Low</option>
-                            <option value="medium" <?= old('risk_level', isset($milestone) ? $milestone['risk_level'] : 'low') == 'medium' ? 'selected' : '' ?>>Medium</option>
-                            <option value="high" <?= old('risk_level', isset($milestone) ? $milestone['risk_level'] : 'low') == 'high' ? 'selected' : '' ?>>High</option>
-                            <option value="critical" <?= old('risk_level', isset($milestone) ? $milestone['risk_level'] : 'low') == 'critical' ? 'selected' : '' ?>>Critical</option>
-                        </select>
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label for="risk_description" class="block text-sm font-medium text-gray-700 mb-2">Risk Description</label>
-                        <textarea id="risk_description" name="risk_description" rows="3"
-                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                                  placeholder="Describe potential risks and mitigation strategies..."><?= old('risk_description', isset($milestone) ? $milestone['risk_description'] : '') ?></textarea>
-                    </div>
+                <div class="mt-8 flex justify-end space-x-3">
+                    <a href="<?= base_url('admin/milestones') ?>" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        <i class="fas fa-save mr-2"></i>Create Milestone
+                    </button>
                 </div>
-            </div>
-
-            <!-- Additional Notes Section -->
-            <div class="border-t pt-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Additional Notes</h3>
-                <div>
-                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                    <textarea id="notes" name="notes" rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"><?= old('notes', isset($milestone) ? $milestone['notes'] : '') ?></textarea>
-                </div>
-            </div>
-
-            <!-- Form Actions -->
-            <div class="border-t pt-6 flex flex-col sm:flex-row gap-3 justify-end">
-                <a href="<?= base_url('admin/milestones') ?>" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-                    <i data-lucide="x" class="w-4 h-4 mr-2"></i>
-                    Cancel
-                </a>
-                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors" id="submitBtn">
-                    <i data-lucide="save" class="w-4 h-4 mr-2"></i>
-                    <?= isset($milestone) ? 'Update Milestone' : 'Create Milestone' ?>
-                </button>
-                <?php if (isset($milestone)): ?>
-                <a href="<?= base_url('admin/milestones/view/' . $milestone['id']) ?>" class="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-                    <i data-lucide="eye" class="w-4 h-4 mr-2"></i>
-                    View Milestone
-                </a>
-                <?php endif; ?>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
-
 <?= $this->endSection() ?>
 
-<?= $this->section('js') ?>
-<!-- Select2 JS -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<?= $this->section('scripts') ?>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Select2 for dependency milestones
-    $('#dependency_milestones').select2({
-        placeholder: 'Select dependent milestones (optional)',
-        allowClear: true,
-        width: '100%'
-    });
-    // Form validation
-    const form = document.getElementById('milestoneForm');
-    const submitBtn = document.getElementById('submitBtn');
-    
-    // Clear previous validation errors
-    function clearErrors() {
-        document.querySelectorAll('.text-red-500').forEach(el => {
-            if (el.id.includes('-error')) {
-                el.textContent = '';
-            }
-        });
-    }
+    // Auto-set start date when project is selected and no start date is set
+    const projectSelect = document.getElementById('project_id');
+    const startDateInput = document.getElementById('start_date');
 
-    // Validate form before submission
-    function validateForm() {
-        clearErrors();
-        let isValid = true;
-
-        // Required field validation
-        const requiredFields = ['title', 'project_id', 'planned_end_date', 'priority', 'status'];
-        requiredFields.forEach(field => {
-            const element = document.getElementById(field);
-            if (!element.value.trim()) {
-                document.getElementById(field + '-error').textContent = 'This field is required';
-                isValid = false;
-            }
-        });
-
-        // Date validation
-        const startDate = document.getElementById('start_date').value;
-        const dueDate = document.getElementById('planned_end_date').value;
-        const completionDate = document.getElementById('completion_date').value;
-
-        if (startDate && dueDate && new Date(startDate) > new Date(dueDate)) {
-            document.getElementById('planned_end_date-error').textContent = 'Due date must be after start date';
-            isValid = false;
-        }
-
-        return isValid;
-    }
-
-    // Handle form submission
-    form.addEventListener('submit', function(e) {
-        if (!validateForm()) {
-            e.preventDefault();
-            return false;
-        }
-
-        // Disable submit button to prevent double submission
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 mr-2 animate-spin"></i>Processing...';
-    });
-
-    // Load dependent milestones when project changes
-    document.getElementById('project_id').addEventListener('change', function() {
-        var projectId = this.value;
-        if (projectId) {
-            loadProjectMilestones(projectId);
-        } else {
-            $('#dependency_milestones').empty().trigger('change');
+    projectSelect.addEventListener('change', function() {
+        if (!startDateInput.value) {
+            // Set start date to today if no date is set
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.value = today;
         }
     });
 
-    // Load milestones on page load if project is pre-selected
-    if (document.getElementById('project_id').value) {
-        loadProjectMilestones(document.getElementById('project_id').value);
+    // Validate dates
+    const startDateInput = document.getElementById('start_date');
+    const endDateInput = document.getElementById('planned_end_date');
+
+    function validateDates() {
+        const startDate = new Date(startDateInput.value);
+        const endDate = new Date(endDateInput.value);
+
+        if (startDate && endDate && startDate > endDate) {
+            alert('End date must be after start date');
+            endDateInput.value = '';
+        }
     }
 
-    // Validate dates on change
-    document.getElementById('start_date').addEventListener('change', validateDates);
-    document.getElementById('planned_end_date').addEventListener('change', validateDates);
-    document.getElementById('completion_date').addEventListener('change', validateDates);
+    startDateInput.addEventListener('change', validateDates);
+    endDateInput.addEventListener('change', validateDates);
 
-    // Auto-calculate budget variance
-    document.getElementById('estimated_cost').addEventListener('input', calculateBudgetVariance);
-    document.getElementById('actual_cost').addEventListener('input', calculateBudgetVariance);
+    // Auto-set progress based on status
+    const statusSelect = document.getElementById('status');
+    const progressInput = document.getElementById('progress_percentage');
 
-    // Auto-update progress and completion date based on status
-    document.getElementById('status').addEventListener('change', function() {
-        var status = this.value;
-        var progressField = document.getElementById('progress_percentage');
-        var completionField = document.getElementById('completion_date');
-        
-        if (status === 'completed') {
-            progressField.value = 100;
-            if (!completionField.value) {
-                completionField.value = new Date().toISOString().split('T')[0];
-            }
-        } else if (status === 'pending') {
-            progressField.value = 0;
-            completionField.value = '';
-        } else if (status === 'in_progress' && progressField.value == 0) {
-            progressField.value = 50;
-            completionField.value = '';
+    statusSelect.addEventListener('change', function() {
+        const status = this.value;
+
+        if (status === 'in_progress' && progressInput.value == 0) {
+            progressInput.value = 25;
         }
     });
-    
-    // Initialize Lucide icons
-    lucide.createIcons();
-});
-
-function loadProjectMilestones(projectId) {
-    const $depSelect = $('#dependency_milestones');
-    
-    // Clear existing options and show loading state
-    $depSelect.empty().trigger('change');
-    $depSelect.append('<option value="">Loading...</option>').trigger('change');
-    
-    fetch('<?= base_url('admin/milestones/getProjectMilestones') ?>/' + projectId)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            $depSelect.empty();
-            
-            if (data.milestones && data.milestones.length > 0) {
-                data.milestones.forEach(function(milestone) {
-                    // Exclude current milestone from dropdown if editing
-                    <?php if (isset($milestone)): ?>
-                    if (milestone.id != <?= $milestone['id'] ?>) {
-                    <?php endif; ?>
-                        var option = new Option(milestone.title, milestone.id, false, false);
-                        $depSelect.append(option);
-                    <?php if (isset($milestone)): ?>
-                    }
-                    <?php endif; ?>
-                });
-            }
-
-            // Refresh Select2 to show new options
-            $depSelect.trigger('change');
-
-            // Restore dependency selections if editing
-            <?php if (isset($milestone) && isset($milestone_dependencies) && is_array($milestone_dependencies)): ?>
-            var selectedDeps = [<?= implode(',', array_column($milestone_dependencies, 'id')) ?>];
-            
-            // Convert selectedDeps to strings for comparison
-            selectedDeps = selectedDeps.map(String);
-            
-            // Set selected values using Select2
-            $depSelect.val(selectedDeps).trigger('change');
-            <?php endif; ?>
-        })
-        .catch(error => {
-            console.error('Failed to load project milestones:', error);
-            $depSelect.empty().append('<option value="">Error loading milestones</option>').trigger('change');
-        });
-}
-
-function validateDates() {
-    var startDate = new Date(document.getElementById('start_date').value);
-    var dueDate = new Date(document.getElementById('planned_end_date').value);
-    var completionDate = new Date(document.getElementById('completion_date').value);
-    
-    // Clear previous errors
-    document.getElementById('planned_end_date-error').textContent = '';
-    
-    if (startDate && dueDate && startDate > dueDate) {
-        document.getElementById('planned_end_date-error').textContent = 'Due date must be after start date';
-        return false;
-    }
-    
-    if (completionDate && dueDate && completionDate > dueDate) {
-        console.warn('Completion date is after due date - milestone may be overdue');
-    }
-    
-    return true;
-}
-
-function calculateBudgetVariance() {
-    var estimated = parseFloat(document.getElementById('estimated_cost').value) || 0;
-    var actual = parseFloat(document.getElementById('actual_cost').value) || 0;
-    
-    if (estimated > 0 && actual > 0) {
-        var variance = ((actual - estimated) / estimated) * 100;
-        document.getElementById('budget_variance').value = variance.toFixed(2);
-    } else {
-        document.getElementById('budget_variance').value = '';
-    }
-}
-
-// Add real-time validation
-document.getElementById('title').addEventListener('blur', function() {
-    const errorEl = document.getElementById('title-error');
-    if (this.value.trim().length < 3) {
-        errorEl.textContent = 'Title must be at least 3 characters long';
-    } else {
-        errorEl.textContent = '';
-    }
-});
-
-document.getElementById('project_id').addEventListener('change', function() {
-    const errorEl = document.getElementById('project_id-error');
-    if (!this.value) {
-        errorEl.textContent = 'Please select a project';
-    } else {
-        errorEl.textContent = '';
-    }
-});
-
-document.getElementById('planned_end_date').addEventListener('change', function() {
-    const errorEl = document.getElementById('planned_end_date-error');
-    if (!this.value) {
-        errorEl.textContent = 'Due date is required';
-    } else {
-        errorEl.textContent = '';
-    }
-    validateDates();
 });
 </script>
 <?= $this->endSection() ?>

@@ -342,7 +342,13 @@ class QualityInspectionController extends BaseController
             'inspections' => $inspections
         ];
 
-        return view('procurement/quality_inspections/my_inspections', $data);
+        // Check if view exists before trying to load it
+        if (file_exists(APPPATH . 'Views/procurement/quality_inspections/my_inspections.php')) {
+            return view('procurement/quality_inspections/my_inspections', $data);
+        } else {
+            // Return error if view doesn't exist
+            return redirect()->back()->with('error', 'My inspections view not available');
+        }
     }
 
     /**

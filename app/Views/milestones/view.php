@@ -11,10 +11,10 @@ Milestone Details - <?= esc($milestone['title']) ?>
         <div class="bg-white rounded-lg shadow overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                 <div>
-                    <h1 class="text-2xl font-semibold text-gray-800"><?= esc($milestone['title']) ?></h1>
+                    <h1 class="text-2xl font-semibold text-gray-800"><?= esc(isset($milestone['title']) ? $milestone['title'] : 'Milestone') ?></h1>
                     <p class="text-sm text-gray-500">
-                        Project: <a href="<?= base_url('admin/projects/view/' . $milestone['project_id']) ?>" class="text-indigo-600 hover:text-indigo-800"><?= esc($project['name']) ?></a>
-                        <span class="ml-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"><?= esc($project['project_code']) ?></span>
+                        Project: <a href="<?= base_url('admin/projects/view/' . $milestone['project_id']) ?>" class="text-indigo-600 hover:text-indigo-800"><?= esc($milestone['project_name']) ?></a>
+                        <span class="ml-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"><?= esc($milestone['project_code']) ?></span>
                     </p>
                 </div>
                 <div class="flex space-x-2">
@@ -24,7 +24,7 @@ Milestone Details - <?= esc($milestone['title']) ?>
                         </svg>
                         Back
                     </a>
-                    <a href="<?= base_url('admin/milestones/edit/' . $milestone['id']) ?>" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    <a href="<?= base_url('admin/milestones/' . $milestone['id'] . '/edit') ?>" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
                         <svg class="mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                         </svg>
@@ -120,7 +120,7 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                                 <div class="sm:col-span-1">
                                                     <dt class="text-sm font-medium text-gray-500">Critical</dt>
                                                     <dd class="mt-1 text-sm text-gray-900">
-                                                        <?php if ($milestone['is_critical']): ?>
+                                                        <?php if (isset($milestone['is_critical']) && $milestone['is_critical']): ?>
                                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
                                                                 Critical
                                                             </span>
@@ -155,13 +155,13 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                                 <div class="sm:col-span-1">
                                                     <dt class="text-sm font-medium text-gray-500">Start Date</dt>
                                                     <dd class="mt-1 text-sm text-gray-900">
-                                                        <?= $milestone['start_date'] ? date('M d, Y', strtotime($milestone['start_date'])) : 'Not set' ?>
+                                                        <?= isset($milestone['start_date']) && $milestone['start_date'] ? date('M d, Y', strtotime($milestone['start_date'])) : 'Not set' ?>
                                                     </dd>
                                                 </div>
                                                 <div class="sm:col-span-1">
                                                     <dt class="text-sm font-medium text-gray-500">Due Date</dt>
                                                     <dd class="mt-1 text-sm text-gray-900">
-                                                        <?php if ($milestone['planned_end_date']): ?>
+                                                        <?php if (isset($milestone['planned_end_date']) && $milestone['planned_end_date']): ?>
                                                             <?= date('M d, Y', strtotime($milestone['planned_end_date'])) ?>
                                                             <?php if (isOverdue($milestone['planned_end_date'], $milestone['status'])): ?>
                                                                 <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
@@ -179,7 +179,7 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                                 <div class="sm:col-span-1">
                                                     <dt class="text-sm font-medium text-gray-500">Completion Date</dt>
                                                     <dd class="mt-1 text-sm text-gray-900">
-                                                        <?= $milestone['completion_date'] ? date('M d, Y', strtotime($milestone['completion_date'])) : 'Not completed' ?>
+                                                        <?= isset($milestone['completion_date']) && $milestone['completion_date'] ? date('M d, Y', strtotime($milestone['completion_date'])) : 'Not completed' ?>
                                                     </dd>
                                                 </div>
                                                 <div class="sm:col-span-1">
@@ -219,18 +219,18 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                     </h3>
                                 </div>
                                 <div class="p-4">
-                                    <?php if ($milestone['estimated_cost'] || $milestone['actual_cost']): ?>
+                                    <?php if (isset($milestone['estimated_cost']) || isset($milestone['actual_cost'])): ?>
                                     <div class="grid grid-cols-2 gap-4 mb-4">
-                                        <?php if ($milestone['estimated_cost']): ?>
+                                        <?php if (isset($milestone['estimated_cost']) && $milestone['estimated_cost']): ?>
                                         <div class="text-center">
                                             <p class="text-sm font-medium text-gray-500">Estimated Cost</p>
                                             <p class="mt-1 text-2xl font-semibold text-indigo-600">$<?= number_format($milestone['estimated_cost'], 2) ?></p>
                                         </div>
                                         <?php endif; ?>
-                                        <?php if ($milestone['actual_cost']): ?>
+                                        <?php if (isset($milestone['actual_cost']) && $milestone['actual_cost']): ?>
                                         <div class="text-center">
                                             <p class="text-sm font-medium text-gray-500">Actual Cost</p>
-                                            <p class="mt-1 text-2xl font-semibold <?= $milestone['actual_cost'] > $milestone['estimated_cost'] ? 'text-red-600' : 'text-green-600' ?>">
+                                            <p class="mt-1 text-2xl font-semibold <?= isset($milestone['estimated_cost']) && $milestone['actual_cost'] > $milestone['estimated_cost'] ? 'text-red-600' : 'text-green-600' ?>">
                                                 $<?= number_format($milestone['actual_cost'], 2) ?>
                                             </p>
                                         </div>
@@ -238,13 +238,13 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                     </div>
                                     <?php endif; ?>
 
-                                    <?php if ($milestone['risk_level']): ?>
+                                    <?php if (isset($milestone['risk_level']) && $milestone['risk_level']): ?>
                                     <div class="mb-4">
                                         <p class="text-sm font-medium text-gray-500 mb-2">Risk Level</p>
                                         <?php
                                         $riskColors = [
                                             'low' => 'bg-green-100 text-green-800',
-                                            'medium' => 'bg-yellow-100 text-yellow-800', 
+                                            'medium' => 'bg-yellow-100 text-yellow-800',
                                             'high' => 'bg-red-100 text-red-800',
                                             'critical' => 'bg-black bg-opacity-20 text-white'
                                         ];
@@ -276,7 +276,7 @@ Milestone Details - <?= esc($milestone['title']) ?>
                         </div>
                     </div>
                     
-                    <?php if ($milestone['description']): ?>
+                    <?php if (isset($milestone['description']) && $milestone['description']): ?>
                     <div class="mt-6">
                         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
                             <div class="px-4 py-5 sm:px-6">
@@ -338,7 +338,7 @@ Milestone Details - <?= esc($milestone['title']) ?>
                 <!-- Deliverables Tab Content -->
                 <div x-show="activeTab === 'deliverables'">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Expected Deliverables</h3>
-                    <?php if ($milestone['deliverables']): ?>
+                    <?php if (isset($milestone['deliverables']) && $milestone['deliverables']): ?>
                         <div class="bg-gray-50 p-4 rounded-md">
                             <div class="prose prose-sm max-w-none text-gray-700">
                                 <?= nl2br(esc($milestone['deliverables'])) ?>
@@ -352,7 +352,7 @@ Milestone Details - <?= esc($milestone['title']) ?>
                 <!-- Success Criteria Tab Content -->
                 <div x-show="activeTab === 'criteria'" x-cloak>
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Success Criteria</h3>
-                    <?php if ($milestone['success_criteria']): ?>
+                    <?php if (isset($milestone['success_criteria']) && $milestone['success_criteria']): ?>
                         <div class="bg-gray-50 p-4 rounded-md">
                             <div class="prose prose-sm max-w-none text-gray-700">
                                 <?= nl2br(esc($milestone['success_criteria'])) ?>
@@ -468,21 +468,21 @@ Milestone Details - <?= esc($milestone['title']) ?>
                 <!-- Risks Tab Content -->
                 <div x-show="activeTab === 'risks'" x-cloak>
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Risk Assessment</h3>
-                    <?php if ($milestone['risk_description']): ?>
+                    <?php if (isset($milestone['risk_description']) && $milestone['risk_description']): ?>
                         <div class="bg-gray-50 p-4 rounded-md">
                             <div class="flex justify-between items-start mb-3">
                                 <h4 class="text-base font-medium text-gray-900">Risk Description</h4>
                                 <?php
                                 $riskColors = [
                                     'low' => 'bg-green-100 text-green-800',
-                                    'medium' => 'bg-yellow-100 text-yellow-800', 
+                                    'medium' => 'bg-yellow-100 text-yellow-800',
                                     'high' => 'bg-red-100 text-red-800',
                                     'critical' => 'bg-black bg-opacity-20 text-white'
                                 ];
-                                $riskColor = $riskColors[$milestone['risk_level']] ?? 'bg-gray-100 text-gray-800';
+                                $riskColor = isset($milestone['risk_level']) ? ($riskColors[$milestone['risk_level']] ?? 'bg-gray-100 text-gray-800') : 'bg-gray-100 text-gray-800';
                                 ?>
                                 <span class="inline-flex items-center px-3 py-1 rounded-md text-sm font-medium <?= $riskColor ?>">
-                                    <?= ucfirst($milestone['risk_level'] ?? 'Low') ?> Risk
+                                    <?= ucfirst(isset($milestone['risk_level']) ? $milestone['risk_level'] : 'Low') ?> Risk
                                 </span>
                             </div>
                             <div class="prose prose-sm max-w-none text-gray-700">
@@ -615,7 +615,7 @@ Milestone Details - <?= esc($milestone['title']) ?>
     </div>
 
     <!-- Notes Section -->
-    <?php if ($milestone['notes']): ?>
+    <?php if (isset($milestone['notes']) && $milestone['notes']): ?>
     <div class="mt-6">
         <div class="bg-white shadow overflow-hidden sm:rounded-lg">
             <div class="px-4 py-5 sm:px-6">

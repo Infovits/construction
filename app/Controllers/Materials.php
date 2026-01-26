@@ -577,23 +577,85 @@ class Materials extends BaseController
                     return $this->generatePDF($data, $reportType);
                     
                 case 'excel':
+                    // Always ensure report data is available for Excel generation
+                    switch ($reportType) {
+                        case 'stock_levels':
+                            $data['report'] = $this->materialModel->getStockLevelsReport($companyId, $warehouseId, $categoryId);
+                            break;
+
+                        case 'stock_movement':
+                            $data['report'] = $this->stockMovementModel->getStockMovementReport(
+                                $companyId,
+                                $startDate,
+                                $endDate,
+                                $warehouseId,
+                                $categoryId
+                            );
+                            break;
+
+                        case 'project_usage':
+                            $data['report'] = $this->stockMovementModel->getProjectUsageReport(
+                                $companyId,
+                                $projectId,
+                                $startDate,
+                                $endDate
+                            );
+                            break;
+
+                        case 'low_stock':
+                            $data['report'] = $this->materialModel->getLowStockItems($companyId, $warehouseId, $categoryId);
+                            break;
+
+                        case 'supplier':
+                            $data['report'] = $this->supplierModel->getSupplierReport(
+                                $companyId,
+                                $supplierId,
+                                $startDate,
+                                $endDate
+                            );
+                            break;
+
+                        case 'cost_trend':
+                            $dateRange = $this->request->getVar('date_range');
+                            if ($dateRange === 'custom') {
+                                // Use provided custom range
+                            } else {
+                                // Calculate date based on range (30, 90, 180, 365 days)
+                                $endDate = date('Y-m-d');
+                                $startDate = date('Y-m-d', strtotime("-{$dateRange} days"));
+                            }
+
+                            $data['report'] = $this->materialModel->getCostTrendReport(
+                                $companyId,
+                                $materialId,
+                                $startDate,
+                                $endDate
+                            );
+                            break;
+
+                        default:
+                            // For unsupported report types, return error
+                            return redirect()->back()->with('error', 'Excel generation not supported for this report type');
+                    }
                     return $this->generateExcel($data, $reportType);
                     
                 case 'html':
                     // For HTML format, prepare and add the report to data array
                     switch ($reportType) {
-                        case 'valuation':
-                            $data['report'] = $this->materialModel->getStockValuationReport($companyId, $warehouseId, $categoryId);
-                            return view('inventory/materials/reports/valuation', $data);
+                        // case 'valuation':
+                        //     $data['report'] = $this->materialModel->getStockValuationReport($companyId, $warehouseId, $categoryId);
+                        //     return view('inventory/materials/reports/valuation', $data);
                             
                         case 'movement':
                             $data['report'] = $this->stockMovementModel->getStockMovementReport(
-                                $companyId, 
-                                $startDate, 
-                                $endDate, 
+                                $companyId,
+                                $startDate,
+                                $endDate,
                                 $materialId,
                                 $warehouseId
                             );
+                            $data['startDate'] = $startDate;
+                            $data['endDate'] = $endDate;
                             return view('inventory/materials/reports/movement', $data);
                             
                         case 'project_usage':
@@ -609,7 +671,13 @@ class Materials extends BaseController
                         case 'low_stock':
                             $threshold = $this->request->getVar('threshold') ?? 0;
                             $data['report'] = $this->materialModel->getLowStockItems($companyId, $warehouseId, $categoryId, (int)$threshold);
-                            return view('inventory/materials/reports/low_stock', $data);
+                            // Check if view exists before trying to load it
+                            if (file_exists(APPPATH . 'Views/inventory/materials/reports/low_stock.php')) {
+                                return view('inventory/materials/reports/low_stock', $data);
+                            } else {
+                                // Return error if view doesn't exist
+                                return redirect()->back()->with('error', 'Low stock report view not available');
+                            }
                             
                         case 'supplier':
                             $data['report'] = $this->supplierModel->getSupplierReport(
@@ -681,21 +749,38 @@ class Materials extends BaseController
             'movement_type' => $this->request->getVar('movement_type')
         ];
         
+        // Add date variables to data for PDF generation
+        $data['startDate'] = $this->request->getVar('start_date');
+        $data['endDate'] = $this->request->getVar('end_date');
+
         // Generate the appropriate report based on type
         switch ($reportType) {
             case 'stock_movement':
                 return $pdf->generateStockMovementReport($data['report'], $filters);
-                
+
             case 'project_usage':
                 return $pdf->generateProjectUsageReport($data['report'], $filters);
-                
+
             case 'low_stock':
                 return $pdf->generateLowStockReport($data['report'], $filters);
-                
+
             default:
-                // For other report types, use default PDF generation
-                $html = view('inventory/materials/reports/' . $reportType . '_pdf', $data, ['debug' => false]);
-                return $pdf->generatePdf($html, $reportType . '_report.pdf');
+                // For other report types, check if PDF view exists, otherwise use HTML view
+                $pdfViewPath = 'inventory/materials/reports/' . $reportType . '_pdf';
+                if (file_exists(APPPATH . 'Views/' . str_replace('/', DIRECTORY_SEPARATOR, $pdfViewPath) . '.php')) {
+                    $html = view($pdfViewPath, $data, ['debug' => false]);
+                    return $pdf->generatePdf($html, $reportType . '_report.pdf');
+                } else {
+                    // Fall back to HTML view if PDF view doesn't exist
+                    $htmlViewPath = 'inventory/materials/reports/' . $reportType;
+                    if (file_exists(APPPATH . 'Views/' . str_replace('/', DIRECTORY_SEPARATOR, $htmlViewPath) . '.php')) {
+                        $html = view($htmlViewPath, $data, ['debug' => false]);
+                        return $pdf->generatePdf($html, $reportType . '_report.pdf');
+                    } else {
+                        // Return error if neither view exists
+                        return redirect()->back()->with('error', 'PDF generation not supported for this report type');
+                    }
+                }
         }
     }
     
@@ -1216,6 +1301,17 @@ class Materials extends BaseController
         }
         
         return redirect()->to('purchase-orders/view/' . $poId)->with('success', 'Purchase order created successfully');
+    }
+
+    /**
+     * Get materials in JSON format for AJAX requests
+     */
+    public function getJson()
+    {
+        $companyId = session()->get('company_id');
+        $materials = $this->materialModel->where('company_id', $companyId)->findAll();
+
+        return $this->response->setJSON($materials);
     }
 
     /**

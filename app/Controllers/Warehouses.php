@@ -421,19 +421,59 @@ class Warehouses extends BaseController
     {
         $companyId = session()->get('company_id');
         $warehouse = $this->warehouseModel->find($id);
-        
+
         if (!$warehouse || $warehouse['company_id'] != $companyId) {
             return redirect()->to('/admin/warehouses')->with('error', 'Warehouse not found');
         }
-        
+
         $data = [
             'title' => 'Stock Movement History - ' . $warehouse['name'],
             'warehouse' => $warehouse,
             'incomingMovements' => $this->stockMovementModel->getWarehouseIncomingMovements($id),
             'outgoingMovements' => $this->stockMovementModel->getWarehouseOutgoingMovements($id),
         ];
-        
+
         return view('inventory/warehouses/movements', $data);
+    }
+
+    public function report($id)
+    {
+        $companyId = session()->get('company_id');
+        $warehouse = $this->warehouseModel->find($id);
+
+        if (!$warehouse || $warehouse['company_id'] != $companyId) {
+            return redirect()->to('/admin/warehouses')->with('error', 'Warehouse not found');
+        }
+
+        $materials = $this->warehouseStockModel->getWarehouseStock($id);
+        $lowStockItems = $this->warehouseStockModel->getLowStockItems($id);
+
+        $data = [
+            'title' => 'Warehouse Report - ' . $warehouse['name'],
+            'warehouse' => $warehouse,
+            'materials' => $materials,
+            'lowStockItems' => $lowStockItems,
+            'stats' => [
+                'total_materials' => count($materials),
+                'low_stock_count' => count($lowStockItems),
+                'total_value' => array_reduce($materials, function($sum, $item) {
+                    return $sum + ($item['current_quantity'] * $item['unit_cost']);
+                }, 0),
+            ],
+        ];
+
+        return view('inventory/warehouses/report', $data);
+    }
+
+    /**
+     * Get warehouses in JSON format for AJAX requests
+     */
+    public function getJson()
+    {
+        $companyId = session()->get('company_id');
+        $warehouses = $this->warehouseModel->where('company_id', $companyId)->findAll();
+
+        return $this->response->setJSON($warehouses);
     }
 
     /**

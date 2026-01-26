@@ -16,7 +16,7 @@
                 <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
                 Back to Categories
             </a>
-            <a href="<?= base_url('admin/project-categories/view/' . $category['id']) ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <a href="<?= base_url('admin/project-categories/' . $category['id']) ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                 <i data-lucide="eye" class="w-4 h-4 mr-2"></i>
                 View Category
             </a>

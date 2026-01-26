@@ -100,13 +100,17 @@ class ChartOfAccountsModel extends Model
                 ELSE coa.account_type
             END as account_type_label,
             (SELECT COUNT(*) FROM journal_entry_lines jel WHERE jel.account_id = coa.id) as transaction_count
-        ");
+        ", false);
         
         $builder->join('account_categories ac', 'coa.category_id = ac.id', 'left');
         $builder->join('chart_of_accounts parent', 'coa.parent_account_id = parent.id', 'left');
         $builder->where('coa.company_id', session('company_id') ?? 1);
         
         // Apply filters
+        if (!empty($filters['account_id'])) {
+            $builder->where('coa.id', $filters['account_id']);
+        }
+        
         if (!empty($filters['account_type'])) {
             $builder->where('coa.account_type', $filters['account_type']);
         }
@@ -246,12 +250,12 @@ class ChartOfAccountsModel extends Model
     {
         $builder = $this->db->table($this->table);
         
-        $builder->select('
+        $builder->select("
             account_type,
             COUNT(*) as total_accounts,
             SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_accounts,
             SUM(balance) as total_balance
-        ');
+        ", false);
         
         $builder->where('company_id', session('company_id') ?? 1);
         $builder->groupBy('account_type');
@@ -317,5 +321,59 @@ class ChartOfAccountsModel extends Model
             'revenue' => 'Revenue',
             'expense' => 'Expenses'
         ];
+    }
+
+    /**
+     * Get accounts with their current balances
+     */
+    public function getAccountsWithBalances($filters = [])
+    {
+        $builder = $this->db->table($this->table . ' coa');
+        
+        $builder->select("
+            coa.*,
+            COALESCE(bal.balance, 0) as balance,
+            cat.name as category_name
+        ", false);
+        
+        // Join with calculated balances
+        $builder->join('(
+            SELECT 
+                jel.account_id,
+                CASE 
+                    WHEN coa_inner.account_type IN (\'asset\', \'expense\') 
+                    THEN SUM(jel.debit_amount) - SUM(jel.credit_amount)
+                    ELSE SUM(jel.credit_amount) - SUM(jel.debit_amount)
+                END as balance
+            FROM journal_entry_lines jel
+            JOIN journal_entries je ON jel.journal_entry_id = je.id
+            JOIN chart_of_accounts coa_inner ON jel.account_id = coa_inner.id
+            WHERE je.status = \'posted\'
+            ' . (!empty($filters['date_to']) ? 'AND je.entry_date <= \'' . $filters['date_to'] . '\'' : '') . '
+            GROUP BY jel.account_id
+        ) bal', 'coa.id = bal.account_id', 'left');
+        
+        $builder->join('account_categories cat', 'coa.category_id = cat.id', 'left');
+        
+        $builder->where('coa.company_id', session('company_id') ?? 1);
+        $builder->where('coa.is_active', 1);
+        
+        // Apply filters
+        if (!empty($filters['account_type'])) {
+            $builder->where('coa.account_type', $filters['account_type']);
+        }
+        
+        if (!empty($filters['category_id'])) {
+            $builder->where('coa.category_id', $filters['category_id']);
+        }
+        
+        if (!empty($filters['account_id'])) {
+            $builder->where('coa.id', $filters['account_id']);
+        }
+        
+        $builder->orderBy('coa.account_type', 'ASC');
+        $builder->orderBy('coa.account_code', 'ASC');
+        
+        return $builder->get()->getResultArray();
     }
 }

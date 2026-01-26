@@ -23,24 +23,24 @@
         <form method="GET" class="flex flex-col md:flex-row gap-4">
             <div class="flex-1">
                 <input type="text" name="search" placeholder="Search categories..." 
-                       value="<?= esc($this->request->getGet('search')) ?>"
+                       value="<?= esc($filters['search']) ?>"
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
             </div>
             <div>
                 <select name="account_type" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                     <option value="">All Types</option>
-                    <option value="asset" <?= $this->request->getGet('account_type') === 'asset' ? 'selected' : '' ?>>Assets</option>
-                    <option value="liability" <?= $this->request->getGet('account_type') === 'liability' ? 'selected' : '' ?>>Liabilities</option>
-                    <option value="equity" <?= $this->request->getGet('account_type') === 'equity' ? 'selected' : '' ?>>Equity</option>
-                    <option value="revenue" <?= $this->request->getGet('account_type') === 'revenue' ? 'selected' : '' ?>>Revenue</option>
-                    <option value="expense" <?= $this->request->getGet('account_type') === 'expense' ? 'selected' : '' ?>>Expenses</option>
+                    <option value="asset" <?= $filters['account_type'] === 'asset' ? 'selected' : '' ?>>Assets</option>
+                    <option value="liability" <?= $filters['account_type'] === 'liability' ? 'selected' : '' ?>>Liabilities</option>
+                    <option value="equity" <?= $filters['account_type'] === 'equity' ? 'selected' : '' ?>>Equity</option>
+                    <option value="revenue" <?= $filters['account_type'] === 'revenue' ? 'selected' : '' ?>>Revenue</option>
+                    <option value="expense" <?= $filters['account_type'] === 'expense' ? 'selected' : '' ?>>Expenses</option>
                 </select>
             </div>
             <div>
                 <select name="is_active" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
                     <option value="">All Status</option>
-                    <option value="1" <?= $this->request->getGet('is_active') === '1' ? 'selected' : '' ?>>Active</option>
-                    <option value="0" <?= $this->request->getGet('is_active') === '0' ? 'selected' : '' ?>>Inactive</option>
+                    <option value="1" <?= $filters['is_active'] === '1' ? 'selected' : '' ?>>Active</option>
+                    <option value="0" <?= $filters['is_active'] === '0' ? 'selected' : '' ?>>Inactive</option>
                 </select>
             </div>
             <button type="submit" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">

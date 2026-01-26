@@ -109,11 +109,11 @@
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="flex items-center justify-end space-x-2">
-                                <a href="<?= base_url('admin/project-categories/view/' . $category['id']) ?>" 
+                                <a href="<?= base_url('admin/project-categories/' . $category['id']) ?>"
                                    class="text-indigo-600 hover:text-indigo-900" title="View">
                                     <i data-lucide="eye" class="w-4 h-4"></i>
                                 </a>
-                                <a href="<?= base_url('admin/project-categories/edit/' . $category['id']) ?>" 
+                                <a href="<?= base_url('admin/project-categories/' . $category['id'] . '/edit') ?>"
                                    class="text-blue-600 hover:text-blue-900" title="Edit">
                                     <i data-lucide="edit" class="w-4 h-4"></i>
                                 </a>

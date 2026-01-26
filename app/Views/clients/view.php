@@ -16,7 +16,7 @@
                 <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
                 Back to Clients
             </a>
-            <a href="<?= base_url('admin/clients/edit/' . $client['id']) ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+            <a href="<?= base_url('admin/clients/' . $client['id'] . '/edit') ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                 <i data-lucide="edit" class="w-4 h-4 mr-2"></i>
                 Edit Client
             </a>
@@ -178,7 +178,7 @@
                 <div class="p-6">
                     <h3 class="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
                     <div class="space-y-3">
-                        <a href="<?= base_url('admin/clients/edit/' . $client['id']) ?>" 
+                        <a href="<?= base_url('admin/clients/' . $client['id'] . '/edit') ?>" 
                            class="w-full inline-flex items-center justify-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                             <i data-lucide="edit" class="w-4 h-4 mr-2"></i>
                             Edit Client

@@ -210,39 +210,49 @@ class MaterialModel extends Model
     
     /**
      * Get all materials that need attention with detailed low stock information
-     * 
+     *
      * @param int $companyId
      * @return array
      */
     public function getLowStockNotifications($companyId)
     {
-        $db = \Config\Database::connect();
-        $builder = $db->table('materials m');
-        
-        $builder->select('
-            m.id, m.name, m.item_code, m.barcode, m.unit, m.current_stock, 
-            m.minimum_stock, m.reorder_level, m.maximum_stock, 
-            mc.name as category_name,
-            CASE
-                WHEN m.current_stock <= m.minimum_stock THEN "critical"
-                WHEN m.current_stock <= m.reorder_level THEN "low"
-                ELSE "normal"
-            END as stock_status,
-            (SELECT s.name FROM suppliers s 
-            JOIN supplier_materials sm ON sm.supplier_id = s.id 
-            WHERE sm.material_id = m.id 
-            ORDER BY sm.is_preferred DESC, sm.unit_price ASC 
-            LIMIT 1) as preferred_supplier,
-            (SELECT AVG(lead_time) FROM supplier_materials WHERE material_id = m.id) as avg_lead_time
-        ');
-        
-        $builder->join('material_categories mc', 'mc.id = m.category_id', 'left');
-        $builder->where('m.company_id', $companyId);
-        $builder->where('m.status', 'active');
-        $builder->where('(m.current_stock <= m.reorder_level OR m.current_stock <= m.minimum_stock)');
-        $builder->orderBy('stock_status', 'ASC'); // Critical first, then low
-        $builder->orderBy('m.current_stock/m.minimum_stock', 'ASC'); // Most critical first
-        
-        return $builder->get()->getResultArray();
+        $materials = $this->select('
+            materials.id, materials.name, materials.item_code, materials.barcode,
+            materials.unit, materials.current_stock, materials.minimum_stock,
+            materials.reorder_level, materials.maximum_stock,
+            material_categories.name as category_name
+        ')
+        ->join('material_categories', 'material_categories.id = materials.category_id', 'left')
+        ->where('materials.company_id', $companyId)
+        ->where('materials.status', 'active')
+        ->where('(materials.current_stock <= materials.reorder_level OR materials.current_stock <= materials.minimum_stock)')
+        ->findAll();
+
+        // Add stock status in PHP
+        foreach ($materials as &$material) {
+            if ($material['current_stock'] <= $material['minimum_stock']) {
+                $material['stock_status'] = 'critical';
+            } elseif ($material['current_stock'] <= $material['reorder_level']) {
+                $material['stock_status'] = 'low';
+            } else {
+                $material['stock_status'] = 'normal';
+            }
+        }
+
+        // Sort by stock status priority (critical first, then low, then normal)
+        // Within same status, sort by lowest stock first
+        usort($materials, function($a, $b) {
+            $statusOrder = ['critical' => 1, 'low' => 2, 'normal' => 3];
+            $statusA = $statusOrder[$a['stock_status']] ?? 3;
+            $statusB = $statusOrder[$b['stock_status']] ?? 3;
+
+            if ($statusA === $statusB) {
+                return $a['current_stock'] <=> $b['current_stock'];
+            }
+
+            return $statusA <=> $statusB;
+        });
+
+        return $materials;
     }
 }

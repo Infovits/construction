@@ -216,7 +216,13 @@ class GoodsReceiptController extends BaseController
             'warehouses' => $this->warehouseModel->findAll()
         ];
 
-        return view('procurement/goods_receipt/edit', $data);
+        // Check if view exists before trying to load it
+        if (file_exists(APPPATH . 'Views/procurement/goods_receipt/edit.php')) {
+            return view('procurement/goods_receipt/edit', $data);
+        } else {
+            // Return error if view doesn't exist
+            return redirect()->back()->with('error', 'Edit view not available for goods receipt');
+        }
     }
 
     /**

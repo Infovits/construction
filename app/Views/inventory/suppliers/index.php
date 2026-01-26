@@ -101,7 +101,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="<?= base_url('admin/suppliers/view/' . $supplier['id']) ?>" class="text-blue-600 hover:text-blue-900 mr-3">
+                                <a href="<?= base_url('admin/suppliers/' . $supplier['id']) ?>" class="text-blue-600 hover:text-blue-900 mr-3">
                                     <i data-lucide="eye" class="w-4 h-4"></i>
                                 </a>
                                 <a href="<?= base_url('admin/suppliers/edit/' . $supplier['id']) ?>" class="text-indigo-600 hover:text-indigo-900 mr-3">

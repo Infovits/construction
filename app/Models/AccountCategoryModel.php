@@ -78,18 +78,18 @@ class AccountCategoryModel extends Model
     {
         $builder = $this->db->table($this->table . ' ac');
         
-        $builder->select('
+        $builder->select("
             ac.*,
             COUNT(coa.id) as accounts_count,
             CASE 
-                WHEN ac.account_type = "asset" THEN "Assets"
-                WHEN ac.account_type = "liability" THEN "Liabilities"
-                WHEN ac.account_type = "equity" THEN "Equity"
-                WHEN ac.account_type = "revenue" THEN "Revenue"
-                WHEN ac.account_type = "expense" THEN "Expenses"
+                WHEN ac.account_type = 'asset' THEN 'Assets'
+                WHEN ac.account_type = 'liability' THEN 'Liabilities'
+                WHEN ac.account_type = 'equity' THEN 'Equity'
+                WHEN ac.account_type = 'revenue' THEN 'Revenue'
+                WHEN ac.account_type = 'expense' THEN 'Expenses'
                 ELSE ac.account_type
             END as account_type_label
-        ');
+        ", false);
         
         $builder->join('chart_of_accounts coa', 'ac.id = coa.category_id', 'left');
         $builder->where('ac.company_id', session('company_id') ?? 1);
@@ -149,11 +149,11 @@ class AccountCategoryModel extends Model
     {
         $builder = $this->db->table($this->table);
         
-        $builder->select('
+        $builder->select("
             account_type,
             COUNT(*) as total_categories,
             SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_categories
-        ');
+        ", false);
         
         $builder->where('company_id', session('company_id') ?? 1);
         $builder->groupBy('account_type');

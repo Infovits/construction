@@ -213,7 +213,7 @@ class MaterialRequestController extends BaseController
     public function edit($id)
     {
         $materialRequest = $this->materialRequestModel->getMaterialRequestWithItems($id);
-        
+
         if (!$materialRequest) {
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Material request not found');
         }
@@ -231,7 +231,13 @@ class MaterialRequestController extends BaseController
             'materials' => $this->materialModel->findAll()
         ];
 
-        return view('procurement/material_requests/edit', $data);
+        // Check if view exists before trying to load it
+        if (file_exists(APPPATH . 'Views/procurement/material_requests/edit.php')) {
+            return view('procurement/material_requests/edit', $data);
+        } else {
+            // Return error if view doesn't exist
+            return redirect()->back()->with('error', 'Edit view not available for material requests');
+        }
     }
 
     /**

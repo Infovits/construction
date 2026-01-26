@@ -26,15 +26,56 @@ class ChartOfAccountsController extends BaseController
             'search' => $this->request->getGet('search')
         ];
 
+        $accounts = $this->chartOfAccountsModel->getAccountsWithDetails($filters);
+        
+        // Build proper hierarchical tree structure
+        $hierarchicalAccounts = $this->buildAccountHierarchy($accounts);
+        $flattenedAccounts = $this->flattenAccountsForDisplay($hierarchicalAccounts);
+        
         $data = [
             'title' => 'Chart of Accounts',
-            'accounts' => $this->chartOfAccountsModel->getAccountsWithDetails($filters),
+            'accounts' => $flattenedAccounts,
             'categories' => $this->accountCategoryModel->getActiveCategories(),
             'stats' => $this->chartOfAccountsModel->getAccountStats(),
             'filters' => $filters
         ];
 
         return view('accounting/chart_of_accounts/index', $data);
+    }
+
+    /**
+     * Build hierarchical structure from flat accounts array
+     */
+    private function buildAccountHierarchy($accounts, $parentId = null, $depth = 0)
+    {
+        $hierarchy = [];
+        
+        foreach ($accounts as $account) {
+            if ($account['parent_account_id'] == $parentId) {
+                $account['depth'] = $depth;
+                $account['children'] = $this->buildAccountHierarchy($accounts, $account['id'], $depth + 1);
+                $hierarchy[] = $account;
+            }
+        }
+        
+        return $hierarchy;
+    }
+    
+    /**
+     * Flatten hierarchical structure for display while preserving depth
+     */
+    private function flattenAccountsForDisplay($hierarchy)
+    {
+        $flattened = [];
+        
+        foreach ($hierarchy as $account) {
+            $flattened[] = $account;
+            if (!empty($account['children'])) {
+                $flattened = array_merge($flattened, $this->flattenAccountsForDisplay($account['children']));
+            }
+        }
+        
+        return $flattened;
     }
 
     public function create()
@@ -93,15 +134,23 @@ class ChartOfAccountsController extends BaseController
 
     public function show($id)
     {
-        $account = $this->chartOfAccountsModel->find($id);
+        // Get account with detailed information
+        $accountsWithDetails = $this->chartOfAccountsModel->getAccountsWithDetails(['account_id' => $id]);
+        $account = !empty($accountsWithDetails) ? $accountsWithDetails[0] : null;
         
         if (!$account) {
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Account not found');
         }
 
+        // Get child accounts (sub-accounts)
+        $childAccounts = $this->chartOfAccountsModel->where('parent_account_id', $id)
+                                                   ->where('is_active', 1)
+                                                   ->findAll();
+
         $data = [
-            'title' => 'Account Details',
-            'account' => $account
+            'title' => 'Account Details - ' . $account['account_name'],
+            'account' => $account,
+            'childAccounts' => $childAccounts
         ];
 
         return view('accounting/chart_of_accounts/show', $data);

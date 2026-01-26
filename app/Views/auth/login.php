@@ -350,7 +350,7 @@
             </div>
         <?php endif; ?>
 
-        <form action="<?php echo base_url('auth/authenticate')?>" method="post" id="loginForm" class="needs-validation" novalidate>
+        <form action="<?php echo base_url('auth/login')?>" method="post" id="loginForm" class="needs-validation" novalidate>
             <?= csrf_field() ?>
 
             <div class="form-group">

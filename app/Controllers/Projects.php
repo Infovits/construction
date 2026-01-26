@@ -74,6 +74,7 @@ class Projects extends BaseController
         $data = $this->request->getPost();
         $data['created_by'] = session('user_id');
         $data['company_id'] = session('company_id');
+        $data['currency'] = $data['currency'] ?? 'MWK'; // Set default currency to MWK
 
         try {
             if ($this->projectModel->save($data)) {
