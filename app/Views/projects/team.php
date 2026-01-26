@@ -198,7 +198,7 @@
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
             </div>
-            <form action="<?= base_url('admin/projects/team/add/' . $project['id']) ?>" method="post" class="space-y-4">
+            <form action="<?= base_url('admin/projects/' . $project['id'] . '/team/add') ?>" method="post" class="space-y-4">
                 <?= csrf_field() ?>
                 <div>
                     <label for="user_id" class="block text-sm font-medium text-gray-700 mb-1">Select User *</label>
