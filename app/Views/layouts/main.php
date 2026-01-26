@@ -619,13 +619,16 @@
                 }
             }
 
-            // Open the active section's dropdown
+            // Open the active section's dropdown and highlight active links
             if (activeSection) {
                 const submenu = document.getElementById(activeSection);
                 const chevron = document.getElementById(activeSection.replace('-submenu', '-chevron'));
-                if (submenu && chevron) {
+                const menuItem = chevron?.parentElement;
+
+                if (submenu && chevron && menuItem) {
                     submenu.classList.add('open');
                     chevron.classList.add('rotated');
+                    menuItem.classList.add('active');
                 }
 
                 // Find and highlight the active link within the submenu
@@ -699,12 +702,14 @@
         let isMobileMenuOpen = false;
 
         // Initialize sidebar state on load
-        if (isCollapsed) {
-            sidebar.classList.remove('sidebar-expanded');
-            sidebar.classList.add('sidebar-collapsed');
-        } else {
-            sidebar.classList.remove('sidebar-collapsed');
-            sidebar.classList.add('sidebar-expanded');
+        function initializeSidebarState() {
+            if (isCollapsed) {
+                sidebar.classList.remove('sidebar-expanded');
+                sidebar.classList.add('sidebar-collapsed');
+            } else {
+                sidebar.classList.remove('sidebar-collapsed');
+                sidebar.classList.add('sidebar-expanded');
+            }
         }
         
         // Mobile menu toggle
@@ -732,11 +737,15 @@
         
         // Desktop sidebar toggle
         sidebarToggle.addEventListener('click', () => {
-            // Check if any submenu is open
-            const openSubmenus = document.querySelectorAll('.submenu.open');
-            if (openSubmenus.length > 0) {
-                // Close all open submenus before collapsing
-                openSubmenus.forEach(menu => {
+            isCollapsed = !isCollapsed;
+            localStorage.setItem('sidebarCollapsed', isCollapsed.toString());
+
+            if (isCollapsed) {
+                sidebar.classList.remove('sidebar-expanded');
+                sidebar.classList.add('sidebar-collapsed');
+
+                // Close all open submenus when collapsing
+                document.querySelectorAll('.submenu.open').forEach(menu => {
                     menu.classList.remove('open');
                     const chevronId = menu.id.replace('-submenu', '-chevron');
                     const chevron = document.getElementById(chevronId);
@@ -744,27 +753,23 @@
                         chevron.classList.remove('rotated');
                     }
                 });
-            }
-
-            isCollapsed = !isCollapsed;
-            localStorage.setItem('sidebarCollapsed', isCollapsed.toString());
-
-            if (isCollapsed) {
-                sidebar.classList.remove('sidebar-expanded');
-                sidebar.classList.add('sidebar-collapsed');
             } else {
                 sidebar.classList.remove('sidebar-collapsed');
                 sidebar.classList.add('sidebar-expanded');
-            }
-        });
-        
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            if (window.innerWidth >= 768) {
-                sidebar.classList.remove('open');
-                mobileOverlay.classList.add('hidden');
-                document.body.style.overflow = 'auto';
-                isMobileMenuOpen = false;
+
+                // Re-open the active section's submenu when expanding
+                const activeItems = document.querySelectorAll('.nav-item.active');
+                activeItems.forEach(item => {
+                    const submenuId = item.querySelector('[onclick*="toggleSubmenu"]')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+                    if (submenuId) {
+                        const submenu = document.getElementById(submenuId);
+                        const chevron = document.getElementById(submenuId.replace('-submenu', '-chevron'));
+                        if (submenu && chevron) {
+                            submenu.classList.add('open');
+                            chevron.classList.add('rotated');
+                        }
+                    }
+                });
             }
         });
 
@@ -780,6 +785,9 @@
                 }
             });
         });
+
+        // Initialize sidebar state after DOM is ready
+        initializeSidebarState();
 
         // Client Statistics Chart
         const clientCtx = document.getElementById('clientChart').getContext('2d');

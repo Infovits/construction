@@ -1,67 +1,89 @@
-# CodeIgniter 4 Application Starter
+# 🏗️ Construction Management System (CMS)
 
-## What is CodeIgniter?
+## 📌 About the System
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+The Construction Management System (CMS) is a centralized digital platform designed to streamline and manage construction operations efficiently. It supports end-to-end workflows including project management, inventory control, financial tracking, human resources, asset management, and documentation across multiple construction sites.
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+The system is built to improve coordination, transparency, accountability, and productivity in real-world construction environments.
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+## 🎯 Purpose & Goals
 
-The user guide corresponding to the latest version of the framework can be found
-[here](https://codeigniter4.github.io/userguide/).
+- Centralize construction operations in one system
+- Improve project visibility and progress tracking
+- Automate administrative and financial processes
+- Enhance collaboration between office and site teams
+- Ensure data accuracy, accountability, and control
 
-## Installation & updates
+## 🧩 Key Features
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+### 🏗️ Project Management
+- Multi-project and task management
+- Role-based assignments and milestones
+- Progress tracking and activity logs
+- Gantt charts and project dashboards
+- Budget tracking per project
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+### 📦 Inventory Management
+- Stock tracking across sites
+- Material usage by project
+- Stock in/out logging with user traceability
+- Low-stock alerts and supplier records
 
-## Setup
+### 💰 Accounting & Finance
+- Project-based budgeting
+- Income and expense tracking
+- Profit & loss and cash flow reports
+- Invoice and receipt management
+- Export reports (PDF / Excel)
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+### 👥 HR & Payroll
+- Employee profiles and roles
+- Attendance and leave management
+- Payroll generation with deductions and allowances
+- Payslip generation and salary history
 
-## Important Change with index.php
+### 🔐 User Management & Security
+- Role-based access control
+- Module-level permissions
+- User activity audit logs
+- Two-factor authentication support
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+### 📁 File Management
+- Project-based document organization
+- File preview and version history
+- Access control and file search
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+### 🛠️ Equipment & Asset Tracking
+- Asset registration and assignment
+- Maintenance scheduling
+- Damage, downtime, and condition tracking
 
-**Please** read the user guide for a better explanation of how CI4 works!
+### ⏱️ Timesheets & Safety
+- Employee time logging by project
+- Payroll integration
+- Incident and safety reporting with analytics
 
-## Repository Management
+### 📱 Optional Modules
+- Mobile application for on-site updates
+- GPS-based attendance
+- Photo uploads and material requests
+- Push notifications
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+## 🚀 Benefits
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+- Improved operational efficiency
+- Reduced paperwork and manual errors
+- Better project cost control
+- Increased transparency and accountability
+- Scalable for growing construction operations
 
-## Server Requirements
+## 🔧 System Design Highlights
 
-PHP version 7.4 or higher is required, with the following extensions installed:
+- Modular and scalable architecture
+- Secure role-based access
+- Audit-ready reporting
+- Designed for real-world construction workflows
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+## 📌 Status
 
-> **Warning**
-> The end of life date for PHP 7.4 was November 28, 2022. If you are
-> still using PHP 7.4, you should upgrade immediately. The end of life date
-> for PHP 8.0 will be November 26, 2023.
-
-Additionally, make sure that the following extensions are enabled in your PHP:
-
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+This system is under active development and can be customized based on organizational requirements.
