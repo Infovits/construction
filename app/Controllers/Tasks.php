@@ -9,8 +9,9 @@ use App\Models\UserModel;
 class Tasks extends BaseController
 {
     protected $taskModel;
-    protected $projectModel;
+    protected $taskAttachmentModel;
     protected $userModel;
+    protected $taskActivityLogModel;
 
     public function __construct()
     {
@@ -18,6 +19,7 @@ class Tasks extends BaseController
         $this->taskModel = new TaskModel();
         $this->projectModel = new ProjectModel();
         $this->userModel = new UserModel();
+        $this->taskActivityLogModel = new \App\Models\TaskActivityLogModel();
     }
 
     public function index()
@@ -117,12 +119,15 @@ class Tasks extends BaseController
         $taskId = $this->taskModel->insert($data);
 
         if ($taskId) {
+            // Log task creation
+            $this->taskActivityLogModel->logTaskCreated($taskId, session('user_id'));
+            
             // Send email notification to assigned user
             if ($data['assigned_to']) {
                 $this->sendTaskAssignmentNotification($taskId);
             }
 
-            return redirect()->to('/tasks/' . $taskId)->with('success', 'Task created successfully');
+            return redirect()->to('/admin/tasks')->with('success', 'Task created successfully');
         }
 
         return redirect()->back()->withInput()->with('error', 'Failed to create task');
@@ -211,7 +216,12 @@ class Tasks extends BaseController
             'priority' => 'required|in_list[low,medium,high,urgent]',
             'status' => 'required|in_list[pending,in_progress,review,completed,cancelled,on_hold]',
             'planned_start_date' => 'permit_empty|valid_date',
-            'planned_end_date' => 'permit_empty|valid_date'
+            'planned_end_date' => 'permit_empty|valid_date',
+            'estimated_hours' => 'permit_empty|numeric|greater_than_equal_to[0]',
+            'actual_hours' => 'permit_empty|numeric|greater_than_equal_to[0]',
+            'estimated_cost' => 'permit_empty|numeric|greater_than_equal_to[0]',
+            'actual_cost' => 'permit_empty|numeric|greater_than_equal_to[0]',
+            'progress_percentage' => 'permit_empty|numeric|greater_than_equal_to[0]|less_than_equal_to[100]'
         ]);
 
         if (!$validation->run($this->request->getPost())) {
@@ -254,11 +264,19 @@ class Tasks extends BaseController
                 // Update project progress
                 $this->projectModel->updateProjectProgress($task['project_id']);
 
-                return redirect()->to('/tasks/' . $id)->with('success', 'Task updated successfully');
+                return redirect()->to('/admin/tasks/' . $id)->with('success', 'Task updated successfully');
             } else {
-                // Log the update failure
-                log_message('error', 'Task update failed for task ID: ' . $id . '. Data: ' . json_encode($data));
-                return redirect()->back()->withInput()->with('error', 'Failed to update task');
+                // Get the database error
+                $dbError = $this->taskModel->db->error();
+                $errorMessage = 'Failed to update task';
+                
+                if (!empty($dbError['message'])) {
+                    $errorMessage = 'Database error: ' . $dbError['message'];
+                }
+                
+                // Log the update failure with database error
+                log_message('error', 'Task update failed for task ID: ' . $id . '. Data: ' . json_encode($data) . '. DB Error: ' . json_encode($dbError));
+                return redirect()->back()->withInput()->with('error', $errorMessage);
             }
         } catch (\Exception $e) {
             // Log the exception
@@ -342,6 +360,8 @@ class Tasks extends BaseController
 
         try {
             if ($this->taskModel->addTaskComment($commentData)) {
+                // Log comment addition
+                $this->taskActivityLogModel->logCommentAdded($id, session('user_id'));
                 return redirect()->back()->with('success', 'Comment added successfully');
             }
         } catch (\Exception $e) {
@@ -398,8 +418,7 @@ class Tasks extends BaseController
             if ($file->move($uploadPath, $fileName)) {
                 $attachmentData = [
                     'task_id' => $id,
-                    'original_name' => $file->getClientName(),
-                    'file_name' => $fileName,
+                    'file_name' => $file->getClientName(),
                     'file_path' => $uploadPath . $fileName,
                     'file_size' => $file->getSize(),
                     'mime_type' => $file->getClientMimeType(),
@@ -408,6 +427,8 @@ class Tasks extends BaseController
                 ];
 
                 if ($this->taskModel->addTaskAttachment($attachmentData)) {
+                    // Log attachment addition
+                    $this->taskActivityLogModel->logAttachmentAdded($id, session('user_id'), $file->getClientName());
                     return redirect()->back()->with('success', 'File uploaded successfully');
                 }
             }
@@ -439,7 +460,7 @@ class Tasks extends BaseController
         }
 
         return $this->response->download($attachment['file_path'], null)
-                              ->setFileName($attachment['original_name']);
+                              ->setFileName($attachment['file_name']);
     }
 
     public function logTime($id)
@@ -503,9 +524,7 @@ class Tasks extends BaseController
 
     private function getTaskActivityLog($taskId)
     {
-        // This would query an activity log table
-        // For now, return empty array
-        return [];
+        return $this->taskActivityLogModel->getTaskActivityLog($taskId, 50);
     }
 
     private function prepareCalendarEvents($tasks)

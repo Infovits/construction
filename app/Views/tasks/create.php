@@ -37,7 +37,7 @@
                     </div>
                     <?php endif; ?>
 
-                    <form action="<?= base_url('admin/tasks/store') ?>" method="POST" id="taskForm">
+                    <form action="<?= base_url('admin/tasks') ?>" method="POST" id="taskForm">
                         <?= csrf_field() ?>
                         
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">

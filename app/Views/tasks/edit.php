@@ -132,16 +132,16 @@
                         </div>
 
                         <div>
-                            <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-                            <input type="date" id="start_date" name="start_date"
-                                   value="<?= old('start_date', isset($task) && isset($task['start_date']) ? $task['start_date'] : '') ?>"
+                            <label for="planned_start_date" class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                            <input type="date" id="planned_start_date" name="planned_start_date"
+                                   value="<?= old('planned_start_date', isset($task) && isset($task['planned_start_date']) ? $task['planned_start_date'] : '') ?>"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
 
                         <div>
-                            <label for="due_date" class="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
-                            <input type="date" id="due_date" name="due_date"
-                                   value="<?= old('due_date', isset($task) && isset($task['due_date']) ? $task['due_date'] : '') ?>"
+                            <label for="planned_end_date" class="block text-sm font-medium text-gray-700 mb-2">Due Date</label>
+                            <input type="date" id="planned_end_date" name="planned_end_date"
+                                   value="<?= old('planned_end_date', isset($task) && isset($task['planned_end_date']) ? $task['planned_end_date'] : '') ?>"
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
                     </div>
@@ -252,11 +252,6 @@
                     <a href="<?= base_url('admin/tasks') ?>" class="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
                         <i class="fas fa-times mr-2"></i>Cancel
                     </a>
-                    <?php if (isset($task)): ?>
-                    <a href="<?= base_url('admin/tasks/view/' . $task['id']) ?>" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                        <i class="fas fa-eye mr-2"></i>View Task
-                    </a>
-                    <?php endif; ?>
                     <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
                         <i class="fas fa-save mr-2"></i><?= isset($task) ? 'Update Task' : 'Create Task' ?>
                     </button>
@@ -291,8 +286,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Validate dates
-    const startDateInput = document.getElementById('start_date');
-    const dueDateInput = document.getElementById('due_date');
+    const startDateInput = document.getElementById('planned_start_date');
+    const dueDateInput = document.getElementById('planned_end_date');
     
     function validateDates() {
         const startDate = new Date(startDateInput.value);

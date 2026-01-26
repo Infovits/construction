@@ -26,8 +26,8 @@ class TaskModel extends Model
         'project_id' => 'required|numeric',
         'title' => 'required|min_length[3]|max_length[255]',
         'task_type' => 'in_list[milestone,task,subtask]',
-        'priority' => 'in_list[low,medium,high,critical]',
-        'status' => 'in_list[not_started,in_progress,review,completed,cancelled,on_hold]'
+        'priority' => 'in_list[low,medium,high,urgent]',
+        'status' => 'in_list[pending,in_progress,review,completed,cancelled,on_hold]'
     ];
 
     public function getPendingTasks($userId, $limit = 10)

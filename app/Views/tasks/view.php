@@ -103,15 +103,15 @@
                                 <div class="flex justify-between py-2 border-b border-gray-100">
                                     <span class="font-medium text-gray-700">Start Date:</span>
                                     <span class="text-gray-900">
-                                        <?= isset($task['start_date']) && $task['start_date'] ? date('M d, Y', strtotime($task['start_date'])) : 'Not set' ?>
+                                        <?= isset($task['planned_start_date']) && $task['planned_start_date'] ? date('M d, Y', strtotime($task['planned_start_date'])) : 'Not set' ?>
                                     </span>
                                 </div>
                                 <div class="flex justify-between py-2 border-b border-gray-100">
                                     <span class="font-medium text-gray-700">Due Date:</span>
                                     <div>
-                                        <?php if (isset($task['due_date']) && $task['due_date']): ?>
-                                            <span class="text-gray-900"><?= date('M d, Y', strtotime($task['due_date'])) ?></span>
-                                            <?php if (strtotime($task['due_date']) < time() && isset($task['status']) && $task['status'] != 'completed'): ?>
+                                        <?php if (isset($task['planned_end_date']) && $task['planned_end_date']): ?>
+                                            <span class="text-gray-900"><?= date('M d, Y', strtotime($task['planned_end_date'])) ?></span>
+                                            <?php if (strtotime($task['planned_end_date']) < time() && isset($task['status']) && $task['status'] != 'completed'): ?>
                                                 <br><small class="text-red-600"><i class="fas fa-exclamation-triangle"></i> Overdue</small>
                                             <?php endif; ?>
                                         <?php else: ?>
@@ -123,6 +123,12 @@
                                     <span class="font-medium text-gray-700">Estimated Hours:</span>
                                     <span class="text-gray-900">
                                         <?= isset($task['estimated_hours']) && $task['estimated_hours'] ? number_format($task['estimated_hours'], 1) . ' hrs' : 'Not estimated' ?>
+                                    </span>
+                                </div>
+                                <div class="flex justify-between py-2 border-b border-gray-100">
+                                    <span class="font-medium text-gray-700">Estimated Cost:</span>
+                                    <span class="text-gray-900">
+                                        <?= isset($task['estimated_cost']) && $task['estimated_cost'] ? 'MWK ' . number_format($task['estimated_cost'], 2) : 'Not estimated' ?>
                                     </span>
                                 </div>
                                 <div class="flex justify-between py-2 border-b border-gray-100">
@@ -253,8 +259,9 @@
                                     </div>
                                 </div>
                                 <?php if (isset($comment['user_id']) && $comment['user_id'] == session('user_id')): ?>
-                                <button type="button" onclick="deleteComment(<?= $comment['id'] ?? '' ?>)" class="text-red-600 hover:text-red-800 text-sm">
+                                <button type="button" onclick="deleteComment(<?= $comment['id'] ?? '' ?>)" class="text-red-600 hover:text-red-800 text-sm font-medium flex items-center space-x-1">
                                     <i class="fas fa-trash"></i>
+                                    <span>Delete</span>
                                 </button>
                                 <?php endif; ?>
                             </div>
@@ -291,7 +298,7 @@
                             <div class="flex items-center justify-between mb-3">
                                 <div class="flex items-center">
                                     <?php
-                                    $ext = pathinfo($attachment['original_name'] ?? '', PATHINFO_EXTENSION);
+                                    $ext = pathinfo($attachment['file_name'] ?? '', PATHINFO_EXTENSION);
                                     $iconClass = [
                                         'pdf' => 'fas fa-file-pdf text-danger',
                                         'doc' => 'fas fa-file-word text-primary',
@@ -311,7 +318,7 @@
                                     <i class="<?= $iconClass ?> fa-2x mr-3"></i>
                                     <div>
                                         <h4 class="font-medium text-gray-900 text-sm">
-                                            <?= esc($attachment['original_name'] ?? 'Unknown File') ?>
+                                            <?= esc($attachment['file_name'] ?? 'Unknown File') ?>
                                         </h4>
                                         <p class="text-xs text-gray-500">
                                             <?= isset($attachment['file_size']) ? formatBytes($attachment['file_size']) : 'Unknown size' ?>
@@ -320,7 +327,7 @@
                                 </div>
                             </div>
                             <div class="flex justify-between items-center">
-                                <a href="<?= base_url('admin/tasks/download/' . ($attachment['id'] ?? '')) ?>" class="text-blue-600 hover:text-blue-800 text-sm">
+                                <a href="<?= base_url('admin/tasks/attachment/' . ($attachment['id'] ?? '') . '/download') ?>" class="text-blue-600 hover:text-blue-800 text-sm">
                                     <i class="fas fa-download mr-1"></i>Download
                                 </a>
                                 <button type="button" onclick="deleteAttachment(<?= $attachment['id'] ?? '' ?>)" class="text-red-600 hover:text-red-800 text-sm">
@@ -381,11 +388,60 @@
             <!-- Activity Log Tab -->
             <div id="activity-content" class="tab-content hidden">
                 <h3 class="text-lg font-medium text-gray-900 mb-6">Activity Log</h3>
-                <div class="text-center py-12">
-                    <i class="fas fa-history text-4xl text-gray-400 mb-4"></i>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Activity logging coming soon</h3>
-                    <p class="text-gray-500">Task activity will be displayed here.</p>
-                </div>
+                
+                <?php if (empty($activity_log ?? [])): ?>
+                    <div class="text-center py-12">
+                        <i class="fas fa-history text-4xl text-gray-400 mb-4"></i>
+                        <p class="text-gray-500 mb-4">No activity recorded yet.</p>
+                        <p class="text-sm text-gray-400">Activity will be logged when you create comments, upload files, or update the task.</p>
+                    </div>
+                <?php else: ?>
+                    <div class="space-y-4">
+                        <?php foreach (($activity_log ?? []) as $activity): ?>
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex items-start">
+                                        <div class="w-10 h-10 bg-gray-600 text-white rounded-full flex items-center justify-center text-sm font-medium mr-3">
+                                            <?= strtoupper(substr($activity['first_name'] ?? '', 0, 1) . substr($activity['last_name'] ?? '', 0, 1)) ?>
+                                        </div>
+                                        <div>
+                                            <h4 class="font-medium text-gray-900">
+                                                <?= esc(($activity['first_name'] ?? '') . ' ' . ($activity['last_name'] ?? '')) ?>
+                                            </h4>
+                                            <p class="text-sm text-gray-500">
+                                                <?= isset($activity['created_at']) ? date('M d, Y g:i A', strtotime($activity['created_at'])) : 'Unknown' ?>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <?php
+                                        $activityIcon = [
+                                            'task_created' => 'fas fa-plus-circle text-green-600',
+                                            'task_updated' => 'fas fa-edit text-blue-600',
+                                            'status_changed' => 'fas fa-exchange-alt text-purple-600',
+                                            'task_assigned' => 'fas fa-user-plus text-indigo-600',
+                                            'comment_added' => 'fas fa-comment text-teal-600',
+                                            'attachment_added' => 'fas fa-paperclip text-orange-600',
+                                            'attachment_deleted' => 'fas fa-trash text-red-600'
+                                        ][$activity['activity_type']] ?? 'fas fa-info-circle text-gray-600';
+                                        ?>
+                                        <i class="<?= $activityIcon ?> text-lg"></i>
+                                    </div>
+                                </div>
+                                <div class="mt-3 text-gray-700">
+                                    <p><?= esc($activity['description'] ?? '') ?></p>
+                                    <?php if (!empty($activity['old_value']) && !empty($activity['new_value'])): ?>
+                                        <p class="text-sm text-gray-500 mt-2">
+                                            <span class="text-gray-600">Changed from:</span> <?= esc($activity['old_value']) ?>
+                                            <br>
+                                            <span class="text-gray-600">To:</span> <?= esc($activity['new_value']) ?>
+                                        </p>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -438,7 +494,7 @@
             </button>
         </div>
 
-        <form action="<?= base_url('admin/tasks/upload-attachment/' . ($task['id'] ?? '')) ?>" method="post" enctype="multipart/form-data" class="p-6">
+        <form action="<?= base_url('admin/tasks/' . ($task['id'] ?? '') . '/attachment') ?>" method="post" enctype="multipart/form-data" class="p-6">
             <?= csrf_field() ?>
             <div class="mb-4">
                 <label for="attachment" class="block text-sm font-medium text-gray-700 mb-2">Select File</label>

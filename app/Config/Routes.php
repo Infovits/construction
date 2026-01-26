@@ -98,9 +98,12 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->delete("(:num)", "Tasks::delete/$1");
         $routes->post("(:num)/status", "Tasks::updateStatus/$1");
         $routes->post("(:num)/comment", "Tasks::addComment/$1");
+        $routes->post("add-comment/(:num)", "Tasks::addComment/$1");
         $routes->delete("comment/(:num)", "Tasks::deleteComment/$1");
+        $routes->post("delete-comment/(:num)", "Tasks::deleteComment/$1");
         $routes->post("(:num)/attachment", "Tasks::uploadAttachment/$1");
         $routes->delete("attachment/(:num)", "Tasks::deleteAttachment/$1");
+        $routes->post("delete-attachment/(:num)", "Tasks::deleteAttachment/$1");
         $routes->get("attachment/(:num)/download", "Tasks::download/$1");
         $routes->post("(:num)/log-time", "Tasks::logTime/$1");
 
