@@ -16,6 +16,16 @@
                 <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
                 Add Client
             </a>
+            <div class="flex gap-2">
+                <a href="<?= base_url('admin/clients/export/pdf') ?>" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                    <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+                    Export PDF
+                </a>
+                <a href="<?= base_url('admin/clients/export/excel') ?>" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+                    Export Excel
+                </a>
+            </div>
         </div>
     </div>
 
@@ -175,14 +185,19 @@
                                            class="text-yellow-600 hover:text-yellow-900" title="Edit">
                                             <i data-lucide="edit" class="w-4 h-4"></i>
                                         </a>
-                                        <button onclick="toggleStatus(<?= $client['id'] ?>, '<?= $client['status'] ?>')" 
-                                                class="text-green-600 hover:text-green-900" title="Toggle Status">
-                                            <i data-lucide="toggle-left" class="w-4 h-4"></i>
-                                        </button>
-                                        <button onclick="deleteClient(<?= $client['id'] ?>)" 
-                                                class="text-red-600 hover:text-red-900" title="Delete">
+                                        <form method="POST" action="<?= base_url('admin/clients/toggle/' . $client['id']) ?>" class="inline" style="display: inline;">
+                                            <?= csrf_field() ?>
+                                            <button type="submit" 
+                                                    class="text-green-600 hover:text-green-900" 
+                                                    title="Toggle Status"
+                                                    onclick="return confirm('Are you sure you want to <?= $client['status'] === 'active' ? 'deactivate' : 'activate' ?> this client?')">
+                                                <i data-lucide="toggle-left" class="w-4 h-4"></i>
+                                            </button>
+                                        </form>
+                                        <a href="<?= base_url('admin/clients/delete/' . $client['id']) ?>" 
+                                           class="text-red-600 hover:text-red-900" title="Delete">
                                             <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                        </button>
+                                        </a>
                                     </div>
                                 </td>
                             </tr>
@@ -202,56 +217,6 @@
 </div>
 
 <script>
-function toggleStatus(clientId, currentStatus) {
-    const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
-    
-    if (confirm(`Are you sure you want to ${newStatus === 'active' ? 'activate' : 'deactivate'} this client?`)) {
-        fetch(`<?= base_url('admin/clients/toggle/') ?>${clientId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while updating the client status');
-        });
-    }
-}
-
-function deleteClient(clientId) {
-    if (confirm('Are you sure you want to delete this client? This action cannot be undone.')) {
-        fetch(`<?= base_url('admin/clients/delete/') ?>${clientId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while deleting the client');
-        });
-    }
-}
-
 // Initialize Lucide icons
 document.addEventListener('DOMContentLoaded', function() {
     lucide.createIcons();

@@ -145,12 +145,14 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->group("clients", function($routes) {
         $routes->get("/", "Clients::index");
         $routes->get("create", "Clients::create");
-        $routes->post("/", "Clients::store");
+        $routes->post("store", "Clients::store");
         $routes->get("(:num)", "Clients::show/$1");
         $routes->get("(:num)/edit", "Clients::edit/$1");
-        $routes->post("(:num)", "Clients::update/$1");
-        $routes->delete("(:num)", "Clients::delete/$1");
-        $routes->post("(:num)/toggle", "Clients::toggle/$1");
+        $routes->post("update/(:num)", "Clients::update/$1");
+        $routes->get("delete/(:num)", "Clients::delete/$1");
+        $routes->post("toggle/(:num)", "Clients::toggle/$1");
+        $routes->get("export/pdf", "Clients::exportPdf");
+        $routes->get("export/excel", "Clients::exportExcel");
     });
 
     // Materials/Inventory Routes

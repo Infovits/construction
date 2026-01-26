@@ -227,9 +227,6 @@
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
                             <a href="<?= base_url('admin/clients') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">All Clients</a>
                             <a href="<?= base_url('admin/clients/create') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">New Client</a>
-                            <a href="<?= base_url('admin/clients?status=active') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Active Clients</a>
-                            <a href="<?= base_url('admin/clients?client_type=company') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Companies</a>
-                            <a href="<?= base_url('admin/clients?client_type=individual') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Individuals</a>
                         </div>
                     </div>
                 </div>

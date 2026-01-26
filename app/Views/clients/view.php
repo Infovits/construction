@@ -158,7 +158,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-500">Credit Limit</label>
-                            <p class="mt-1 text-sm text-gray-900"><?= $client['credit_limit'] ? '$' . number_format($client['credit_limit'], 2) : 'Not set' ?></p>
+                            <p class="mt-1 text-sm text-gray-900"><?= $client['credit_limit'] ? 'MWK ' . number_format($client['credit_limit'], 2) : 'Not set' ?></p>
                         </div>
                     </div>
                     <?php if ($client['notes']): ?>
