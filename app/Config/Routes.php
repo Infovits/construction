@@ -1,4 +1,4 @@
-<?php
+e<?php
 
 use CodeIgniter\Router\RouteCollection;
 
@@ -190,7 +190,9 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->get("(:num)", "MaterialCategories::show/$1");
         $routes->get("(:num)/edit", "MaterialCategories::edit/$1");
         $routes->post("(:num)", "MaterialCategories::update/$1");
+        $routes->put("(:num)", "MaterialCategories::update/$1");
         $routes->delete("(:num)", "MaterialCategories::delete/$1");
+        $routes->get("delete/(:num)", "MaterialCategories::delete/$1");
     });
 
     // Warehouses Routes

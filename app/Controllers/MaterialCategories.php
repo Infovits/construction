@@ -42,9 +42,50 @@ class MaterialCategories extends BaseController
     
     public function create()
     {
+        $companyId = session()->get('company_id');
+        
+        $data = [
+            'title' => 'Add New Category',
+            'parentCategories' => $this->categoryModel->where('company_id', $companyId)
+                ->where('parent_id', null)
+                ->where('is_active', 1)
+                ->findAll(),
+        ];
+        
+        return view('inventory/categories/create', $data);
+    }
+    
+    public function store()
+    {
         helper(['form', 'url']);
         
+        // Debug: Log that the method was called
+        log_message('debug', 'MaterialCategories::store() called');
+        
         $companyId = session()->get('company_id');
+        
+        // Debug: Log company_id
+        log_message('debug', 'Company ID: ' . ($companyId ?: 'NULL'));
+        
+        // Debug: Log request data
+        log_message('debug', 'Request data: ' . json_encode($this->request->getPost()));
+        
+        // Debug: Check if company_id exists
+        if (!$companyId) {
+            return redirect()->back()->withInput()->with('error', 'Company ID not found in session. Please log in again.');
+        }
+        
+        // Get form data
+        $name = $this->request->getVar('name');
+        $code = $this->request->getVar('code');
+        $description = $this->request->getVar('description');
+        $parentId = $this->request->getVar('parent_id') ?: null;
+        $isActive = $this->request->getVar('is_active') ? 1 : 0;
+        
+        // Generate code if not provided
+        if (empty($code)) {
+            $code = $this->generateCategoryCode($name, $companyId);
+        }
         
         $rules = [
             'name' => 'required|min_length[2]|max_length[255]',
@@ -57,11 +98,11 @@ class MaterialCategories extends BaseController
         
         $data = [
             'company_id' => $companyId,
-            'name' => $this->request->getVar('name'),
-            'code' => $this->request->getVar('code'),
-            'description' => $this->request->getVar('description'),
-            'parent_id' => $this->request->getVar('parent_id') ?: null,
-            'is_active' => $this->request->getVar('is_active') ? 1 : 0,
+            'name' => $name,
+            'code' => $code,
+            'description' => $description,
+            'parent_id' => $parentId,
+            'is_active' => $isActive,
         ];
         
         if (!$this->categoryModel->insert($data)) {
@@ -82,6 +123,7 @@ class MaterialCategories extends BaseController
         
         $data = [
             'title' => 'Edit Category',
+            'categories' => $this->categoryModel->getCategoriesWithSubcategories($companyId),
             'category' => $category,
             'parentCategories' => $this->categoryModel->where('company_id', $companyId)
                 ->where('parent_id', null)
@@ -90,7 +132,7 @@ class MaterialCategories extends BaseController
                 ->findAll(),
         ];
         
-        return view('inventory/categories/edit', $data);
+        return view('inventory/categories/index', $data);
     }
     
     public function update($id)
@@ -164,5 +206,46 @@ class MaterialCategories extends BaseController
         }
         
         return redirect()->to('/admin/material-categories')->with('success', 'Category deleted successfully');
+    }
+    
+    /**
+     * Generate a category code from the category name
+     * 
+     * @param string $name The category name
+     * @param int $companyId The company ID
+     * @return string Generated category code
+     */
+    private function generateCategoryCode($name, $companyId)
+    {
+        // Convert to uppercase and remove special characters
+        $code = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $name));
+        
+        // Limit to 10 characters
+        $code = substr($code, 0, 10);
+        
+        // If empty or too short, use a default
+        if (empty($code) || strlen($code) < 2) {
+            $code = 'CAT';
+        }
+        
+        // Check if code already exists for this company and make it unique
+        $originalCode = $code;
+        $counter = 1;
+        
+        while ($this->categoryModel->where('company_id', $companyId)
+            ->where('code', $code)
+            ->countAllResults() > 0) {
+            
+            $code = $originalCode . $counter;
+            $counter++;
+            
+            // Safety check to prevent infinite loop
+            if ($counter > 100) {
+                $code = $originalCode . '_' . time();
+                break;
+            }
+        }
+        
+        return $code;
     }
 }

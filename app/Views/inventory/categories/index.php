@@ -19,6 +19,20 @@
         </div>
     </div>
 
+    <!-- Success Message -->
+    <?php if(session('success')): ?>
+    <div class="mb-6 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg">
+        <p><?= session('success') ?></p>
+    </div>
+    <?php endif; ?>
+
+    <!-- Error Message -->
+    <?php if(session('error')): ?>
+    <div class="mb-6 bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg">
+        <p><?= session('error') ?></p>
+    </div>
+    <?php endif; ?>
+
     <!-- Categories List -->
     <div class="bg-white rounded-lg shadow-sm border border-gray-200">
         <div class="px-6 py-4 border-b border-gray-200">
@@ -59,7 +73,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <button type="button" onclick="openEditCategoryModal(<?= $category['id'] ?>, '<?= esc($category['name']) ?>', '<?= esc(addslashes($category['description'] ?? '')) ?>', <?= $category['is_active'] ? 'true' : 'false' ?>)" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                                <button type="button" onclick="openEditCategoryModal(<?= $category['id'] ?>, '<?= esc($category['name']) ?>', '<?= esc(addslashes($category['description'] ?? '')) ?>', '<?= esc($category['code'] ?? '') ?>', <?= $category['is_active'] ? 'true' : 'false' ?>)" class="text-indigo-600 hover:text-indigo-900 mr-3">
                                     <i data-lucide="edit" class="w-4 h-4"></i>
                                 </button>
                                 <button type="button" onclick="confirmDeleteCategory(<?= $category['id'] ?>, '<?= esc($category['name']) ?>')" class="text-red-600 hover:text-red-900">
@@ -92,12 +106,29 @@
             </button>
         </div>
         
-        <form action="<?= base_url('admin/material-categories/store') ?>" method="POST">
+        <form id="addCategoryForm" action="<?= base_url('admin/material-categories') ?>" method="POST">
             <?= csrf_field() ?>
+            
+            <!-- Validation Errors -->
+            <?php if(session('errors')): ?>
+            <div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                <ul class="text-red-600 text-sm space-y-1">
+                    <?php foreach(session('errors') as $error): ?>
+                    <li><?= esc($error) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php endif; ?>
+            
             <div class="p-6 space-y-4">
                 <div>
                     <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Category Name <span class="text-red-500">*</span></label>
                     <input type="text" name="name" id="name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" required>
+                </div>
+                
+                <div>
+                    <label for="code" class="block text-sm font-medium text-gray-700 mb-1">Category Code</label>
+                    <input type="text" name="code" id="code" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., CEMENT, STEEL, WOOD">
                 </div>
                 
                 <div>
@@ -145,6 +176,11 @@
                 </div>
                 
                 <div>
+                    <label for="edit_code" class="block text-sm font-medium text-gray-700 mb-1">Category Code</label>
+                    <input type="text" name="code" id="edit_code" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., CEMENT, STEEL, WOOD">
+                </div>
+                
+                <div>
                     <label for="edit_description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea name="description" id="edit_description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"></textarea>
                 </div>
@@ -171,6 +207,24 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Lucide icons
     lucide.createIcons();
+    
+    // Add form submission debugging
+    const addForm = document.getElementById('addCategoryForm');
+    if (addForm) {
+        addForm.addEventListener('submit', function(e) {
+            console.log('Form submission started');
+            console.log('Form action:', this.action);
+            console.log('Form method:', this.method);
+            
+            // Log form data
+            const formData = new FormData(this);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
+            console.log('Form data:', data);
+        });
+    }
 });
 
 function openAddCategoryModal() {
@@ -184,14 +238,15 @@ function closeAddCategoryModal() {
     document.getElementById('is_active').checked = true;
 }
 
-function openEditCategoryModal(id, name, description, isActive) {
+function openEditCategoryModal(id, name, description, code, isActive) {
     document.getElementById('edit_id').value = id;
     document.getElementById('edit_name').value = name;
     document.getElementById('edit_description').value = description;
+    document.getElementById('edit_code').value = code;
     document.getElementById('edit_is_active').checked = isActive;
     
-    // Update form action
-    document.getElementById('editCategoryForm').action = '<?= base_url('admin/material-categories/update') ?>/' + id;
+    // Update form action to use the correct route
+    document.getElementById('editCategoryForm').action = '<?= base_url('admin/material-categories') ?>/' + id;
     
     document.getElementById('editCategoryModal').classList.remove('hidden');
 }
