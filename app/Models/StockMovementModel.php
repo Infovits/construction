@@ -14,7 +14,7 @@ class StockMovementModel extends Model
     protected $allowedFields = [
         'company_id', 'material_id', 'source_warehouse_id', 'destination_warehouse_id',
         'reference_type', 'reference_id', 'movement_type', 'project_id', 'task_id',
-        'quantity', 'unit_cost', 'total_cost', 'previous_balance', 'new_balance',
+        'milestone_id', 'quantity', 'unit_cost', 'total_cost', 'previous_balance', 'new_balance',
         'batch_number', 'serial_numbers', 'expiry_date', 'notes', 'moved_by',
         'approved_by', 'performed_by'
     ];
@@ -31,9 +31,11 @@ class StockMovementModel extends Model
         $taskIdColumnExists = $db->fieldExists('task_id', 'stock_movements');
         $projectsTableExists = $db->tableExists('projects');
         $projectIdColumnExists = $db->fieldExists('project_id', 'stock_movements');
+        $milestoneIdColumnExists = $db->fieldExists('milestone_id', 'stock_movements');
 
         $canJoinTasks = $tasksTableExists && $taskIdColumnExists;
         $canJoinProjects = $projectsTableExists && $projectIdColumnExists;
+        $canJoinMilestones = $tasksTableExists && $milestoneIdColumnExists;
 
         $builder = $this->select('stock_movements.*,
                 source.name as source_warehouse_name,
@@ -45,7 +47,8 @@ class StockMovementModel extends Model
                 approver.first_name as approver_first_name,
                 approver.last_name as approver_last_name' .
                 ($canJoinProjects ? ', projects.name as project_name' : ', NULL as project_name') .
-                ($canJoinTasks ? ', tasks.title as task_name' : ', NULL as task_name'))
+                ($canJoinTasks ? ', tasks.title as task_name' : ', NULL as task_name') .
+                ($canJoinMilestones ? ', milestones.title as milestone_name' : ', NULL as milestone_name'))
             ->join('warehouses as source', 'source.id = stock_movements.source_warehouse_id', 'left')
             ->join('warehouses as destination', 'destination.id = stock_movements.destination_warehouse_id', 'left')
             ->join('materials', 'materials.id = stock_movements.material_id')
@@ -60,6 +63,12 @@ class StockMovementModel extends Model
         // Only join tasks table if both table and column exist
         if ($canJoinTasks) {
             $builder->join('tasks', 'tasks.id = stock_movements.task_id', 'left');
+        }
+
+        // Only join milestones table if both table and column exist
+        // Note: milestones use the same tasks table but with is_milestone = 1
+        if ($canJoinMilestones) {
+            $builder->join('tasks as milestones', 'milestones.id = stock_movements.milestone_id AND milestones.is_milestone = 1', 'left');
         }
 
         return $builder->where('stock_movements.material_id', $materialId)
@@ -103,8 +112,8 @@ class StockMovementModel extends Model
     
     public function recordMovement($companyId, $materialId, $sourceWarehouseId, $destinationWarehouseId, 
                                    $movementType, $quantity, $unit, $unitCost, $projectId = null, 
-                                   $taskId = null, $notes = null, $performedBy = null, $referenceNumber = null, 
-                                   $batchNumber = null, $serialNumbers = null, $expiryDate = null)
+                                   $taskId = null, $milestoneId = null, $notes = null, $performedBy = null, 
+                                   $referenceNumber = null, $batchNumber = null, $serialNumbers = null, $expiryDate = null)
     {
         // Convert movement type to match database enum values
         $dbMovementType = $movementType;
@@ -130,6 +139,7 @@ class StockMovementModel extends Model
             'movement_type' => $dbMovementType,
             'project_id' => $projectId,
             'task_id' => $taskId,
+            'milestone_id' => $milestoneId,
             'quantity' => $quantity,
             'unit_cost' => $unitCost,
             'total_cost' => $quantity * $unitCost,
@@ -157,7 +167,7 @@ class StockMovementModel extends Model
     
     public function processMovement($companyId, $materialId, $movementType, $quantity, $unit, $unitCost,
                                     $sourceWarehouseId = null, $destinationWarehouseId = null,
-                                    $projectId = null, $taskId = null, $notes = null, $performedBy = null,
+                                    $projectId = null, $taskId = null, $milestoneId = null, $notes = null, $performedBy = null,
                                     $referenceNumber = null, $batchNumber = null)
     {
         // Initialize warehouse stock model
@@ -263,6 +273,7 @@ class StockMovementModel extends Model
                 $unitCost,
                 $projectId,
                 $taskId,
+                $milestoneId,
                 $notes,
                 $performedBy,
                 $referenceNumber,
@@ -354,9 +365,11 @@ class StockMovementModel extends Model
         $taskIdColumnExists = $this->db->fieldExists('task_id', 'stock_movements');
         $projectsTableExists = $this->db->tableExists('projects');
         $projectIdColumnExists = $this->db->fieldExists('project_id', 'stock_movements');
+        $milestoneIdColumnExists = $this->db->fieldExists('milestone_id', 'stock_movements');
 
         $canJoinTasks = $tasksTableExists && $taskIdColumnExists;
         $canJoinProjects = $projectsTableExists && $projectIdColumnExists;
+        $canJoinMilestones = $tasksTableExists && $milestoneIdColumnExists;
 
         $builder = $this->db->table('stock_movements');
         $builder->select('stock_movements.*,
@@ -367,6 +380,7 @@ class StockMovementModel extends Model
                 source.name as source_warehouse_name,' .
                 ($canJoinProjects ? 'projects.name as project_name,' : 'NULL as project_name,') .
                 ($canJoinTasks ? 'tasks.title as task_name,' : 'NULL as task_name,') .
+                ($canJoinMilestones ? 'milestones.title as milestone_name,' : 'NULL as milestone_name,') .
                 'CONCAT(performer.first_name, " ", performer.last_name) as performed_by_name');
         $builder->join('materials', 'materials.id = stock_movements.material_id');
         $builder->join('material_categories', 'material_categories.id = materials.category_id', 'left');
@@ -380,6 +394,12 @@ class StockMovementModel extends Model
         // Only join tasks table if both table and column exist
         if ($canJoinTasks) {
             $builder->join('tasks', 'tasks.id = stock_movements.task_id', 'left');
+        }
+
+        // Only join milestones table if both table and column exist
+        // Note: milestones use the same tasks table but with is_milestone = 1
+        if ($canJoinMilestones) {
+            $builder->join('tasks as milestones', 'milestones.id = stock_movements.milestone_id AND milestones.is_milestone = 1', 'left');
         }
 
         $builder->join('users as performer', 'performer.id = stock_movements.performed_by', 'left');

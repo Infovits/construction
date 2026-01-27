@@ -508,6 +508,7 @@ class Tasks extends BaseController
     public function getProjectTasks($projectId)
     {
         $tasks = $this->taskModel->where('project_id', $projectId)
+                                ->where('is_milestone', 0)
                                 ->select('id, title, status, progress_percentage')
                                 ->findAll();
 

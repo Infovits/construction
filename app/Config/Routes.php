@@ -1,4 +1,4 @@
-e<?php
+<?php
 
 use CodeIgniter\Router\RouteCollection;
 
@@ -81,41 +81,41 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->post("toggle/(:num)", "ProjectCategories::toggle/$1");
     });
 
-    // Tasks Routes
-    $routes->group("tasks", function($routes) {
-        $routes->get("/", "Tasks::index");
-        $routes->get("create", "Tasks::create");
-        $routes->post("/", "Tasks::store");
-        $routes->get("calendar", "Tasks::calendar");
-        $routes->get("my-tasks", "Tasks::myTasks");
-        $routes->get("generate-code", "Tasks::generateCode");
-        $routes->get("by-project/(:num)", "Tasks::byProject/$1");
-        $routes->get("project/(:num)", "Tasks::getProjectTasks/$1");
-        $routes->get("(:num)", "Tasks::show/$1");
-        $routes->get("(:num)/view", "Tasks::view/$1");
-        $routes->get("(:num)/edit", "Tasks::edit/$1");
-        $routes->post("(:num)", "Tasks::update/$1");
-        $routes->delete("(:num)", "Tasks::delete/$1");
-        $routes->delete("(:num)/delete", "Tasks::delete/$1");
-        $routes->post("(:num)/delete", "Tasks::delete/$1");
-        $routes->post("(:num)/status", "Tasks::updateStatus/$1");
-        $routes->post("(:num)/comment", "Tasks::addComment/$1");
-        $routes->post("add-comment/(:num)", "Tasks::addComment/$1");
-        $routes->delete("comment/(:num)", "Tasks::deleteComment/$1");
-        $routes->post("delete-comment/(:num)", "Tasks::deleteComment/$1");
-        $routes->post("(:num)/attachment", "Tasks::uploadAttachment/$1");
-        $routes->delete("attachment/(:num)", "Tasks::deleteAttachment/$1");
-        $routes->post("delete-attachment/(:num)", "Tasks::deleteAttachment/$1");
-        $routes->get("attachment/(:num)/download", "Tasks::download/$1");
-        $routes->post("(:num)/log-time", "Tasks::logTime/$1");
-        $routes->get("report", "Tasks::report");
-        $routes->get("report/export/pdf", "Tasks::exportPdf");
-        $routes->get("report/export/excel", "Tasks::exportExcel");
+        // Tasks Routes
+        $routes->group("tasks", function($routes) {
+            $routes->get("/", "Tasks::index");
+            $routes->get("create", "Tasks::create");
+            $routes->post("/", "Tasks::store");
+            $routes->get("calendar", "Tasks::calendar");
+            $routes->get("my-tasks", "Tasks::myTasks");
+            $routes->get("generate-code", "Tasks::generateCode");
+            $routes->get("by-project/(:num)", "Tasks::byProject/$1");
+            $routes->get("project/(:num)", "Tasks::getProjectTasks/$1");
+            $routes->get("(:num)", "Tasks::show/$1");
+            $routes->get("(:num)/view", "Tasks::view/$1");
+            $routes->get("(:num)/edit", "Tasks::edit/$1");
+            $routes->post("(:num)", "Tasks::update/$1");
+            $routes->delete("(:num)", "Tasks::delete/$1");
+            $routes->delete("(:num)/delete", "Tasks::delete/$1");
+            $routes->post("(:num)/delete", "Tasks::delete/$1");
+            $routes->post("(:num)/status", "Tasks::updateStatus/$1");
+            $routes->post("(:num)/comment", "Tasks::addComment/$1");
+            $routes->post("add-comment/(:num)", "Tasks::addComment/$1");
+            $routes->delete("comment/(:num)", "Tasks::deleteComment/$1");
+            $routes->post("delete-comment/(:num)", "Tasks::deleteComment/$1");
+            $routes->post("(:num)/attachment", "Tasks::uploadAttachment/$1");
+            $routes->delete("attachment/(:num)", "Tasks::deleteAttachment/$1");
+            $routes->post("delete-attachment/(:num)", "Tasks::deleteAttachment/$1");
+            $routes->get("attachment/(:num)/download", "Tasks::download/$1");
+            $routes->post("(:num)/log-time", "Tasks::logTime/$1");
+            $routes->get("report", "Tasks::report");
+            $routes->get("report/export/pdf", "Tasks::exportPdf");
+            $routes->get("report/export/excel", "Tasks::exportExcel");
 
-        // API routes for calendar
-        $routes->get("api/calendar-events", "Tasks::apiCalendarEvents");
-        $routes->get("api/details/(:num)", "Tasks::apiTaskDetails/$1");
-    });
+            // API routes for calendar
+            $routes->get("api/calendar-events", "Tasks::apiCalendarEvents");
+            $routes->get("api/details/(:num)", "Tasks::apiTaskDetails/$1");
+        });
 
     // Milestones Routes
     $routes->group("milestones", function($routes) {
@@ -159,12 +159,17 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->group("materials", function($routes) {
         $routes->get("/", "Materials::index");
         $routes->get("new", "Materials::new");
+        $routes->get("create", "Materials::new"); // Alias for 'new'
         $routes->post("/", "Materials::create");
+        $routes->post("create", "Materials::create"); // Alias for create
         $routes->get("edit/(:num)", "Materials::edit/$1");
         $routes->post("(:num)", "Materials::update/$1");
+        $routes->put("(:num)", "Materials::update/$1");
         $routes->delete("(:num)", "Materials::delete/$1");
         $routes->get("stock-movement/(:num)", "Materials::stockMovement/$1");
         $routes->post("stock-movement/(:num)", "Materials::recordStockMovement/$1");
+        $routes->post("record-stock-movement/(:num)", "Materials::recordStockMovement/$1");
+        $routes->get("stock/(:num)", "Materials::stockMovement/$1");
         $routes->get("barcode-scanner", "Materials::barcodeScanner");
         $routes->post("barcode-lookup", "Materials::getMaterialByBarcode");
         $routes->post("stock-movement-ajax", "Materials::recordStockMovementAjax");

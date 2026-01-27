@@ -247,11 +247,35 @@ class Materials extends BaseController
             return redirect()->to('/admin/materials')->with('error', 'Material not found');
         }
         
+        // Get projects for the dropdown
+        $projectModel = model('App\Models\ProjectModel');
+        $projects = $projectModel->where('company_id', $companyId)
+            ->where('status', 'active')
+            ->findAll();
+        
+        // Get current warehouse stock information for this material
+        $currentStockLevels = $this->warehouseStockModel->getMaterialStockLevels($id);
+        $currentWarehouseId = null;
+        
+        // Find the warehouse with the highest stock (primary warehouse)
+        if (!empty($currentStockLevels)) {
+            $maxStock = 0;
+            foreach ($currentStockLevels as $stock) {
+                if ($stock['current_quantity'] > $maxStock) {
+                    $maxStock = $stock['current_quantity'];
+                    $currentWarehouseId = $stock['warehouse_id'];
+                }
+            }
+        }
+        
         $data = [
             'title' => 'Stock Movement History - ' . $material['name'],
             'material' => $material,
             'movements' => $this->stockMovementModel->getMaterialMovements($id),
             'warehouses' => $this->warehouseModel->where('company_id', $companyId)->findAll(),
+            'projects' => $projects,
+            'currentWarehouseId' => $currentWarehouseId,
+            'currentStockLevels' => $currentStockLevels,
         ];
         
         return view('inventory/materials/stock_movement', $data);
@@ -343,6 +367,7 @@ class Materials extends BaseController
             $adjustedDestinationWarehouseId,
             $projectId,
             $taskId,
+            $this->request->getVar('milestone_id'),
             $this->request->getVar('notes'),
             $userId,
             $this->request->getVar('reference_number'),

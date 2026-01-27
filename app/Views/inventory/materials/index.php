@@ -74,7 +74,7 @@
                         foreach ($materials as $material) {
                             $totalValue += $material['unit_cost'] * $material['current_stock'];
                         }
-                        echo number_format($totalValue, 2);
+                        echo 'MWK ' . number_format($totalValue, 2);
                         ?>
                     </p>
                 </div>

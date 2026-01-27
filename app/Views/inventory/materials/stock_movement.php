@@ -42,7 +42,7 @@
                     <div class="space-y-1">
                         <p class="text-sm text-gray-600">Item Code: <span class="font-medium text-gray-900"><?= esc($material['item_code']) ?></span></p>
                         <p class="text-sm text-gray-600">Current Stock: <span class="font-medium text-gray-900"><?= number_format($material['current_stock'] ?? 0, 2) ?> <?= esc($material['unit']) ?></span></p>
-                        <p class="text-sm text-gray-600">Unit Cost: <span class="font-medium text-gray-900">$<?= number_format($material['unit_cost'] ?? 0, 2) ?></span></p>
+                        <p class="text-sm text-gray-600">Unit Cost: <span class="font-medium text-gray-900">MWK <?= number_format($material['unit_cost'] ?? 0, 2) ?></span></p>
                     </div>
                 </div>
                 <div>
@@ -78,6 +78,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Destination</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Milestone</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Performed By</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
                             </tr>
@@ -126,7 +127,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-medium text-gray-900"><?= number_format($movement['quantity'], 2) ?> <?= esc($material['unit']) ?></div>
                                         <?php if ($movement['unit_cost'] > 0): ?>
-                                            <div class="text-xs text-gray-500">@ $<?= number_format($movement['unit_cost'], 2) ?></div>
+                                            <div class="text-xs text-gray-500">@ MWK <?= number_format($movement['unit_cost'], 2) ?></div>
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -140,6 +141,9 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         <?= $movement['task_name'] ? esc($movement['task_name']) : '<span class="text-gray-400">-</span>' ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <?= $movement['milestone_name'] ? esc($movement['milestone_name']) : '<span class="text-gray-400">-</span>' ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                         <?php if ($movement['performer_first_name']): ?>
@@ -201,7 +205,12 @@
                         <select name="source_warehouse_id" id="source_warehouse_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">Select Warehouse</option>
                             <?php foreach ($warehouses as $warehouse): ?>
-                                <option value="<?= $warehouse['id'] ?>"><?= esc($warehouse['name']) ?></option>
+                                <option value="<?= $warehouse['id'] ?>" <?= ($currentWarehouseId == $warehouse['id']) ? 'selected' : '' ?>>
+                                    <?= esc($warehouse['name']) ?>
+                                    <?php if ($currentWarehouseId == $warehouse['id']): ?>
+                                        <span class="text-xs text-green-600 font-medium">(Current)</span>
+                                    <?php endif; ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -216,6 +225,33 @@
                                 <option value="<?= $warehouse['id'] ?>"><?= esc($warehouse['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+                </div>
+
+                <!-- Project, Task, and Milestone Selection -->
+                <div id="project_selection_row" style="display: none;">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                        <div>
+                            <label for="project_id" class="block text-sm font-medium text-gray-700 mb-2">Project</label>
+                            <select name="project_id" id="project_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Select Project</option>
+                                <?php foreach ($projects as $project): ?>
+                                    <option value="<?= $project['id'] ?>"><?= esc($project['name']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="task_id" class="block text-sm font-medium text-gray-700 mb-2">Task</label>
+                            <select name="task_id" id="task_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Select Task</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="milestone_id" class="block text-sm font-medium text-gray-700 mb-2">Milestone</label>
+                            <select name="milestone_id" id="milestone_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Select Milestone</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -237,22 +273,100 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize Lucide icons
     lucide.createIcons();
 
-    // Show/hide destination warehouse based on movement type
+    // Get DOM elements
     const movementTypeSelect = document.getElementById('movement_type');
     const destinationWarehouseRow = document.getElementById('destination_warehouse_row');
+    const projectSelectionRow = document.getElementById('project_selection_row');
+    const sourceWarehouseSelect = document.getElementById('source_warehouse_id');
 
+    // Auto-select current warehouse when modal opens
+    function autoSelectCurrentWarehouse() {
+        const currentWarehouseId = <?= json_encode($currentWarehouseId) ?>;
+        if (currentWarehouseId && sourceWarehouseSelect) {
+            sourceWarehouseSelect.value = currentWarehouseId;
+        }
+    }
+
+    // Show/hide destination warehouse based on movement type
     movementTypeSelect.addEventListener('change', function() {
+        // Show/hide destination warehouse for transfers
         if (this.value === 'transfer') {
             destinationWarehouseRow.style.display = 'block';
         } else {
             destinationWarehouseRow.style.display = 'none';
         }
+
+        // Show/hide project selection for usage types
+        if (this.value === 'project_usage') {
+            projectSelectionRow.style.display = 'block';
+        } else {
+            projectSelectionRow.style.display = 'none';
+            // Clear project, task, and milestone selections
+            document.getElementById('project_id').value = '';
+            document.getElementById('task_id').innerHTML = '<option value="">Select Task</option>';
+            document.getElementById('milestone_id').innerHTML = '<option value="">Select Milestone</option>';
+        }
+    });
+
+    // Load tasks and milestones when project is selected
+    document.getElementById('project_id').addEventListener('change', function() {
+        const projectId = this.value;
+        const taskSelect = document.getElementById('task_id');
+        const milestoneSelect = document.getElementById('milestone_id');
+
+        if (projectId) {
+            // Clear existing options
+            taskSelect.innerHTML = '<option value="">Loading tasks...</option>';
+            milestoneSelect.innerHTML = '<option value="">Loading milestones...</option>';
+
+            // Load tasks for the selected project (regular tasks only)
+            fetch(`<?= base_url('admin/tasks/project/') ?>${projectId}`)
+                .then(response => response.json())
+                .then(data => {
+                    taskSelect.innerHTML = '<option value="">Select Task</option>';
+                    if (data.tasks && data.tasks.length > 0) {
+                        data.tasks.forEach(task => {
+                            const option = document.createElement('option');
+                            option.value = task.id;
+                            option.textContent = task.title;
+                            taskSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading tasks:', error);
+                    taskSelect.innerHTML = '<option value="">Error loading tasks</option>';
+                });
+
+            // Load milestones for the selected project
+            fetch(`<?= base_url('admin/milestones/project/') ?>${projectId}`)
+                .then(response => response.json())
+                .then(data => {
+                    milestoneSelect.innerHTML = '<option value="">Select Milestone</option>';
+                    if (data.milestones && data.milestones.length > 0) {
+                        data.milestones.forEach(milestone => {
+                            const option = document.createElement('option');
+                            option.value = milestone.id;
+                            option.textContent = milestone.title;
+                            milestoneSelect.appendChild(option);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading milestones:', error);
+                    milestoneSelect.innerHTML = '<option value="">Error loading milestones</option>';
+                });
+        } else {
+            taskSelect.innerHTML = '<option value="">Select Task</option>';
+            milestoneSelect.innerHTML = '<option value="">Select Milestone</option>';
+        }
     });
 });
 
-// Modal functions
+// Modal functions (moved outside event listener)
 function openRecordMovementModal() {
     document.getElementById('recordMovementModal').classList.remove('hidden');
+    autoSelectCurrentWarehouse();
 }
 
 function closeRecordMovementModal() {

@@ -37,7 +37,7 @@
                     </div>
                     <?php endif; ?>
 
-                    <form action="<?= base_url('admin/materials/update/' . $material['id']) ?>" method="POST" id="materialForm">
+                    <form action="<?= base_url('admin/materials/' . $material['id']) ?>" method="POST" id="materialForm">
                         <?= csrf_field() ?>
                         <input type="hidden" name="_method" value="PUT">
                         
@@ -138,7 +138,7 @@
                                         </div>
                                         <div>
                                             <p class="text-xs text-gray-500">Total Value:</p>
-                                            <p class="text-lg font-medium">$<?= number_format($material['current_stock'] * $material['unit_cost'], 2) ?></p>
+                                            <p class="text-lg font-medium">MWK <?= number_format($material['current_stock'] * $material['unit_cost'], 2) ?></p>
                                         </div>
                                     </div>
                                     <div class="mt-2">
@@ -149,7 +149,7 @@
 
                                 <div class="space-y-3">
                                     <div class="flex items-center">
-                                        <input type="checkbox" name="is_active" id="is_active" value="1" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" <?= old('status', $material['status']) === 'active' ? 'checked' : '' ?>>
+                                        <input type="checkbox" name="status" id="is_active" value="active" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" <?= old('status', $material['status']) === 'active' ? 'checked' : '' ?>>
                                         <label for="is_active" class="ml-2 text-sm text-gray-700">
                                             Active Material
                                         </label>
