@@ -9,7 +9,7 @@
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900"><?= esc($material['name']) ?></h1>
-                <p class="text-gray-600">Material ID: <?= esc($material['sku']) ?></p>
+                <p class="text-gray-600">Material ID: <?= esc($material['item_code'] ?? $material['sku'] ?? '') ?></p>
             </div>
             <div class="flex flex-wrap gap-2">
                 <a href="<?= base_url('admin/materials') ?>" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
@@ -70,7 +70,7 @@
                                 </div>
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500">Unit Cost</dt>
-                                    <dd class="mt-1 text-gray-900">$<?= number_format($material['unit_cost'], 2) ?></dd>
+                                    <dd class="mt-1 text-gray-900">MWK <?= number_format($material['unit_cost'], 2) ?></dd>
                                 </div>
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500">Primary Supplier</dt>
@@ -87,11 +87,11 @@
                                 <div>
                                     <dt class="text-sm font-medium text-gray-500">Material Properties</dt>
                                     <dd class="mt-1 flex flex-wrap gap-2">
-                                        <span class="px-2 py-1 text-xs rounded-full <?= $material['is_active'] ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' ?>">
-                                            <?= $material['is_active'] ? 'Active' : 'Inactive' ?>
+                                        <span class="px-2 py-1 text-xs rounded-full <?= ($material['status'] ?? 'active') === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800' ?>">
+                                            <?= ($material['status'] ?? 'active') === 'active' ? 'Active' : 'Inactive' ?>
                                         </span>
-                                        <span class="px-2 py-1 text-xs rounded-full <?= $material['is_bulk'] ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800' ?>">
-                                            <?= $material['is_bulk'] ? 'Bulk Material' : 'Unit Material' ?>
+                                        <span class="px-2 py-1 text-xs rounded-full <?= ($material['material_type'] ?? 'consumable') === 'bulk' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800' ?>">
+                                            <?= ($material['material_type'] ?? 'consumable') === 'bulk' ? 'Bulk Material' : 'Unit Material' ?>
                                         </span>
                                     </dd>
                                 </div>
@@ -125,12 +125,12 @@
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
-                            <?php if (empty($stockMovements)): ?>
+                        <?php if (empty($movements)): ?>
                             <tr>
                                 <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">No stock movements recorded yet</td>
                             </tr>
                             <?php else: ?>
-                                <?php foreach ($stockMovements as $movement): ?>
+                                <?php foreach ($movements as $movement): ?>
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <?= date('M d, Y H:i', strtotime($movement['created_at'])) ?>
@@ -152,14 +152,14 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <?= $movement['reference_no'] ? esc($movement['reference_no']) : 'N/A' ?>
+                                        <?= $movement['reference_no'] ?? $movement['reference_number'] ?? $movement['reference_id'] ?? 'N/A' ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <?php if ($movement['project_id']): ?>
+                                        <?php if ($movement['project_id'] ?? false): ?>
                                             <span class="text-blue-600">Project: <?= esc($movement['project_name'] ?? 'Unknown') ?></span>
-                                        <?php elseif ($movement['warehouse_id']): ?>
+                                        <?php elseif ($movement['warehouse_id'] ?? false): ?>
                                             <span>Warehouse: <?= esc($movement['warehouse_name'] ?? 'Unknown') ?></span>
-                                        <?php elseif ($movement['supplier_id']): ?>
+                                        <?php elseif ($movement['supplier_id'] ?? false): ?>
                                             <span>Supplier: <?= esc($movement['supplier_name'] ?? 'Unknown') ?></span>
                                         <?php else: ?>
                                             -
@@ -172,7 +172,7 @@
                     </table>
                 </div>
                 <div class="px-6 py-3 border-t border-gray-200">
-                    <a href="<?= base_url('admin/materials/stock-history/' . $material['id']) ?>" class="text-sm text-blue-600 hover:underline">
+                    <a href="<?= base_url('admin/materials/stock-movement/' . $material['id']) ?>" class="text-sm text-blue-600 hover:underline">
                         View Full History
                     </a>
                 </div>
@@ -214,7 +214,7 @@
                                         <?= date('M d, Y', strtotime($usage['last_used'])) ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        $<?= number_format($usage['total_quantity'] * $material['unit_cost'], 2) ?>
+                                        MWK <?= number_format($usage['total_quantity'] * $material['unit_cost'], 2) ?>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -240,7 +240,7 @@
                         </div>
                         <div class="w-full bg-gray-200 rounded-full h-2.5">
                             <?php 
-                            $stockPercentage = min(100, ($material['current_stock'] / max(1, $material['min_stock_level'] * 2)) * 100);
+                            $stockPercentage = min(100, ($material['current_stock'] / max(1, ($material['min_stock_level'] ?? 0) * 2)) * 100);
                             $barColor = $stockPercentage <= 25 ? 'bg-red-600' : ($stockPercentage <= 50 ? 'bg-amber-500' : 'bg-green-600');
                             ?>
                             <div class="<?= $barColor ?> h-2.5 rounded-full" style="width: <?= $stockPercentage ?>%"></div>
@@ -250,20 +250,20 @@
                     <div class="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
                         <div class="text-center">
                             <p class="text-sm text-gray-500">Min Stock Level</p>
-                            <p class="text-lg font-medium"><?= number_format($material['min_stock_level']) ?></p>
+                            <p class="text-lg font-medium"><?= number_format($material['min_stock_level'] ?? 0) ?></p>
                         </div>
                         <div class="text-center">
                             <p class="text-sm text-gray-500">Reorder Quantity</p>
-                            <p class="text-lg font-medium"><?= number_format($material['reorder_quantity']) ?></p>
+                            <p class="text-lg font-medium"><?= number_format($material['reorder_quantity'] ?? 0) ?></p>
                         </div>
                     </div>
                     
                     <div class="pt-4 border-t border-gray-100">
                         <p class="text-sm text-gray-500">Total Value</p>
-                        <p class="text-2xl font-bold">$<?= number_format($material['current_stock'] * $material['unit_cost'], 2) ?></p>
+                        <p class="text-2xl font-bold">MWK <?= number_format($material['current_stock'] * $material['unit_cost'], 2) ?></p>
                     </div>
                     
-                    <?php if ($material['current_stock'] < $material['min_stock_level']): ?>
+                    <?php if ($material['current_stock'] < ($material['min_stock_level'] ?? 0)): ?>
                     <div class="bg-red-50 text-red-700 p-4 rounded-lg border border-red-200 mt-4">
                         <div class="flex items-center">
                             <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600 mr-2"></i>
@@ -316,10 +316,10 @@
                     <a href="<?= base_url('admin/materials/edit/' . $material['id']) ?>" class="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                         <i data-lucide="edit" class="w-4 h-4 mr-2"></i> Edit Material
                     </a>
-                    <a href="<?= base_url('admin/materials/stock-history/' . $material['id']) ?>" class="w-full inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    <a href="<?= base_url('admin/materials/stock-movement/' . $material['id']) ?>" class="w-full inline-flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                         <i data-lucide="history" class="w-4 h-4 mr-2"></i> Full Stock History
                     </a>
-                    <a href="<?= base_url('admin/materials/report/' . $material['id']) ?>" class="w-full inline-flex items-center justify-center px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors">
+                    <a href="<?= base_url('admin/materials/generate-report') ?>" class="w-full inline-flex items-center justify-center px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors">
                         <i data-lucide="file-text" class="w-4 h-4 mr-2"></i> Generate Report
                     </a>
                     <button onclick="confirmDelete(<?= $material['id'] ?>)" class="w-full inline-flex items-center justify-center px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">

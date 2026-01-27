@@ -8,6 +8,7 @@ use App\Models\MaterialModel;
 use App\Models\MaterialCategoryModel;
 use App\Models\ProjectModel;
 use App\Models\UserModel;
+use App\Models\StockMovementModel;
 
 class Warehouses extends BaseController
 {
@@ -17,6 +18,7 @@ class Warehouses extends BaseController
     protected $materialCategoryModel;
     protected $projectModel;
     protected $userModel;
+    protected $stockMovementModel;
     
     public function __construct()
     {
@@ -26,6 +28,7 @@ class Warehouses extends BaseController
         $this->materialCategoryModel = new MaterialCategoryModel();
         $this->projectModel = new ProjectModel();
         $this->userModel = new UserModel();
+        $this->stockMovementModel = new StockMovementModel();
     }
     
     public function index()
@@ -142,19 +145,34 @@ class Warehouses extends BaseController
             return redirect()->to('/admin/warehouses')->with('error', 'Warehouse not found');
         }
 
+        // Get materials in this warehouse
+        $materials = $this->warehouseStockModel->getWarehouseStock($id);
+        
+        // Get all materials for the dropdown
+        $allMaterials = $this->materialModel->where('company_id', $companyId)
+            ->where('status', 'active')
+            ->orderBy('name', 'ASC')
+            ->findAll();
+
+        // Calculate stats
+        $stats = [
+            'total_materials' => count($materials),
+            'low_stock_count' => count($this->warehouseStockModel->getLowStockItems($id)),
+            'total_value' => array_reduce($materials, function($sum, $item) {
+                return $sum + ($item['current_quantity'] * $item['unit_cost']);
+            }, 0),
+        ];
+
         $data = [
             'title' => 'Warehouse Details - ' . $warehouse['name'],
             'warehouse' => $warehouse,
-            'stock' => $this->warehouseStockModel->getWarehouseStock($id),
-            'lowStockItems' => $this->warehouseStockModel->getLowStockItems($id),
+            'materials' => $materials,
+            'allMaterials' => $allMaterials,
             'categories' => $this->materialCategoryModel->where('company_id', $companyId)
                 ->where('is_active', 1)
                 ->orderBy('name', 'ASC')
                 ->findAll(),
-            'allMaterials' => $this->materialModel->where('company_id', $companyId)
-                ->where('status', 'active')
-                ->orderBy('name', 'ASC')
-                ->findAll(),
+            'stats' => $stats,
         ];
 
         return view('inventory/warehouses/view', $data);
@@ -217,23 +235,48 @@ class Warehouses extends BaseController
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
         
+        // Check which columns exist in the warehouses table
+        $db = \Config\Database::connect();
+        $fields = $db->getFieldNames('warehouses');
+
+        // Build data array with only existing columns
         $data = [
             'name' => $this->request->getVar('name'),
             'code' => $this->request->getVar('code'),
+        ];
+
+        // Add optional fields only if they exist in the table
+        $optionalFields = [
             'address' => $this->request->getVar('address'),
             'city' => $this->request->getVar('city'),
             'state' => $this->request->getVar('state'),
             'country' => $this->request->getVar('country'),
-            'manager_id' => $this->request->getVar('manager_id') ?: null,
             'phone' => $this->request->getVar('phone'),
             'email' => $this->request->getVar('email'),
             'warehouse_type' => $this->request->getVar('warehouse_type'),
             'capacity' => $this->request->getVar('capacity'),
-            'is_project_site' => $this->request->getVar('is_project_site') ? 1 : 0,
-            'project_id' => $this->request->getVar('project_id') ?: null,
             'status' => $this->request->getVar('status'),
             'notes' => $this->request->getVar('notes'),
         ];
+
+        foreach ($optionalFields as $field => $value) {
+            if (in_array($field, $fields)) {
+                $data[$field] = $value;
+            }
+        }
+
+        // Handle special fields
+        if (in_array('manager_id', $fields)) {
+            $data['manager_id'] = $this->request->getVar('manager_id') ?: null;
+        }
+
+        if (in_array('is_project_site', $fields)) {
+            $data['is_project_site'] = $this->request->getVar('is_project_site') ? 1 : 0;
+        }
+
+        if (in_array('project_id', $fields)) {
+            $data['project_id'] = $this->request->getVar('project_id') ?: null;
+        }
         
         if (!$this->warehouseModel->update($id, $data)) {
             return redirect()->back()->withInput()->with('error', 'Failed to update warehouse.');

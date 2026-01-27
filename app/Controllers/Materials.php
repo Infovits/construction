@@ -739,7 +739,7 @@ class Materials extends BaseController
     }
     
     /**
-     * Generate PDF report
+     * Generate PDF report using DomPDF
      * 
      * @param array $data Report data
      * @param string $reportType Type of report
@@ -747,13 +747,32 @@ class Materials extends BaseController
      */
     private function generatePDF($data, $reportType)
     {
-        // Get company info for the PDF header
+        // Get company info for the PDF header (with fallback)
         $companyId = session()->get('company_id');
-        $companyModel = new \App\Models\CompanyModel();
-        $company = $companyModel->find($companyId);
+        $companyInfo = [
+            'name' => 'Construction Management System',
+            'address' => 'Default Address',
+            'logo' => null
+        ];
         
-        // Initialize PDF wrapper
-        $pdf = new \App\Libraries\MpdfWrapper($company);
+        try {
+            // Try to get company info, but don't fail if it doesn't exist
+            $companyModel = new \App\Models\CompanyModel();
+            $company = $companyModel->find($companyId);
+            if ($company) {
+                $companyInfo = [
+                    'name' => $company['name'] ?? 'Construction Management System',
+                    'address' => $company['address'] ?? 'Default Address',
+                    'logo' => $company['logo'] ?? null
+                ];
+            }
+        } catch (\Exception $e) {
+            // Use default company info if model doesn't exist or fails
+            log_message('error', 'Company model not available: ' . $e->getMessage());
+        }
+        
+        // Initialize DomPDF wrapper with company info
+        $pdf = new \App\Libraries\DomPDFWrapper($companyInfo);
         
         // Get filters for the PDF
         $filters = [
@@ -790,23 +809,76 @@ class Materials extends BaseController
                 return $pdf->generateLowStockReport($data['report'], $filters);
 
             default:
-                // For other report types, check if PDF view exists, otherwise use HTML view
-                $pdfViewPath = 'inventory/materials/reports/' . $reportType . '_pdf';
-                if (file_exists(APPPATH . 'Views/' . str_replace('/', DIRECTORY_SEPARATOR, $pdfViewPath) . '.php')) {
-                    $html = view($pdfViewPath, $data, ['debug' => false]);
-                    return $pdf->generatePdf($html, $reportType . '_report.pdf');
-                } else {
-                    // Fall back to HTML view if PDF view doesn't exist
-                    $htmlViewPath = 'inventory/materials/reports/' . $reportType;
-                    if (file_exists(APPPATH . 'Views/' . str_replace('/', DIRECTORY_SEPARATOR, $htmlViewPath) . '.php')) {
-                        $html = view($htmlViewPath, $data, ['debug' => false]);
-                        return $pdf->generatePdf($html, $reportType . '_report.pdf');
-                    } else {
-                        // Return error if neither view exists
-                        return redirect()->back()->with('error', 'PDF generation not supported for this report type');
-                    }
-                }
+                // For other report types, create a generic HTML report
+                $html = $this->createGenericReportHTML($data, $reportType, $filters);
+                return $pdf->generatePdf($html, $reportType . '_report.pdf');
         }
+    }
+    
+    /**
+     * Create a generic HTML report for PDF generation
+     * 
+     * @param array $data Report data
+     * @param string $reportType Type of report
+     * @param array $filters Report filters
+     * @return string HTML content
+     */
+    private function createGenericReportHTML($data, $reportType, $filters)
+    {
+        $title = ucfirst(str_replace('_', ' ', $reportType)) . ' Report';
+        
+        // Add filters summary if any
+        $filterSummary = '';
+        if (!empty($filters)) {
+            $filterTexts = [];
+            foreach ($filters as $key => $value) {
+                if (!empty($value)) {
+                    $label = ucfirst(str_replace('_', ' ', $key));
+                    $filterTexts[] = $label . ': ' . $value;
+                }
+            }
+            if (!empty($filterTexts)) {
+                $filterSummary = '<div style="margin-bottom: 20px; font-size: 12px;">';
+                $filterSummary .= '<strong>Filters: </strong>' . implode(' | ', $filterTexts);
+                $filterSummary .= '</div>';
+            }
+        }
+        
+        // Create table header based on data structure
+        $html = '<h1 style="text-align: center;">' . $title . '</h1>';
+        $html .= $filterSummary;
+        
+        if (empty($data['report'])) {
+            $html .= '<div style="text-align: center; padding: 20px; color: #777;">No data found matching your criteria.</div>';
+            return $html;
+        }
+        
+        // Get column headers from first record
+        $headers = array_keys($data['report'][0]);
+        
+        $html .= '<table style="width: 100%; border-collapse: collapse; font-size: 12px;">';
+        $html .= '<thead>';
+        $html .= '<tr style="background-color: #f3f4f6;">';
+        foreach ($headers as $header) {
+            $html .= '<th style="border: 1px solid #ddd; padding: 8px; text-align: left;">' . ucfirst(str_replace('_', ' ', $header)) . '</th>';
+        }
+        $html .= '</tr>';
+        $html .= '</thead>';
+        $html .= '<tbody>';
+        
+        foreach ($data['report'] as $row) {
+            $html .= '<tr>';
+            foreach ($headers as $header) {
+                $value = $row[$header] ?? '';
+                $html .= '<td style="border: 1px solid #ddd; padding: 8px;">' . $value . '</td>';
+            }
+            $html .= '</tr>';
+        }
+        
+        $html .= '</tbody>';
+        $html .= '</table>';
+        
+        return $html;
     }
     
     /**
@@ -1326,6 +1398,55 @@ class Materials extends BaseController
         }
         
         return redirect()->to('purchase-orders/view/' . $poId)->with('success', 'Purchase order created successfully');
+    }
+
+    /**
+     * Show material details
+     */
+    public function show($id)
+    {
+        $companyId = session()->get('company_id');
+        $material = $this->materialModel->find($id);
+        
+        if (!$material || $material['company_id'] != $companyId) {
+            return redirect()->to('/admin/materials')->with('error', 'Material not found');
+        }
+        
+        // Get related data
+        $category = null;
+        if ($material['category_id']) {
+            $category = $this->categoryModel->find($material['category_id']);
+        }
+        
+        $supplier = null;
+        if ($material['primary_supplier_id']) {
+            $supplier = $this->supplierModel->find($material['primary_supplier_id']);
+        }
+        
+        // Get stock information
+        $stockLevels = $this->warehouseStockModel->getMaterialStockLevels($id);
+        
+        // Get stock movement history for the material
+        $movements = $this->stockMovementModel->getMaterialMovements($id);
+        
+        $data = [
+            'title' => 'Material Details - ' . $material['name'],
+            'material' => $material,
+            'category' => $category,
+            'supplier' => $supplier,
+            'stockLevels' => $stockLevels,
+            'movements' => $movements,
+        ];
+        
+        return view('inventory/materials/view', $data);
+    }
+
+    /**
+     * View material details (alias for show method)
+     */
+    public function view($id)
+    {
+        return $this->show($id);
     }
 
     /**

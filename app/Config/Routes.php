@@ -34,14 +34,18 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->group("warehouses", function($routes) {
         $routes->get("/", "Warehouses::index");
         $routes->get("create", "Warehouses::create");
-        $routes->get("new", "Warehouses::create"); // Alias for 'create'
+        $routes->get("new", "Warehouses::new"); // Alias for 'create'
         $routes->get("add", "Warehouses::new");
-        $routes->post("/", "Warehouses::store");
+        $routes->post("/", "Warehouses::create"); // Changed from store to create
+        $routes->post("create", "Warehouses::create"); // Add POST route for create
         $routes->get("(:num)", "Warehouses::view/$1");
         $routes->get("(:num)/edit", "Warehouses::edit/$1");
         $routes->post("(:num)", "Warehouses::update/$1");
+        $routes->put("(:num)", "Warehouses::update/$1");
         $routes->delete("(:num)", "Warehouses::delete/$1");
+        $routes->get("delete/(:num)", "Warehouses::delete/$1"); // Add GET route for delete
         $routes->get("(:num)/stock", "Warehouses::stock/$1");
+        $routes->post("add-stock/(:num)", "Warehouses::addStockItem/$1"); // Add route for adding stock
         $routes->get("report/(:num)", "Warehouses::report/$1");
         $routes->get("get/(:num)", "Warehouses::get/$1");
     });
@@ -162,7 +166,11 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->get("create", "Materials::new"); // Alias for 'new'
         $routes->post("/", "Materials::create");
         $routes->post("create", "Materials::create"); // Alias for create
-        $routes->get("edit/(:num)", "Materials::edit/$1");
+        $routes->get("(:num)", "Materials::show/$1");
+        $routes->get("(:num)/view", "Materials::view/$1");
+        $routes->get("view/(:num)", "Materials::view/$1");
+        $routes->get("(:num)/edit", "Materials::edit/$1");
+        $routes->get("edit/(:num)", "Materials::edit/$1"); // Add GET route for edit
         $routes->post("(:num)", "Materials::update/$1");
         $routes->put("(:num)", "Materials::update/$1");
         $routes->delete("(:num)", "Materials::delete/$1");
@@ -200,18 +208,6 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->get("delete/(:num)", "MaterialCategories::delete/$1");
     });
 
-    // Warehouses Routes
-    $routes->group("warehouses", function($routes) {
-        $routes->get("/", "Warehouses::index");
-        $routes->get("create", "Warehouses::create");
-        $routes->post("/", "Warehouses::store");
-        $routes->get("(:num)", "Warehouses::view/$1");
-        $routes->get("(:num)/edit", "Warehouses::edit/$1");
-        $routes->post("(:num)", "Warehouses::update/$1");
-        $routes->delete("(:num)", "Warehouses::delete/$1");
-        $routes->get("(:num)/stock", "Warehouses::stock/$1");
-        $routes->get("get-json", "Warehouses::getJson");
-    });
 
     // Suppliers Routes
     $routes->group("suppliers", function($routes) {

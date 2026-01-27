@@ -71,7 +71,7 @@
                         </div>
                         <div class="bg-blue-50 rounded-lg p-4 text-center">
                             <p class="text-sm text-gray-500 mb-1">Total Value</p>
-                            <p class="text-2xl font-bold text-blue-600">$<?= number_format($stats['total_value'] ?? 0, 2) ?></p>
+                            <p class="text-2xl font-bold text-blue-600">MWK <?= number_format($stats['total_value'] ?? 0, 2) ?></p>
                         </div>
                         <div class="bg-green-50 rounded-lg p-4 text-center">
                             <p class="text-sm text-gray-500 mb-1">Last Movement</p>
@@ -162,7 +162,7 @@
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium text-gray-900"><?= esc($material['name']) ?></div>
-                                <div class="text-xs text-gray-500"><?= esc($material['sku']) ?></div>
+                                <div class="text-xs text-gray-500"><?= esc($material['item_code'] ?? $material['sku'] ?? '') ?></div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <span class="text-sm"><?= esc($material['category_name'] ?? 'Uncategorized') ?></span>
@@ -184,10 +184,10 @@
                                 <?= number_format($material['minimum_quantity']) ?> <?= esc($material['unit']) ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                $<?= number_format($material['current_quantity'] * $material['unit_cost'], 2) ?>
+                                MWK <?= number_format($material['current_quantity'] * $material['unit_cost'], 2) ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <?= date('M d, Y', strtotime($material['last_updated'])) ?>
+                                <?= !empty($material['last_updated']) ? date('M d, Y', strtotime($material['last_updated'])) : 'Never' ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
                                 <button type="button" onclick="openUpdateStockModal(<?= $material['material_id'] ?>, '<?= esc($material['name']) ?>', <?= $material['current_quantity'] ?>)" class="text-blue-600 hover:text-blue-900 mx-1">
@@ -233,38 +233,54 @@
                     <label for="material_id" class="block text-sm font-medium text-gray-700 mb-1">Material <span class="text-red-500">*</span></label>
                     <select name="material_id" id="material_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                         <option value="">Select Material</option>
-                        <?php foreach ($allMaterials as $material): ?>
-                        <option value="<?= $material['id'] ?>">
+                        <?php 
+                        // Get existing materials in this warehouse for comparison
+                        $existingMaterials = [];
+                        foreach ($materials as $material) {
+                            $existingMaterials[] = $material['material_id'];
+                        }
+                        
+                        foreach ($allMaterials as $material): ?>
+                        <option value="<?= $material['id'] ?>" <?= in_array($material['id'], $existingMaterials) ? 'data-existing="true"' : '' ?>>
                             <?= esc($material['name']) ?> (<?= esc($material['item_code']) ?>) - <?= ucfirst($material['unit']) ?>
+                            <?= in_array($material['id'], $existingMaterials) ? ' - Already in warehouse' : '' ?>
                         </option>
                         <?php endforeach; ?>
                     </select>
+                    <p class="mt-1 text-xs text-gray-500" id="material_status"></p>
                 </div>
                 
-                <div>
-                    <label for="quantity" class="block text-sm font-medium text-gray-700 mb-1">Quantity <span class="text-red-500">*</span></label>
-                    <input type="number" name="quantity" id="quantity" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" min="0.01" step="0.01" required>
+                <div id="existing_material_fields" class="hidden">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <p class="text-sm text-blue-800 mb-2">This material already exists in this warehouse. Use the Update Stock button in the inventory table to modify quantities.</p>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div>
+                                <span class="text-gray-600">Current Stock:</span>
+                                <span id="existing_current_stock" class="ml-2 font-medium"></span>
+                            </div>
+                            <div>
+                                <span class="text-gray-600">Min Level:</span>
+                                <span id="existing_min_level" class="ml-2 font-medium"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
-                <div>
-                    <label for="movement_type" class="block text-sm font-medium text-gray-700 mb-1">Movement Type <span class="text-red-500">*</span></label>
-                    <select name="movement_type" id="movement_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                        <option value="in_purchase">Stock In - Purchase</option>
-                        <option value="in_return">Stock In - Return from Project</option>
-                        <option value="in_adjustment">Stock In - Inventory Adjustment</option>
-                        <option value="in_transfer">Stock In - Warehouse Transfer</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label for="reference_no" class="block text-sm font-medium text-gray-700 mb-1">Reference Number</label>
-                    <input type="text" name="reference_no" id="reference_no" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    <p class="mt-1 text-xs text-gray-500">E.g., Invoice number, delivery note, etc.</p>
-                </div>
-                
-                <div>
-                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-                    <textarea name="notes" id="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
+                <div id="new_material_fields">
+                    <div>
+                        <label for="current_quantity" class="block text-sm font-medium text-gray-700 mb-1">Initial Quantity <span class="text-red-500">*</span></label>
+                        <input type="number" name="current_quantity" id="current_quantity" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" min="0" step="0.01" required>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label for="minimum_quantity" class="block text-sm font-medium text-gray-700 mb-1">Minimum Quantity <span class="text-red-500">*</span></label>
+                        <input type="number" name="minimum_quantity" id="minimum_quantity" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" min="0" step="0.01" required>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <label for="shelf_location" class="block text-sm font-medium text-gray-700 mb-1">Shelf Location</label>
+                        <input type="text" name="shelf_location" id="shelf_location" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
                 </div>
             </div>
             
@@ -346,6 +362,51 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Lucide icons
     lucide.createIcons();
+    
+    // Handle material selection in add stock modal
+    const materialSelect = document.getElementById('material_id');
+    const existingFields = document.getElementById('existing_material_fields');
+    const newFields = document.getElementById('new_material_fields');
+    const materialStatus = document.getElementById('material_status');
+    const existingCurrentStock = document.getElementById('existing_current_stock');
+    const existingMinLevel = document.getElementById('existing_min_level');
+    
+    // Store material data for quick lookup
+    const materialData = {};
+    <?php foreach ($materials as $material): ?>
+    materialData[<?= $material['material_id'] ?>] = {
+        current_quantity: <?= $material['current_quantity'] ?>,
+        minimum_quantity: <?= $material['minimum_quantity'] ?>
+    };
+    <?php endforeach; ?>
+    
+    materialSelect.addEventListener('change', function() {
+        const selectedValue = this.value;
+        const selectedOption = this.options[this.selectedIndex];
+        const isExisting = selectedOption && selectedOption.getAttribute('data-existing') === 'true';
+        
+        if (selectedValue === '') {
+            existingFields.classList.add('hidden');
+            newFields.classList.remove('hidden');
+            materialStatus.textContent = '';
+        } else if (isExisting) {
+            existingFields.classList.remove('hidden');
+            newFields.classList.add('hidden');
+            materialStatus.textContent = 'This material already exists in this warehouse. Use the Update Stock button in the inventory table to modify quantities.';
+            materialStatus.className = 'mt-1 text-xs text-blue-600';
+            
+            // Show existing material details
+            if (materialData[selectedValue]) {
+                existingCurrentStock.textContent = materialData[selectedValue].current_quantity;
+                existingMinLevel.textContent = materialData[selectedValue].minimum_quantity;
+            }
+        } else {
+            existingFields.classList.add('hidden');
+            newFields.classList.remove('hidden');
+            materialStatus.textContent = 'This is a new material for this warehouse.';
+            materialStatus.className = 'mt-1 text-xs text-green-600';
+        }
+    });
 });
 
 function openAddStockModal() {

@@ -10,8 +10,12 @@ class MpdfWrapper
 
     public function __construct($companyInfo = null)
     {
-        // Set company info
-        $this->companyInfo = $companyInfo;
+        // Set company info with fallback
+        $this->companyInfo = $companyInfo ?? [
+            'name' => 'Construction Management System',
+            'address' => 'Default Address',
+            'logo' => null
+        ];
         
         // Initialize mPDF with custom configuration
         $this->mpdf = new Mpdf([
@@ -30,7 +34,7 @@ class MpdfWrapper
         $this->mpdf->SetAuthor($this->companyInfo['name'] ?? 'Construction Management System');
         
         // Add default header if company info is provided
-        if ($this->companyInfo) {
+        if ($this->companyInfo && !empty($this->companyInfo['name'])) {
             $this->setDefaultHeader();
         }
         

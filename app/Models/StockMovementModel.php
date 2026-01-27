@@ -315,11 +315,11 @@ class StockMovementModel extends Model
         }
     }
     
-    public function getStockMovementReport($companyId, $startDate = null, $endDate = null, $warehouseId = null, $categoryId = null)
+    public function getStockMovementReport($companyId, $startDate = null, $endDate = null, $materialId = null, $warehouseId = null, $categoryId = null, $movementType = null)
     {
         $builder = $this->db->table('stock_movements');
-        $builder->select('stock_movements.*, 
-                materials.name as material_name, 
+        $builder->select('stock_movements.*,
+                materials.name as material_name,
                 materials.item_code,
                 material_categories.name as category_name,
                 source.name as source_warehouse_name,
@@ -333,28 +333,56 @@ class StockMovementModel extends Model
         $builder->join('projects', 'projects.id = stock_movements.project_id', 'left');
         $builder->join('users as performer', 'performer.id = stock_movements.performed_by', 'left');
         $builder->where('stock_movements.company_id', $companyId);
-        
+
         if ($startDate) {
             $builder->where('stock_movements.created_at >=', $startDate . ' 00:00:00');
         }
-        
+
         if ($endDate) {
             $builder->where('stock_movements.created_at <=', $endDate . ' 23:59:59');
         }
-        
+
+        if ($materialId) {
+            $builder->where('stock_movements.material_id', $materialId);
+        }
+
         if ($warehouseId) {
             $builder->groupStart()
                 ->where('stock_movements.source_warehouse_id', $warehouseId)
                 ->orWhere('stock_movements.destination_warehouse_id', $warehouseId)
                 ->groupEnd();
         }
-        
+
         if ($categoryId) {
             $builder->where('materials.category_id', $categoryId);
         }
-        
+
+        if ($movementType) {
+            // Handle specific movement type filters
+            switch ($movementType) {
+                case 'in':
+                    $builder->whereIn('stock_movements.movement_type', ['in', 'purchase', 'return']);
+                    break;
+                case 'out':
+                    $builder->whereIn('stock_movements.movement_type', ['out', 'project_usage', 'disposal', 'loss']);
+                    break;
+                case 'in_purchase':
+                    $builder->where('stock_movements.movement_type', 'purchase');
+                    break;
+                case 'in_return':
+                    $builder->where('stock_movements.movement_type', 'return');
+                    break;
+                case 'out_project':
+                    $builder->where('stock_movements.movement_type', 'project_usage');
+                    break;
+                default:
+                    $builder->where('stock_movements.movement_type', $movementType);
+                    break;
+            }
+        }
+
         $builder->orderBy('stock_movements.created_at', 'DESC');
-        
+
         return $builder->get()->getResultArray();
     }
     
