@@ -120,7 +120,7 @@ class DomPDFWrapper
             $html .= '<td>' . ($movement['movement_type'] ?? 'N/A') . '</td>';
             $html .= '<td style="text-align: right;">' . ($movement['quantity'] ?? 0) . ' ' . ($movement['unit'] ?? '') . '</td>';
             $html .= '<td>' . ($movement['project_name'] ?? 'N/A') . '</td>';
-            $html .= '<td>' . ($movement['performed_by_name'] ?? $movement['first_name'] . ' ' . $movement['last_name'] ?? 'N/A') . '</td>';
+            $html .= '<td>' . ($movement['performed_by_name'] ?? 'N/A') . '</td>';
             $html .= '<td>' . ($movement['notes'] ?? 'N/A') . '</td>';
             $html .= '</tr>';
         }
@@ -190,7 +190,7 @@ class DomPDFWrapper
             $html .= '<td style="text-align: right;">' . $usage['quantity'] . ' ' . $usage['unit'] . '</td>';
             $html .= '<td style="text-align: right;">' . number_format($usage['unit_cost'], 2) . '</td>';
             $html .= '<td style="text-align: right;">' . number_format($itemCost, 2) . '</td>';
-            $html .= '<td>' . $usage['first_name'] . ' ' . $usage['last_name'] . '</td>';
+            $html .= '<td>' . ($usage['performed_by_name'] ?? 'N/A') . '</td>';
             $html .= '</tr>';
         }
         
@@ -318,7 +318,18 @@ class DomPDFWrapper
         $html = '</div>'; // Close content div
         $html .= '<div class="footer">';
         $html .= '<p>Inventory Management System</p>';
-        $html .= '<p class="page-number">Page {PAGE_NUM} of {PAGE_COUNT}</p>';
+        $html .= '<script type="text/php">';
+        $html .= 'if (isset($pdf)) {';
+        $html .= '$font = $fontMetrics->get_font("DejaVu Sans", "normal");';
+        $html .= '$size = 10;';
+        $html .= '$color = array(0.3, 0.3, 0.3);';
+        $html .= '$text_height = $fontMetrics->getFontHeight($font, $size);';
+        $html .= '$w = $pdf->get_width();';
+        $html .= '$h = $pdf->get_height();';
+        $html .= '$y = $h - $text_height - 10;';
+        $html .= '$pdf->page_text($w - 100, $y, "Page {PAGE_NUM} of {PAGE_COUNT}", $font, $size, $color);';
+        $html .= '}';
+        $html .= '</script>';
         $html .= '</div>';
         $html .= '</body></html>';
         

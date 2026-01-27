@@ -5,6 +5,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Font;
 
 class ExcelExport
 {
@@ -22,6 +23,16 @@ class ExcelExport
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle(substr($this->title, 0, 31)); // Max 31 characters for sheet title
+
+        // Set document properties for better compatibility
+        $spreadsheet->getProperties()
+            ->setCreator('Construction Management System')
+            ->setLastModifiedBy('Construction Management System')
+            ->setTitle($this->title)
+            ->setSubject($this->title)
+            ->setDescription('Generated Excel Report')
+            ->setKeywords('report excel')
+            ->setCategory('Report');
 
         // Add column titles as the first row
         $column = 'A';
@@ -44,6 +55,8 @@ class ExcelExport
             'font' => [
                 'bold' => true,
                 'color' => ['rgb' => 'FFFFFF'],
+                'name' => 'Arial',
+                'size' => 10,
             ],
             'fill' => [
                 'fillType' => Fill::FILL_SOLID,
@@ -51,6 +64,47 @@ class ExcelExport
             ],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => 'CCCCCC'],
+                ],
+            ],
+        ]);
+
+        // Set column widths for better appearance
+        foreach ($columns as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+            // Set minimum width
+            $sheet->getColumnDimension($col)->setWidth(12);
+        }
+
+        // Add data to the sheet
+        $row = 2;
+        foreach ($this->data as $record) {
+            $column = 'A';
+            foreach ($record as $value) {
+                // Ensure proper data type handling
+                if (is_numeric($value)) {
+                    $sheet->setCellValueExplicit($column . $row, $value, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+                } else {
+                    $sheet->setCellValueExplicit($column . $row, $value, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                }
+                $column++;
+            }
+            $row++;
+        }
+        
+        // Style the data rows
+        $sheet->getStyle('A2:' . $lastColumn . ($row - 1))->applyFromArray([
+            'font' => [
+                'name' => 'Arial',
+                'size' => 9,
+            ],
+            'alignment' => [
                 'vertical' => Alignment::VERTICAL_CENTER,
             ],
             'borders' => [
@@ -60,40 +114,30 @@ class ExcelExport
                 ],
             ],
         ]);
-
-        // Add data to the sheet
-        $row = 2;
-        foreach ($this->data as $record) {
-            $column = 'A';
-            foreach ($record as $value) {
-                $sheet->setCellValue($column . $row, $value);
-                $column++;
-            }
-            $row++;
-        }
         
-        // Style the data rows
-        $sheet->getStyle('A2:' . $lastColumn . ($row - 1))->applyFromArray([
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => 'CCCCCC'],
-                ],
-            ],
-        ]);
-        
-        // Auto-size columns
-        foreach ($columns as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
+        // Set row heights for better appearance
+        for ($r = 1; $r < $row; $r++) {
+            $sheet->getRowDimension($r)->setRowHeight(-1);
         }
 
-        // Create a writer and get the file content
+        // Create a writer and save to a temporary file
         $writer = new Xlsx($spreadsheet);
-        ob_start();
-        $writer->save('php://output');
-        $fileContent = ob_get_clean();
-
-        return $fileContent;
+        $tempFile = sys_get_temp_dir() . '/' . uniqid('excel_export_') . '.xlsx';
+        
+        try {
+            // Set writer options for better compatibility
+            $writer->setPreCalculateFormulas(false);
+            $writer->save($tempFile);
+            $fileContent = file_get_contents($tempFile);
+            unlink($tempFile); // Clean up temp file
+            return $fileContent;
+        } catch (\Exception $e) {
+            // Fallback to direct output if temp file fails
+            ob_start();
+            $writer->save('php://output');
+            $fileContent = ob_get_clean();
+            return $fileContent;
+        }
     }
     
     /**
@@ -111,13 +155,13 @@ class ExcelExport
             $reportData[] = [
                 'Date' => date('Y-m-d', strtotime($movement['created_at'])),
                 'Time' => date('H:i', strtotime($movement['created_at'])),
-                'Material Code' => $movement['item_code'],
-                'Material Name' => $movement['name'],
-                'Warehouse' => $movement['warehouse_name'],
-                'Movement Type' => $movement['movement_type'],
-                'Quantity' => $movement['quantity'] . ' ' . $movement['unit'],
+                'Material Code' => $movement['item_code'] ?? 'N/A',
+                'Material Name' => $movement['material_name'] ?? $movement['name'] ?? 'Unknown',
+                'Warehouse' => $movement['warehouse_name'] ?? 'N/A',
+                'Movement Type' => $movement['movement_type'] ?? 'N/A',
+                'Quantity' => ($movement['quantity'] ?? 0) . ' ' . ($movement['unit'] ?? ''),
                 'Project' => $movement['project_name'] ?? 'N/A',
-                'Recorded By' => $movement['first_name'] . ' ' . $movement['last_name']
+                'Recorded By' => $movement['performed_by_name'] ?? 'N/A'
             ];
         }
         
@@ -147,16 +191,17 @@ class ExcelExport
         
         // Prepare data for Excel
         foreach ($data as $usage) {
+            $itemCost = $usage['unit_cost'] * $usage['quantity'];
             $reportData[] = [
                 'Date' => date('Y-m-d', strtotime($usage['created_at'])),
-                'Project' => $usage['project_name'],
-                'Material Code' => $usage['item_code'],
-                'Material Name' => $usage['name'],
-                'Category' => $usage['category_name'],
+                'Project' => $usage['project_name'] ?? 'N/A',
+                'Material Code' => $usage['item_code'] ?? 'N/A',
+                'Material Name' => $usage['name'] ?? 'Unknown',
+                'Category' => $usage['category_name'] ?? 'N/A',
                 'Quantity Used' => $usage['quantity'] . ' ' . $usage['unit'],
                 'Unit Cost' => number_format($usage['unit_cost'], 2),
-                'Total Cost' => number_format($usage['unit_cost'] * $usage['quantity'], 2),
-                'Recorded By' => $usage['first_name'] . ' ' . $usage['last_name']
+                'Total Cost' => number_format($itemCost, 2),
+                'Recorded By' => $usage['performed_by_name'] ?? 'N/A'
             ];
         }
         

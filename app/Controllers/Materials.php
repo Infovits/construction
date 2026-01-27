@@ -571,7 +571,7 @@ class Materials extends BaseController
                 $data['report'] = $this->materialModel->getStockLevelsReport($companyId, $warehouseId, $categoryId);
                 break;
                 
-            case 'stock_movement':
+            case 'movement':
                 $data['report'] = $this->stockMovementModel->getStockMovementReport(
                     $companyId, 
                     $startDate, 
@@ -608,7 +608,7 @@ class Materials extends BaseController
                             $data['report'] = $this->materialModel->getStockLevelsReport($companyId, $warehouseId, $categoryId);
                             break;
 
-                        case 'stock_movement':
+                        case 'movement':
                             $data['report'] = $this->stockMovementModel->getStockMovementReport(
                                 $companyId,
                                 $startDate,
@@ -799,7 +799,7 @@ class Materials extends BaseController
 
         // Generate the appropriate report based on type
         switch ($reportType) {
-            case 'stock_movement':
+            case 'movement':
                 return $pdf->generateStockMovementReport($data['report'], $filters);
 
             case 'project_usage':
@@ -882,7 +882,7 @@ class Materials extends BaseController
     }
     
     /**
-     * Generate Excel report
+     * Generate Excel report using PhpSpreadsheet
      * 
      * @param array $data Report data
      * @param string $reportType Type of report
@@ -894,14 +894,16 @@ class Materials extends BaseController
         $response = service('response');
         $response->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         $response->setHeader('Content-Disposition', 'attachment;filename="' . $reportType . '_report.xlsx"');
-        $response->noCache();
+        $response->setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        $response->setHeader('Pragma', 'no-cache');
+        $response->setHeader('Expires', '0');
         
         // Initialize Excel export with report title
         $excel = new \App\Libraries\ExcelExport($data['report'], ucfirst(str_replace('_', ' ', $reportType)) . ' Report');
         
         // Generate the appropriate report based on type
         switch ($reportType) {
-            case 'stock_movement':
+            case 'movement':
                 $excelContent = $excel->exportStockMovement($data['report']);
                 break;
                 

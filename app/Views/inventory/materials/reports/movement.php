@@ -100,6 +100,7 @@
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source/Destination</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference</th>
                     </tr>
                 </thead>
@@ -155,7 +156,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                <?= number_format($movement['quantity'], 2) ?> <?= esc($movement['unit']) ?>
+                                <?= number_format($movement['quantity'], 2) ?> <?= esc($movement['unit_of_measure'] ?? $movement['unit'] ?? '') ?>
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-900">
                                 <?php if ($movement['movement_type'] == 'stock_transfer'): ?>
@@ -173,7 +174,10 @@
                                 <?php endif; ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <?= esc($movement['user_name'] ?? 'Unknown') ?>
+                                <?= esc($movement['performed_by_name'] ?? 'Unknown') ?>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                <?= esc($movement['notes'] ?? 'N/A') ?>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                 <?= esc($movement['reference_number'] ?? '-') ?>
