@@ -92,7 +92,7 @@
                             <?php endif; ?>
                             
                             <?php if(!empty($supplier['credit_limit'])): ?>
-                            <p class="text-sm text-gray-700"><span class="font-medium">Credit Limit:</span> $<?= number_format($supplier['credit_limit'], 2) ?></p>
+                            <p class="text-sm text-gray-700"><span class="font-medium">Credit Limit:</span> MWK <?= number_format($supplier['credit_limit'], 2) ?></p>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -168,7 +168,7 @@
                                         <div class="text-xs text-gray-500"><?= esc($material['item_code']) ?></div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        $<?= number_format($material['unit_price'], 2) ?>
+                                        MWK <?= number_format($material['unit_price'], 2) ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <?= $material['lead_time'] ?? '-' ?> days
@@ -234,10 +234,10 @@
                                         <div class="text-sm text-gray-900"><?= esc($delivery['material_name']) ?></div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-gray-500">
-                                        <?= number_format($delivery['quantity'], 2) ?> <?= esc($delivery['unit_of_measure']) ?>
+                                        <?= number_format($delivery['quantity'], 2) ?> <?= esc($delivery['unit']) ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
-                                        $<?= number_format($delivery['total_amount'], 2) ?>
+                                        MWK <?= number_format($delivery['total_amount'], 2) ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right">
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
@@ -285,12 +285,12 @@
                     
                     <div>
                         <label for="unit_price" class="block text-sm font-medium text-gray-700 mb-2">Unit Price</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <span class="text-gray-500">$</span>
+                            <div class="flex">
+                                <span class="inline-flex items-center px-3 py-2 border border-gray-300 bg-gray-50 text-gray-500 rounded-l-lg">
+                                    MWK
+                                </span>
+                                <input type="number" step="0.01" min="0" name="unit_price" id="unit_price" class="w-full px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" required>
                             </div>
-                            <input type="number" step="0.01" min="0" name="unit_price" id="unit_price" class="w-full pl-8 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" required>
-                        </div>
                     </div>
                     
                     <div class="grid grid-cols-2 gap-4">
@@ -316,6 +316,64 @@
                     </button>
                     <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
                         Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Material Modal (hidden by default) -->
+    <div id="editMaterialModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full" aria-modal="true" role="dialog">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Edit Supplier Material</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-500" onclick="closeEditMaterialModal()">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <form id="editMaterialForm" method="POST">
+                <?= csrf_field() ?>
+                <input type="hidden" name="material_id" id="edit_material_id">
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="edit_material_name" class="block text-sm font-medium text-gray-700 mb-2">Material</label>
+                        <input type="text" id="edit_material_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100" disabled>
+                    </div>
+                    
+                    <div>
+                        <label for="edit_unit_price" class="block text-sm font-medium text-gray-700 mb-2">Unit Price</label>
+                            <div class="flex">
+                                <span class="inline-flex items-center px-3 py-2 border border-gray-300 bg-gray-50 text-gray-500 rounded-l-lg">
+                                    MWK
+                                </span>
+                                <input type="number" step="0.01" min="0" name="unit_price" id="edit_unit_price" class="w-full px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" required>
+                            </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="edit_min_order_qty" class="block text-sm font-medium text-gray-700 mb-2">Min Order Qty</label>
+                            <input type="number" step="1" min="0" name="min_order_qty" id="edit_min_order_qty" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+                        <div>
+                            <label for="edit_lead_time" class="block text-sm font-medium text-gray-700 mb-2">Lead Time (days)</label>
+                            <input type="number" step="1" min="0" name="lead_time" id="edit_lead_time" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="edit_notes" class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+                        <textarea name="notes" id="edit_notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"></textarea>
+                    </div>
+                </div>
+                
+                <div class="mt-5 flex justify-end gap-3">
+                    <button type="button" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors" onclick="closeEditMaterialModal()">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                        Update
                     </button>
                 </div>
             </form>
@@ -360,11 +418,11 @@
                         </div>
                         <div>
                             <label for="unit_price" class="block text-sm font-medium text-gray-700 mb-2">Unit Price</label>
-                            <div class="relative">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <span class="text-gray-500">$</span>
-                                </div>
-                                <input type="number" step="0.01" min="0" name="unit_price" id="delivery_unit_price" class="w-full pl-8 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" required>
+                            <div class="flex">
+                                <span class="inline-flex items-center px-3 py-2 border border-gray-300 bg-gray-50 text-gray-500 rounded-l-lg">
+                                    MWK
+                                </span>
+                                <input type="number" step="0.01" min="0" name="unit_price" id="delivery_unit_price" class="w-full px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" required>
                             </div>
                         </div>
                     </div>
@@ -495,15 +553,46 @@ function closeAddDeliveryModal() {
     document.getElementById('addDeliveryModal').classList.add('hidden');
 }
 
-function editSupplierMaterial(materialId) {
-    // Implement via AJAX or redirect
-    window.location.href = `<?= base_url('admin/suppliers/edit_material/' . $supplier['id']) ?>/${materialId}`;
-}
 
 function removeSupplierMaterial(materialId) {
     if (confirm('Are you sure you want to remove this material from this supplier?')) {
         window.location.href = `<?= base_url('admin/suppliers/remove_material/' . $supplier['id']) ?>/${materialId}`;
     }
+}
+
+function editSupplierMaterial(materialId) {
+    // Show edit modal and populate with material data from the existing materials array
+    document.getElementById('editMaterialModal').classList.remove('hidden');
+    
+    // Find the material data from the existing materials array
+    const materials = <?= json_encode($materials) ?>;
+    console.log('Materials array:', materials);
+    console.log('Looking for id:', materialId);
+    console.log('Type of materialId:', typeof materialId);
+    
+    // Try to find material by id (as string and number)
+    let material = materials.find(m => m.id == materialId);
+    console.log('Found material:', material);
+    
+    if (material) {
+        // Populate form fields
+        document.getElementById('edit_material_id').value = material.id;
+        document.getElementById('edit_material_name').value = material.name;
+        document.getElementById('edit_unit_price').value = material.unit_price;
+        document.getElementById('edit_min_order_qty').value = material.min_order_qty || '';
+        document.getElementById('edit_lead_time').value = material.lead_time || '';
+        document.getElementById('edit_notes').value = material.notes || '';
+        
+        // Set form action
+        document.getElementById('editMaterialForm').action = `<?= base_url('admin/suppliers/update_material/' . $supplier['id']) ?>/${material.id}`;
+    } else {
+        alert('Material not found. Please refresh the page and try again.');
+        console.error('Material with ID', materialId, 'not found in materials array');
+    }
+}
+
+function closeEditMaterialModal() {
+    document.getElementById('editMaterialModal').classList.add('hidden');
 }
 
 function viewDelivery(deliveryId) {

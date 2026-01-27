@@ -97,6 +97,26 @@
                                 </div>
 
                                 <div>
+                                    <label for="credit_limit" class="block text-sm font-medium text-gray-700 mb-2">Credit Limit</label>
+                                    <div class="flex">
+                                        <span class="inline-flex items-center px-3 py-2 border border-gray-300 bg-gray-50 text-gray-500 rounded-l-lg">
+                                            MWK
+                                        </span>
+                                        <input type="number" step="0.01" min="0" name="credit_limit" id="credit_limit" class="w-full px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="<?= old('credit_limit') ?>">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label for="supplier_type" class="block text-sm font-medium text-gray-700 mb-2">Supplier Type</label>
+                                    <select name="supplier_type" id="supplier_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                        <option value="material" <?= old('supplier_type') == 'material' ? 'selected' : '' ?>>Materials</option>
+                                        <option value="equipment" <?= old('supplier_type') == 'equipment' ? 'selected' : '' ?>>Equipment</option>
+                                        <option value="service" <?= old('supplier_type') == 'service' ? 'selected' : '' ?>>Services</option>
+                                        <option value="mixed" <?= old('supplier_type', 'mixed') == 'mixed' ? 'selected' : '' ?>>Mixed</option>
+                                    </select>
+                                </div>
+
+                                <div>
                                     <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
                                     <textarea name="notes" id="notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"><?= old('notes') ?></textarea>
                                 </div>

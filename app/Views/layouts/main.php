@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -260,10 +260,10 @@
                     </a>
                     <div class="submenu" id="inventory-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
-                            <a href="<?= base_url('admin/materials') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Materials</a>
-                            <a href="<?= base_url('admin/material-categories') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Categories</a>
-                            <a href="<?= base_url('admin/warehouses') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Warehouses</a>
                             <a href="<?= base_url('admin/suppliers') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Suppliers</a>
+                            <a href="<?= base_url('admin/material-categories') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Categories</a>
+                            <a href="<?= base_url('admin/materials') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Materials</a>
+                            <a href="<?= base_url('admin/warehouses') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Warehouses</a>
                             <a href="<?= base_url('admin/materials/barcode-scanner') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Barcode Scanner</a>
                             <a href="<?= base_url('admin/materials/low-stock-notifications') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Low Stock</a>
                             <a href="<?= base_url('admin/materials/report') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Reports</a>

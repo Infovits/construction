@@ -213,15 +213,24 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->get("new", "Suppliers::new"); // Alias for 'create'
         $routes->post("create", "Suppliers::create");
         $routes->get("(:num)", "Suppliers::view/$1");
+        $routes->get("view/(:num)", "Suppliers::view/$1");
         $routes->get("edit/(:num)", "Suppliers::edit/$1");
         $routes->post("(:num)", "Suppliers::update/$1");
+        $routes->post("update/(:num)", "Suppliers::update/$1");
+        $routes->get("delete/(:num)", "Suppliers::delete/$1");
         $routes->delete("(:num)", "Suppliers::delete/$1");
         $routes->post("rate/(:num)", "Suppliers::rate/$1");
         $routes->get("get-materials/(:num)", "Suppliers::getMaterials/$1");
         $routes->post("add_material/(:num)", "Suppliers::addMaterial/$1");
+        $routes->get("edit_material/(:num)/(:num)", "Suppliers::editMaterial/$1/$2");
+        $routes->post("update_material/(:num)/(:num)", "Suppliers::updateMaterial/$1/$2");
+        $routes->get("remove_material/(:num)/(:num)", "Suppliers::removeMaterial/$1/$2");
         $routes->post("record_delivery/(:num)", "Suppliers::recordDelivery/$1");
         $routes->get("delivery/(:num)", "Suppliers::delivery/$1");
-        $routes->get("remove_material/(:num)/(:num)", "Suppliers::removeMaterial/$1/$2");
+        $routes->get("update-delivery-status/(:num)/(:any)", "Suppliers::updateDeliveryStatus/$1/$2");
+        $routes->get("edit-delivery/(:num)", "Suppliers::editDelivery/$1");
+        $routes->post("update-delivery/(:num)", "Suppliers::updateDelivery/$1");
+        $routes->get("delete-delivery/(:num)", "Suppliers::deleteDelivery/$1");
     });
 
     // Material Requests Routes (Direct under admin for easier access)

@@ -118,11 +118,11 @@
 
                                 <div>
                                     <label for="credit_limit" class="block text-sm font-medium text-gray-700 mb-2">Credit Limit</label>
-                                    <div class="relative">
-                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                            <span class="text-gray-500">$</span>
-                                        </div>
-                                        <input type="number" step="0.01" min="0" name="credit_limit" id="credit_limit" class="w-full pl-8 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="<?= old('credit_limit', $supplier['credit_limit']) ?>">
+                                    <div class="flex">
+                                        <span class="inline-flex items-center px-3 py-2 border border-gray-300 bg-gray-50 text-gray-500 rounded-l-lg">
+                                            MWK
+                                        </span>
+                                        <input type="number" step="0.01" min="0" name="credit_limit" id="credit_limit" class="w-full px-3 py-2 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" value="<?= old('credit_limit', $supplier['credit_limit']) ?>">
                                     </div>
                                 </div>
 

@@ -87,7 +87,7 @@
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500">Unit Price:</span>
-                                        <span class="text-sm font-medium text-gray-900">$<?= number_format($delivery['unit_price'], 2) ?></span>
+                                        <span class="text-sm font-medium text-gray-900">MWK <?= number_format($delivery['unit_price'], 2) ?></span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-sm text-gray-500">Total Amount:</span>

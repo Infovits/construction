@@ -4,14 +4,17 @@ namespace App\Controllers;
 
 use App\Models\SupplierModel;
 use App\Models\MaterialCategoryModel;
+use App\Models\MaterialModel;
 
 class Suppliers extends BaseController
 {
     protected $supplierModel;
+    protected $materialModel;
     
     public function __construct()
     {
         $this->supplierModel = new SupplierModel();
+        $this->materialModel = new MaterialModel();
     }
     
     public function index()
@@ -259,8 +262,83 @@ class Suppliers extends BaseController
     }
     
     /**
-     * Add material to supplier
-     * 
+     * Show edit form for a supplier material
+     *
+     * @param int $supplierId
+     * @param int $materialId
+     * @return \CodeIgniter\HTTP\RedirectResponse|string
+     */
+    public function editMaterial($supplierId, $materialId)
+    {
+        $supplier = $this->supplierModel->find($supplierId);
+        if (!$supplier) {
+            return redirect()->to('/admin/suppliers')->with('error', 'Supplier not found');
+        }
+
+        $material = $this->supplierModel->getSupplierMaterial($supplierId, $materialId);
+        if (!$material) {
+            return redirect()->to('/admin/suppliers/view/' . $supplierId)->with('error', 'Material not found for this supplier');
+        }
+
+        $data = [
+            'title' => 'Edit Supplier Material',
+            'supplier' => $supplier,
+            'material' => $material
+        ];
+
+        return view('inventory/suppliers/edit_material', $data);
+    }
+
+    /**
+     * Update a supplier material
+     *
+     * @param int $supplierId
+     * @param int $id - ID from supplier_materials table
+     * @return \CodeIgniter\HTTP\RedirectResponse
+     */
+    public function updateMaterial($supplierId, $id)
+    {
+        $supplier = $this->supplierModel->find($supplierId);
+        if (!$supplier) {
+            return redirect()->to('/admin/suppliers')->with('error', 'Supplier not found');
+        }
+
+        // Get the supplier material record to find the material_id
+        $db = \Config\Database::connect();
+        $supplierMaterial = $db->table('supplier_materials')
+            ->where('id', $id)
+            ->where('supplier_id', $supplierId)
+            ->get()
+            ->getRowArray();
+
+        if (!$supplierMaterial) {
+            return redirect()->to('/admin/suppliers/view/' . $supplierId)->with('error', 'Material not found for this supplier');
+        }
+
+        $material = $this->materialModel->find($supplierMaterial['material_id']);
+        if (!$material) {
+            return redirect()->to('/admin/suppliers/view/' . $supplierId)->with('error', 'Material not found');
+        }
+
+        $data = [
+            'supplier_id' => $supplierId,
+            'material_id' => $supplierMaterial['material_id'],
+            'unit_price' => $this->request->getVar('unit_price'),
+            'min_order_qty' => $this->request->getVar('min_order_qty'),
+            'lead_time' => $this->request->getVar('lead_time'),
+            'notes' => $this->request->getVar('notes')
+        ];
+
+        if ($this->supplierModel->addMaterialToSupplier($data)) {
+            return redirect()->to('/admin/suppliers/view/' . $supplierId)->with('success', 'Supplier material updated successfully');
+        } else {
+            return redirect()->to('/admin/suppliers/view/' . $supplierId)->with('error', 'Failed to update supplier material');
+        }
+    }
+
+    /**
+     * Add a material to a supplier
+     *
      * @param int $supplierId
      * @return \CodeIgniter\HTTP\RedirectResponse
      */
@@ -277,7 +355,7 @@ class Suppliers extends BaseController
         
         $rules = [
             'material_id' => 'required|numeric',
-            'unit_price' => 'required|numeric|greater_than[0]'
+            'unit_price' => 'required|numeric|greater_than[0]',
         ];
         
         if (!$this->validate($rules)) {
@@ -304,10 +382,10 @@ class Suppliers extends BaseController
      * Remove material from supplier
      * 
      * @param int $supplierId
-     * @param int $materialId
+     * @param int $id - ID from supplier_materials table
      * @return \CodeIgniter\HTTP\RedirectResponse
      */
-    public function removeMaterial($supplierId, $materialId)
+    public function removeMaterial($supplierId, $id)
     {
         $companyId = session()->get('company_id');
         $supplier = $this->supplierModel->find($supplierId);
@@ -316,7 +394,7 @@ class Suppliers extends BaseController
             return redirect()->to('/admin/suppliers')->with('error', 'Supplier not found');
         }
         
-        if ($this->supplierModel->removeMaterialFromSupplier($supplierId, $materialId)) {
+        if ($this->supplierModel->removeMaterialFromSupplier($supplierId, $id)) {
             return redirect()->to('/admin/suppliers/view/' . $supplierId)->with('success', 'Material removed from supplier successfully');
         } else {
             return redirect()->back()->with('error', 'Failed to remove material from supplier');
@@ -401,6 +479,118 @@ class Suppliers extends BaseController
         ];
         
         return view('inventory/suppliers/delivery', $data);
+    }
+    
+    /**
+     * Show edit form for a delivery
+     * 
+     * @param int $deliveryId
+     * @return \CodeIgniter\HTTP\RedirectResponse|string
+     */
+    public function editDelivery($deliveryId)
+    {
+        $companyId = session()->get('company_id');
+        $delivery = $this->supplierModel->getDeliveryDetails($deliveryId);
+        
+        if (!$delivery || $delivery['company_id'] != $companyId) {
+            return redirect()->to('/admin/suppliers')->with('error', 'Delivery not found');
+        }
+        
+        $data = [
+            'title' => 'Edit Delivery',
+            'delivery' => $delivery,
+            'supplier' => $this->supplierModel->find($delivery['supplier_id'])
+        ];
+        
+        return view('inventory/suppliers/edit_delivery', $data);
+    }
+    
+    /**
+     * Update a delivery
+     * 
+     * @param int $deliveryId
+     * @return \CodeIgniter\HTTP\RedirectResponse
+     */
+    public function updateDelivery($deliveryId)
+    {
+        helper(['form', 'url']);
+        
+        $companyId = session()->get('company_id');
+        $delivery = $this->supplierModel->getDeliveryDetails($deliveryId);
+        
+        if (!$delivery || $delivery['company_id'] != $companyId) {
+            return redirect()->to('/admin/suppliers')->with('error', 'Delivery not found');
+        }
+        
+        $rules = [
+            'material_id' => 'required|numeric',
+            'warehouse_id' => 'required|numeric',
+            'quantity' => 'required|numeric|greater_than[0]',
+            'unit_price' => 'required|numeric|greater_than[0]',
+            'delivery_date' => 'required|valid_date',
+            'reference_number' => 'required'
+        ];
+        
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+        
+        $userId = session()->get('user_id');
+        $materialId = $this->request->getVar('material_id');
+        $quantity = $this->request->getVar('quantity');
+        $unitPrice = $this->request->getVar('unit_price');
+        
+        $data = [
+            'material_id' => $materialId,
+            'warehouse_id' => $this->request->getVar('warehouse_id'),
+            'delivery_date' => $this->request->getVar('delivery_date'),
+            'reference_number' => $this->request->getVar('reference_number'),
+            'quantity' => $quantity,
+            'unit_price' => $unitPrice,
+            'total_amount' => $quantity * $unitPrice,
+            'status' => $this->request->getVar('status'),
+            'notes' => $this->request->getVar('notes'),
+            'updated_by' => $userId
+        ];
+        
+        $db = \Config\Database::connect();
+        $result = $db->table('deliveries')->where('id', $deliveryId)->update($data);
+        
+        if ($result) {
+            return redirect()->to('/admin/suppliers/view/' . $delivery['supplier_id'])->with('success', 'Delivery updated successfully');
+        } else {
+            return redirect()->back()->withInput()->with('error', 'Failed to update delivery');
+        }
+    }
+    
+    /**
+     * Delete a delivery
+     * 
+     * @param int $deliveryId
+     * @return \CodeIgniter\HTTP\RedirectResponse
+     */
+    public function deleteDelivery($deliveryId)
+    {
+        $companyId = session()->get('company_id');
+        $delivery = $this->supplierModel->getDeliveryDetails($deliveryId);
+        
+        if (!$delivery || $delivery['company_id'] != $companyId) {
+            return redirect()->to('/admin/suppliers')->with('error', 'Delivery not found');
+        }
+        
+        // Check if delivery has been received and stock movements exist
+        if ($delivery['status'] == 'received') {
+            return redirect()->to('/admin/suppliers/view/' . $delivery['supplier_id'])->with('error', 'Cannot delete received delivery as it has affected warehouse stock');
+        }
+        
+        $db = \Config\Database::connect();
+        $result = $db->table('deliveries')->where('id', $deliveryId)->delete();
+        
+        if ($result) {
+            return redirect()->to('/admin/suppliers/view/' . $delivery['supplier_id'])->with('success', 'Delivery deleted successfully');
+        } else {
+            return redirect()->to('/admin/suppliers/view/' . $delivery['supplier_id'])->with('error', 'Failed to delete delivery');
+        }
     }
     
     /**

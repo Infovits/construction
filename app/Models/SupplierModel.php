@@ -28,18 +28,18 @@ class SupplierModel extends Model
     ];
     
     /**
-     * Check if supplier has any delivery records
-     *
+     * Remove a material from a supplier
+     * 
      * @param int $supplierId
+     * @param int $id - ID from supplier_materials table
      * @return bool
      */
-    public function hasDeliveries($supplierId)
+    public function removeMaterialFromSupplier($supplierId, $id)
     {
-        $db = \Config\Database::connect();
-        $count = $db->table('deliveries')
+        return $this->db->table('supplier_materials')
             ->where('supplier_id', $supplierId)
-            ->countAllResults();
-        return $count > 0;
+            ->where('id', $id)
+            ->delete();
     }
     
     /**
@@ -53,8 +53,8 @@ class SupplierModel extends Model
         $db = \Config\Database::connect();
         $builder = $db->table('deliveries d');
         $builder->select('d.*, m.name as material_name, m.item_code, m.unit, w.name as warehouse_name');
-        $builder->join('materials m', 'm.id = d.material_id');
-        $builder->join('warehouses w', 'w.id = d.warehouse_id');
+        $builder->join('materials m', 'm.id = d.material_id', 'left');
+        $builder->join('warehouses w', 'w.id = d.warehouse_id', 'left');
         $builder->where('d.supplier_id', $supplierId);
         $builder->orderBy('d.delivery_date', 'DESC');
         $builder->limit(10); // Get the 10 most recent deliveries
@@ -123,21 +123,6 @@ class SupplierModel extends Model
         }
     }
     
-    /**
-     * Remove a material from a supplier
-     *
-     * @param int $supplierId
-     * @param int $materialId
-     * @return bool
-     */
-    public function removeMaterialFromSupplier($supplierId, $materialId)
-    {
-        $db = \Config\Database::connect();
-        return $db->table('supplier_materials')
-            ->where('supplier_id', $supplierId)
-            ->where('material_id', $materialId)
-            ->delete();
-    }
     
     /**
      * Record a delivery from a supplier
@@ -153,15 +138,28 @@ class SupplierModel extends Model
         }
         
         $db = \Config\Database::connect();
-        $deliveryId = $db->table('deliveries')->insert($data);
+        
+        // Ensure created_at is set if not provided
+        if (!isset($data['created_at'])) {
+            $data['created_at'] = date('Y-m-d H:i:s');
+        }
+        
+        // Insert the delivery record
+        if (!$db->table('deliveries')->insert($data)) {
+            return false;
+        }
+        
+        // Get the inserted delivery ID
+        $deliveryId = $db->insertID();
         
         if ($deliveryId && $data['status'] == 'received') {
             // Update warehouse stock
             $warehouseStockModel = model(WarehouseStockModel::class);
-            $warehouseStockModel->addStock(
+            $warehouseStockModel->updateStockQuantity(
                 $data['warehouse_id'], 
                 $data['material_id'], 
-                $data['quantity']
+                $data['quantity'],
+                'add'
             );
             
             // Record stock movement
@@ -286,6 +284,26 @@ class SupplierModel extends Model
         $builder->orderBy('sm.is_preferred', 'DESC');
         $builder->orderBy('sm.unit_price', 'ASC');
         
+        $result = $builder->get()->getRowArray();
+        return $result ?: null;
+    }
+    
+    /**
+     * Get delivery details by ID
+     * 
+     * @param int $deliveryId
+     * @return array|null
+     */
+    public function getDeliveryDetails($deliveryId)
+    {
+        $db = \Config\Database::connect();
+        $builder = $db->table('deliveries d');
+        $builder->select('d.*, m.name as material_name, m.item_code, m.unit, w.name as warehouse_name, s.name as supplier_name');
+        $builder->join('materials m', 'm.id = d.material_id');
+        $builder->join('warehouses w', 'w.id = d.warehouse_id');
+        $builder->join('suppliers s', 's.id = d.supplier_id');
+        $builder->where('d.id', $deliveryId);
+
         $result = $builder->get()->getRowArray();
         return $result ?: null;
     }
