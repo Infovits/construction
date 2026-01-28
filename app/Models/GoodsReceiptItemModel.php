@@ -14,7 +14,7 @@ class GoodsReceiptItemModel extends Model
     protected $allowedFields = [
         'grn_id', 'purchase_order_item_id', 'material_id', 'quantity_delivered',
         'quantity_accepted', 'quantity_rejected', 'unit_cost', 'batch_number',
-        'expiry_date', 'quality_status', 'rejection_reason', 'notes'
+        'expiry_date', 'quality_status', 'rejection_reason', 'notes', 'criteria'
     ];
 
     protected $useTimestamps = true;

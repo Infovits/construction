@@ -269,6 +269,8 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
             $routes->get("/", "GoodsReceiptController::index");
             $routes->get("create", "GoodsReceiptController::create");
             $routes->post("/", "GoodsReceiptController::store");
+            $routes->get("(:num)/pdf", "GoodsReceiptController::generatePDF/$1");
+            $routes->get("pdf/(:num)", "GoodsReceiptController::generatePDF/$1");
             $routes->get("(:num)", "GoodsReceiptController::view/$1");
             $routes->get("(:num)/edit", "GoodsReceiptController::edit/$1");
             $routes->post("(:num)", "GoodsReceiptController::update/$1");
@@ -282,6 +284,7 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
             $routes->get("/", "QualityInspectionController::index");
             $routes->get("create", "QualityInspectionController::create");
             $routes->post("/", "QualityInspectionController::store");
+            $routes->post("store", "QualityInspectionController::store"); // Add alias route for store
             $routes->get("my-inspections", "QualityInspectionController::myInspections");
             $routes->get("pending-items", "QualityInspectionController::getPendingItems");
             $routes->get("(:num)", "QualityInspectionController::view/$1");
@@ -290,6 +293,7 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
             $routes->delete("(:num)", "QualityInspectionController::delete/$1");
             $routes->get("(:num)/inspect", "QualityInspectionController::inspect/$1");
             $routes->post("(:num)/complete", "QualityInspectionController::complete/$1");
+            $routes->get("export/pdf", "QualityInspectionController::exportPdf");
         });
 
         // Reports
@@ -331,6 +335,8 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->get("goods-receipt/create", "GoodsReceiptController::create");
     $routes->post("goods-receipt", "GoodsReceiptController::store");
     $routes->post("goods-receipt/store", "GoodsReceiptController::store");
+    $routes->get("goods-receipt/(:num)/pdf", "GoodsReceiptController::generatePDF/$1");
+    $routes->get("goods-receipt/pdf/(:num)", "GoodsReceiptController::generatePDF/$1");
     $routes->get("goods-receipt/(:num)", "GoodsReceiptController::view/$1");
     $routes->get("goods-receipt/(:num)/edit", "GoodsReceiptController::edit/$1");
     $routes->post("goods-receipt/(:num)", "GoodsReceiptController::update/$1");
@@ -346,6 +352,7 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->get("quality-inspections/(:num)", "QualityInspectionController::view/$1");
     $routes->get("quality-inspections/(:num)/edit", "QualityInspectionController::edit/$1");
     $routes->post("quality-inspections/(:num)", "QualityInspectionController::update/$1");
+    $routes->put("quality-inspections/(:num)", "QualityInspectionController::update/$1");
     $routes->delete("quality-inspections/(:num)", "QualityInspectionController::delete/$1");
     $routes->get("quality-inspections/(:num)/inspect", "QualityInspectionController::inspect/$1");
     $routes->post("quality-inspections/(:num)/complete", "QualityInspectionController::complete/$1");

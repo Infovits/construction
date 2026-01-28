@@ -16,7 +16,7 @@ class QualityInspectionModel extends Model
         'inspection_date', 'inspection_type', 'status', 'overall_grade',
         'quantity_inspected', 'quantity_passed', 'quantity_failed',
         'defect_description', 'corrective_action', 'inspector_notes',
-        'attachments', 'completed_at'
+        'attachments', 'completed_at', 'criteria'
     ];
 
     protected $useTimestamps = true;
@@ -114,12 +114,19 @@ class QualityInspectionModel extends Model
                 materials.specifications,
                 inspector.first_name as inspector_first_name,
                 inspector.last_name as inspector_last_name,
+                CONCAT(inspector.first_name, " ", inspector.last_name) as inspector_name,
+                inspector.email as inspector_email,
+                inspector.phone as inspector_phone,
+                departments.name as inspector_department,
+                goods_receipt_items.quantity_delivered,
                 goods_receipt_notes.grn_number,
                 goods_receipt_notes.delivery_date,
                 suppliers.name as supplier_name,
                 suppliers.contact_person as supplier_contact')
             ->join('materials', 'materials.id = quality_inspections.material_id', 'left')
             ->join('users as inspector', 'inspector.id = quality_inspections.inspector_id', 'left')
+            ->join('employee_details', 'employee_details.user_id = inspector.id', 'left')
+            ->join('departments', 'departments.id = employee_details.department_id', 'left')
             ->join('goods_receipt_items', 'goods_receipt_items.id = quality_inspections.grn_item_id', 'left')
             ->join('goods_receipt_notes', 'goods_receipt_notes.id = goods_receipt_items.grn_id', 'left')
             ->join('suppliers', 'suppliers.id = goods_receipt_notes.supplier_id', 'left')

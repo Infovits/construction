@@ -19,6 +19,12 @@
                 <i data-lucide="user-check" class="w-4 h-4 mr-2"></i>
                 My Inspections
             </a>
+            <a href="<?= base_url('admin/quality-inspections/export/pdf') ?>" 
+               class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+               target="_blank">
+                <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+                Export PDF
+            </a>
         </div>
     </div>
 

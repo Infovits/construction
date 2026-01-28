@@ -37,4 +37,38 @@ class CompanyModel extends Model
     ];
 
     protected $skipValidation = false;
+
+    /**
+     * Get company information for display in reports and documents
+     * 
+     * @return array Company information
+     */
+    public function getCompanyInfo()
+    {
+        // Get the first active company (assuming single company setup)
+        $company = $this->where('status', 'active')->first();
+        
+        if ($company) {
+            return [
+                'name' => $company['name'],
+                'address' => $company['address'] . ', ' . $company['city'] . ', ' . $company['country'],
+                'logo' => $company['logo_url'] ?? null,
+                'email' => $company['email'],
+                'phone' => $company['phone'],
+                'registration_number' => $company['registration_number'],
+                'tax_number' => $company['tax_number']
+            ];
+        }
+        
+        // Return default values if no company found
+        return [
+            'name' => 'Construction Management System',
+            'address' => 'Default Address',
+            'logo' => null,
+            'email' => null,
+            'phone' => null,
+            'registration_number' => null,
+            'tax_number' => null
+        ];
+    }
 }

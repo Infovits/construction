@@ -62,7 +62,7 @@
                                         <?= esc($inspection['material_name']) ?>
                                     </div>
                                     <div class="text-sm text-gray-500">
-                                        <?= esc($inspection['item_code']) ?>
+                                        <?= esc($inspection['material_code'] ?? 'N/A') ?>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -89,18 +89,25 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    <?= number_format($inspection['quantity_inspected']) ?> <?= esc($inspection['unit']) ?>
+                                    <?= number_format($inspection['quantity_inspected']) ?> <?= esc($inspection['unit'] ?? 'N/A') ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                     <?= date('M j, Y', strtotime($inspection['created_at'])) ?>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex items-center space-x-2">
-                                        <a href="<?= base_url('admin/quality-inspections/' . $inspection['id'] . '/inspect') ?>"
-                                           class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors">
-                                            <i data-lucide="clipboard-check" class="w-3 h-3 mr-1"></i>
-                                            Conduct
-                                        </a>
+                                        <?php if ($inspection['status'] === 'pending'): ?>
+                                            <a href="<?= base_url('admin/quality-inspections/' . $inspection['id'] . '/inspect') ?>"
+                                               class="inline-flex items-center px-3 py-1 bg-blue-600 text-white text-xs rounded-md hover:bg-blue-700 transition-colors">
+                                                <i data-lucide="clipboard-check" class="w-3 h-3 mr-1"></i>
+                                                Conduct
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="inline-flex items-center px-3 py-1 bg-gray-300 text-gray-600 text-xs rounded-md cursor-not-allowed">
+                                                <i data-lucide="clipboard-check" class="w-3 h-3 mr-1"></i>
+                                                Conducted
+                                            </span>
+                                        <?php endif; ?>
                                         <a href="<?= base_url('admin/quality-inspections/' . $inspection['id']) ?>"
                                            class="inline-flex items-center px-3 py-1 bg-gray-600 text-white text-xs rounded-md hover:bg-gray-700 transition-colors">
                                             <i data-lucide="eye" class="w-3 h-3 mr-1"></i>

@@ -220,6 +220,26 @@ class QualityInspectionController extends BaseController
                 'inspector_notes' => $this->request->getPost('inspector_notes')
             ];
 
+            // Handle inspection criteria
+            $criteria = $this->request->getPost('criteria');
+            if (!empty($criteria)) {
+                // Filter out empty values and N/A values
+                $filteredCriteria = [];
+                foreach ($criteria as $key => $value) {
+                    if (!empty($value) && $value !== '') {
+                        $filteredCriteria[$key] = $value;
+                    }
+                }
+                
+                if (!empty($filteredCriteria)) {
+                    $results['criteria'] = json_encode($filteredCriteria);
+                } else {
+                    $results['criteria'] = null;
+                }
+            } else {
+                $results['criteria'] = null;
+            }
+
             // Validate quantities
             $totalInspected = $results['quantity_passed'] + $results['quantity_failed'];
             if ($totalInspected != $inspection['quantity_inspected']) {
@@ -294,17 +314,50 @@ class QualityInspectionController extends BaseController
         }
 
         try {
+            // Debug: Log the form data
+            log_message('debug', 'Quality Inspection Update - Form Data: ' . print_r($this->request->getPost(), true));
+            
             $inspectionData = [
                 'inspector_id' => $this->request->getPost('inspector_id'),
                 'inspection_type' => $this->request->getPost('inspection_type'),
                 'quantity_inspected' => $this->request->getPost('quantity_inspected')
             ];
 
-            $this->qualityInspectionModel->update($id, $inspectionData);
+            // Handle inspection criteria
+            $criteria = $this->request->getPost('criteria');
+            if (!empty($criteria)) {
+                // Filter out empty values and N/A values
+                $filteredCriteria = [];
+                foreach ($criteria as $key => $value) {
+                    if (!empty($value) && $value !== '') {
+                        $filteredCriteria[$key] = $value;
+                    }
+                }
+                
+                if (!empty($filteredCriteria)) {
+                    $inspectionData['criteria'] = json_encode($filteredCriteria);
+                } else {
+                    $inspectionData['criteria'] = null;
+                }
+            } else {
+                $inspectionData['criteria'] = null;
+            }
 
-            return redirect()->to('/admin/quality-inspections')->with('success', 'Quality inspection updated successfully');
+            // Debug: Log the inspection data
+            log_message('debug', 'Quality Inspection Update - Inspection Data: ' . print_r($inspectionData, true));
+            
+            // Debug: Check if model update returns true
+            $result = $this->qualityInspectionModel->update($id, $inspectionData);
+            log_message('debug', 'Quality Inspection Update - Model Result: ' . ($result ? 'true' : 'false'));
+            
+            if ($result) {
+                return redirect()->to('/admin/quality-inspections')->with('success', 'Quality inspection updated successfully');
+            } else {
+                return redirect()->back()->withInput()->with('error', 'Failed to update quality inspection: No changes made or validation failed');
+            }
 
         } catch (\Exception $e) {
+            log_message('error', 'Quality Inspection Update - Exception: ' . $e->getMessage());
             return redirect()->back()->withInput()->with('error', 'Failed to update quality inspection: ' . $e->getMessage());
         }
     }
@@ -362,5 +415,378 @@ class QualityInspectionController extends BaseController
             'success' => true,
             'items' => $items
         ]);
+    }
+
+    /**
+     * Export quality inspections report to PDF
+     */
+    public function exportPdf()
+    {
+        $filters = [
+            'status' => $this->request->getGet('status'),
+            'inspection_type' => $this->request->getGet('inspection_type'),
+            'inspector_id' => $this->request->getGet('inspector_id'),
+            'material_id' => $this->request->getGet('material_id')
+        ];
+
+        // Remove empty filters
+        $filters = array_filter($filters);
+
+        $inspections = $this->qualityInspectionModel->getInspectionsWithDetails($filters);
+
+        // Get company information for PDF
+        $companyModel = new \App\Models\CompanyModel();
+        $companyInfo = $companyModel->getCompanyInfo();
+
+        // Initialize DomPDFWrapper
+        $pdf = new \App\Libraries\DomPDFWrapper($companyInfo);
+
+        // Generate HTML content for the PDF
+        $html = $this->generateInspectionReportPDFContent($inspections, $filters);
+
+        // Generate and return PDF
+        return $pdf->generatePdf($html, 'Quality_Inspections_Report_' . date('Y-m-d') . '.pdf', 'I');
+    }
+
+    /**
+     * Generate HTML content for inspection report PDF
+     */
+    private function generateInspectionReportPDFContent($inspections, $filters)
+    {
+        // Get company info from the exportPdf method
+        $companyModel = new \App\Models\CompanyModel();
+        $companyInfo = $companyModel->getCompanyInfo();
+        
+        $companyName = $companyInfo['name'] ?? 'Construction Management System';
+        $companyAddress = $companyInfo['address'] ?? 'Default Address';
+        $date = date('Y-m-d H:i:s');
+
+        $html = '<!DOCTYPE html>';
+        $html .= '<html><head>';
+        $html .= '<meta charset="UTF-8">';
+        $html .= '<title>Quality Inspections Report</title>';
+        $html .= '<style>';
+        $html .= $this->getInspectionPDFStyles();
+        $html .= '</style>';
+        $html .= '</head><body>';
+
+        // Header
+        $html .= '<div class="header">';
+        $html .= '<div class="company-info">';
+        $html .= '<div class="company-details">';
+        $html .= '<h1>' . $companyName . '</h1>';
+        $html .= '<p>' . $companyAddress . '</p>';
+        $html .= '</div>';
+        $html .= '</div>';
+        $html .= '<div class="report-title">';
+        $html .= '<h2>Quality Inspections Report</h2>';
+        $html .= '<p class="report-date">Generated on: ' . $date . '</p>';
+        $html .= '</div>';
+        $html .= '</div>';
+
+        // Filters Summary
+        $html .= $this->getFiltersSummary($filters);
+
+        // Summary Section
+        if (!empty($inspections)) {
+            $totalInspections = count($inspections);
+            $passedInspections = count(array_filter($inspections, function($i) { return $i['status'] === 'passed'; }));
+            $failedInspections = count(array_filter($inspections, function($i) { return $i['status'] === 'failed'; }));
+            $pendingInspections = count(array_filter($inspections, function($i) { return $i['status'] === 'pending'; }));
+            $conditionalInspections = count(array_filter($inspections, function($i) { return $i['status'] === 'conditional'; }));
+
+            $html .= '<div class="summary-section">';
+            $html .= '<h3>Inspection Summary</h3>';
+            $html .= '<div class="summary-grid">';
+            $html .= '<div class="summary-item"><strong>Total Inspections:</strong> ' . $totalInspections . '</div>';
+            $html .= '<div class="summary-item"><strong>Passed:</strong> ' . $passedInspections . '</div>';
+            $html .= '<div class="summary-item"><strong>Failed:</strong> ' . $failedInspections . '</div>';
+            $html .= '<div class="summary-item"><strong>Pending:</strong> ' . $pendingInspections . '</div>';
+            $html .= '<div class="summary-item"><strong>Conditional:</strong> ' . $conditionalInspections . '</div>';
+            if ($totalInspections > 0) {
+                $passRate = round(($passedInspections / $totalInspections) * 100, 1);
+                $html .= '<div class="summary-item"><strong>Pass Rate:</strong> ' . $passRate . '%</div>';
+            }
+            $html .= '</div>';
+            $html .= '</div>';
+        }
+
+        // Inspections Table
+        $html .= '<div class="content">';
+        $html .= '<h3>Quality Inspections</h3>';
+        
+        if (!empty($inspections)) {
+            $html .= '<table class="data-table">';
+            $html .= '<thead>';
+            $html .= '<tr>';
+            $html .= '<th>#</th>';
+            $html .= '<th>Inspection No.</th>';
+            $html .= '<th>Material</th>';
+            $html .= '<th>GRN</th>';
+            $html .= '<th>Type</th>';
+            $html .= '<th>Inspector</th>';
+            $html .= '<th>Status</th>';
+            $html .= '<th>Date</th>';
+            $html .= '<th>Grade</th>';
+            $html .= '</tr>';
+            $html .= '</thead>';
+            $html .= '<tbody>';
+
+            $counter = 1;
+            foreach ($inspections as $inspection) {
+                $statusClass = 'status-normal';
+                $statusText = ucfirst($inspection['status']);
+                
+                if ($inspection['status'] === 'failed') {
+                    $statusClass = 'status-critical';
+                } elseif ($inspection['status'] === 'pending') {
+                    $statusClass = 'status-low';
+                } elseif ($inspection['status'] === 'conditional') {
+                    $statusClass = 'status-warning';
+                }
+
+                $html .= '<tr>';
+                $html .= '<td>' . $counter . '</td>';
+                $html .= '<td>' . $inspection['inspection_number'] . '</td>';
+                $html .= '<td>' . ($inspection['material_name'] ?? 'N/A') . ' (' . ($inspection['material_code'] ?? '') . ')</td>';
+                $html .= '<td>' . ($inspection['grn_number'] ?? 'N/A') . '</td>';
+                $html .= '<td>' . ucfirst($inspection['inspection_type']) . '</td>';
+                $html .= '<td>' . ($inspection['inspector_name'] ?? 'Unassigned') . '</td>';
+                $html .= '<td class="' . $statusClass . '">' . $statusText . '</td>';
+                $html .= '<td>' . date('M j, Y', strtotime($inspection['inspection_date'])) . '</td>';
+                $html .= '<td>' . ($inspection['overall_grade'] ?? 'N/A') . '</td>';
+                $html .= '</tr>';
+
+                $counter++;
+            }
+
+            $html .= '</tbody>';
+            $html .= '</table>';
+        } else {
+            $html .= '<div style="text-align: center; padding: 20px; color: #777; font-size: 16px;">No quality inspections found matching your criteria.</div>';
+        }
+
+        $html .= $this->getPDFFooter();
+
+        return $html;
+    }
+
+    /**
+     * Get CSS styles for inspection PDF
+     */
+    private function getInspectionPDFStyles()
+    {
+        return '
+            body {
+                font-family: "DejaVu Sans", sans-serif;
+                margin: 0;
+                padding: 0;
+                color: #333;
+            }
+            
+            .header {
+                border-bottom: 2px solid #333;
+                padding-bottom: 20px;
+                margin-bottom: 20px;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+            }
+            
+            .company-info {
+                display: flex;
+                align-items: center;
+            }
+            
+            .company-details h1 {
+                margin: 0 0 5px 0;
+                font-size: 20px;
+                font-weight: bold;
+            }
+            
+            .company-details p {
+                margin: 0;
+                font-size: 12px;
+                color: #666;
+            }
+            
+            .report-title {
+                text-align: right;
+            }
+            
+            .report-title h2 {
+                margin: 0 0 5px 0;
+                font-size: 18px;
+                color: #333;
+            }
+            
+            .report-date {
+                margin: 0;
+                font-size: 11px;
+                color: #666;
+            }
+            
+            .content {
+                margin-bottom: 30px;
+            }
+            
+            .summary-section {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .summary-section h3 {
+                margin: 0 0 15px 0;
+                font-size: 14px;
+                color: #495057;
+            }
+            
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 10px;
+            }
+            
+            .summary-item {
+                background-color: #fff;
+                padding: 10px;
+                border-radius: 4px;
+                border: 1px solid #dee2e6;
+                font-size: 12px;
+            }
+            
+            .summary-item strong {
+                color: #495057;
+                display: block;
+                margin-bottom: 2px;
+            }
+            
+            .filters-summary {
+                background-color: #f5f5f5;
+                padding: 10px;
+                margin-bottom: 20px;
+                border-radius: 4px;
+                font-size: 12px;
+                border-left: 4px solid #007bff;
+            }
+            
+            .data-table {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 11px;
+                margin-bottom: 20px;
+            }
+            
+            .data-table th {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                padding: 8px;
+                font-weight: bold;
+                text-align: left;
+                font-size: 12px;
+            }
+            
+            .data-table td {
+                border: 1px solid #dee2e6;
+                padding: 8px;
+                font-size: 11px;
+            }
+            
+            .data-table tr:nth-child(even) {
+                background-color: #f8f9fa;
+            }
+            
+            .status-critical {
+                color: #dc3545;
+                font-weight: bold;
+                background-color: #f8d7da;
+                text-align: center;
+            }
+            
+            .status-low {
+                color: #856404;
+                font-weight: bold;
+                background-color: #fff3cd;
+                text-align: center;
+            }
+            
+            .status-warning {
+                color: #856404;
+                font-weight: bold;
+                background-color: #fff3cd;
+                text-align: center;
+            }
+            
+            .status-normal {
+                color: #155724;
+                font-weight: bold;
+                background-color: #d4edda;
+                text-align: center;
+            }
+            
+            .footer {
+                border-top: 1px solid #dee2e6;
+                padding-top: 10px;
+                margin-top: 30px;
+                display: flex;
+                justify-content: space-between;
+                font-size: 10px;
+                color: #666;
+            }
+        ';
+    }
+
+    /**
+     * Generate filters summary for PDF
+     */
+    private function getFiltersSummary($filters)
+    {
+        if (empty($filters)) {
+            return '';
+        }
+
+        $html = '<div class="filters-summary">';
+        $html .= '<strong>Applied Filters:</strong> ';
+        
+        $filterTexts = [];
+        if (!empty($filters['status'])) {
+            $filterTexts[] = 'Status: ' . ucfirst($filters['status']);
+        }
+        if (!empty($filters['inspection_type'])) {
+            $filterTexts[] = 'Type: ' . ucfirst($filters['inspection_type']);
+        }
+        if (!empty($filters['inspector_id'])) {
+            $inspector = $this->userModel->find($filters['inspector_id']);
+            if ($inspector) {
+                $filterTexts[] = 'Inspector: ' . $inspector['first_name'] . ' ' . $inspector['last_name'];
+            }
+        }
+        if (!empty($filters['material_id'])) {
+            $material = $this->materialModel->find($filters['material_id']);
+            if ($material) {
+                $filterTexts[] = 'Material: ' . $material['name'];
+            }
+        }
+
+        $html .= implode(' | ', $filterTexts);
+        $html .= '</div>';
+
+        return $html;
+    }
+
+    /**
+     * Generate PDF footer
+     */
+    private function getPDFFooter()
+    {
+        return '
+            <div class="footer">
+                <div>Generated by Construction Management System</div>
+                <div>Page <script type="text/php">if (isset($pdf)) { $font = Font_Metrics::get_font("helvetica", "normal"); $pdf->page_text(520, 820, "Page {PAGE_NUM} of {PAGE_COUNT}", $font, 8, array(0,0,0)); }</script></div>
+            </div>
+        ';
     }
 }
