@@ -21,7 +21,7 @@
 
     <!-- Purchase Order Form -->
     <div class="bg-white rounded-lg shadow-sm border">
-        <form id="purchaseOrderForm" action="<?= base_url('admin/purchase-orders/' . $purchaseOrder['id'] . '/update') ?>" method="POST">
+        <form id="purchaseOrderForm" action="<?= base_url('admin/purchase-orders/' . $purchaseOrder['id']) ?>" method="POST">
             <?= csrf_field() ?>
             
             <!-- Header Information -->
@@ -219,10 +219,11 @@
                         </div>
 
                         <div class="mt-4">
-                            <label for="tax_amount" class="block text-sm font-medium text-gray-700 mb-2">Tax Amount</label>
-                            <input type="number" id="tax_amount" name="tax_amount" step="0.01" 
-                                   value="<?= $purchaseOrder['tax_amount'] ?>" 
+                            <label for="tax_percentage" class="block text-sm font-medium text-gray-700 mb-2">Tax Percentage (%)</label>
+                            <input type="number" id="tax_percentage" name="tax_percentage" step="0.01" min="0" max="100"
+                                   value="<?= $purchaseOrder['tax_percentage'] ?? '0.00' ?>" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <p class="text-xs text-gray-500 mt-1">Enter tax percentage (e.g., 16 for 16%)</p>
                         </div>
 
                         <div class="mt-4">
@@ -336,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update totals when inputs change
     document.addEventListener('input', function(e) {
-        if (e.target.matches('.quantity-input, .unit-cost-input, #tax_amount, #freight_cost')) {
+        if (e.target.matches('.quantity-input, .unit-cost-input, #tax_percentage, #freight_cost')) {
             if (e.target.matches('.quantity-input, .unit-cost-input')) {
                 updateItemTotal(e.target.closest('tr'));
             }
@@ -375,13 +376,16 @@ document.addEventListener('DOMContentLoaded', function() {
             subtotal += quantity * unitCost;
         });
         
-        const taxAmount = parseFloat(document.getElementById('tax_amount').value) || 0;
+        // Calculate tax based on percentage
+        const taxPercentage = parseFloat(document.getElementById('tax_percentage').value) || 0;
+        const taxAmount = (subtotal * taxPercentage) / 100;
+        
         const freightCost = parseFloat(document.getElementById('freight_cost').value) || 0;
         const totalAmount = subtotal + taxAmount + freightCost;
         
         // Update displays
         document.getElementById('subtotalDisplay').textContent = 'MWK ' + subtotal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-        document.getElementById('taxAmountDisplay').textContent = 'MWK ' + taxAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        document.getElementById('taxAmountDisplay').textContent = 'MWK ' + taxAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ` (${taxPercentage}%)`;
         document.getElementById('freightCostDisplay').textContent = 'MWK ' + freightCost.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         document.getElementById('totalAmountDisplay').textContent = 'MWK ' + totalAmount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         

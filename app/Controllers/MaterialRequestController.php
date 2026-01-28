@@ -392,10 +392,36 @@ class MaterialRequestController extends BaseController
 
         $approvalNotes = $this->request->getPost('approval_notes');
         
-        if ($this->materialRequestModel->approveMaterialRequest($id, session('user_id'), $approvalNotes)) {
+        try {
+            $db = \Config\Database::connect();
+            $db->transStart();
+
+            // First, approve the material request
+            if (!$this->materialRequestModel->approveMaterialRequest($id, session('user_id'), $approvalNotes)) {
+                $db->transRollback();
+                return redirect()->back()->with('error', 'Failed to approve material request');
+            }
+
+            // Then, approve all items by setting quantity_approved = quantity_requested
+            $items = $this->materialRequestItemModel->where('material_request_id', $id)->findAll();
+            
+            foreach ($items as $item) {
+                $this->materialRequestItemModel->update($item['id'], [
+                    'quantity_approved' => $item['quantity_requested']
+                ]);
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return redirect()->back()->with('error', 'Failed to approve material request items');
+            }
+
             return redirect()->back()->with('success', 'Material request approved successfully');
-        } else {
-            return redirect()->back()->with('error', 'Failed to approve material request');
+
+        } catch (\Exception $e) {
+            log_message('error', 'Material request approval failed: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'An error occurred while approving the material request');
         }
     }
 

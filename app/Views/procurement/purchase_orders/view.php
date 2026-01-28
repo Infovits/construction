@@ -65,6 +65,13 @@
                 </button>
             <?php endif; ?>
             
+            <?php if ($purchaseOrder['status'] === 'draft'): ?>
+                <button onclick="deletePO(<?= $purchaseOrder['id'] ?>)" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                    <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>
+                    Delete
+                </button>
+            <?php endif; ?>
+            
             <button onclick="window.print()" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
                 <i data-lucide="printer" class="w-4 h-4 mr-2"></i>
                 Print
@@ -421,6 +428,37 @@ function cancelPO(id) {
         form.appendChild(csrfInput);
         
         document.body.appendChild(form);
+        form.submit();
+    }
+}
+
+function deletePO(id) {
+    if (confirm('Are you sure you want to delete this purchase order? This action cannot be undone.')) {
+        const baseUrl = `<?= base_url('admin/purchase-orders/') ?>`;
+        const actionUrl = `${baseUrl}${id}/delete`;
+        
+        console.log('Delete PO function called with ID:', id);
+        console.log('Base URL:', baseUrl);
+        console.log('Action URL:', actionUrl);
+        
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = actionUrl;
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '<?= csrf_token() ?>';
+        csrfInput.value = '<?= csrf_hash() ?>';
+        form.appendChild(csrfInput);
+        
+        const methodInput = document.createElement('input');
+        methodInput.type = 'hidden';
+        methodInput.name = '_method';
+        methodInput.value = 'DELETE';
+        form.appendChild(methodInput);
+        
+        document.body.appendChild(form);
+        console.log('Submitting form to:', actionUrl);
         form.submit();
     }
 }

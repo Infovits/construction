@@ -261,6 +261,7 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
             $routes->get("(:num)/edit", "PurchaseOrderController::edit/$1");
             $routes->post("(:num)", "PurchaseOrderController::update/$1");
             $routes->delete("(:num)", "PurchaseOrderController::delete/$1");
+            $routes->get("material-request-items/(:num)", "PurchaseOrderController::getMaterialRequestItems/$1");
         });
 
         // Goods Receipt Routes
@@ -297,6 +298,9 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     });
 
     // Direct routes for easier access (aliases to procurement routes)
+    // Add the material request items route here for better accessibility
+    $routes->get("purchase-orders/material-request-items/(:num)", "PurchaseOrderController::getMaterialRequestItems/$1");
+    
     $routes->get("material-requests", "MaterialRequestController::index");
     $routes->get("material-requests/create", "MaterialRequestController::create");
     $routes->post("material-requests", "MaterialRequestController::store");
@@ -315,6 +319,8 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->get("purchase-orders/(:num)/edit", "PurchaseOrderController::edit/$1");
     $routes->post("purchase-orders/(:num)", "PurchaseOrderController::update/$1");
     $routes->delete("purchase-orders/(:num)", "PurchaseOrderController::delete/$1");
+    $routes->get("purchase-orders/(:num)/delete", "PurchaseOrderController::delete/$1");
+    $routes->post("purchase-orders/(:num)/delete", "PurchaseOrderController::delete/$1");
 
     $routes->get("goods-receipt", "GoodsReceiptController::index");
     $routes->get("goods-receipt/create", "GoodsReceiptController::create");

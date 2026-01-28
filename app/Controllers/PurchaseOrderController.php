@@ -168,7 +168,9 @@ class PurchaseOrderController extends BaseController
                 $subtotal += $quantity * $unitCost;
             }
             
-            $taxAmount = (float)($this->request->getPost('tax_amount') ?: 0);
+            // Calculate tax amount from percentage
+            $taxPercentage = (float)($this->request->getPost('tax_percentage') ?: 0);
+            $taxAmount = ($subtotal * $taxPercentage) / 100;
             $freightCost = (float)($this->request->getPost('freight_cost') ?: 0);
             $totalAmount = $subtotal + $taxAmount + $freightCost;
 
@@ -221,6 +223,14 @@ class PurchaseOrderController extends BaseController
             
             return redirect()->back()->withInput()->with('error', 'Error creating purchase order: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Show purchase order details (alias for view)
+     */
+    public function show($id)
+    {
+        return $this->view($id);
     }
 
     /**
@@ -309,7 +319,7 @@ class PurchaseOrderController extends BaseController
             'currency' => 'permit_empty|string|max_length[3]',
             'notes' => 'permit_empty|string',
             'terms_conditions' => 'permit_empty|string',
-            'items' => 'required|array',
+            'items' => 'required',
             'items.*.material_id' => 'required|integer',
             'items.*.quantity_ordered' => 'required|decimal|greater_than[0]',
             'items.*.unit_cost' => 'required|decimal|greater_than[0]'
@@ -331,8 +341,10 @@ class PurchaseOrderController extends BaseController
                 $subtotal += $item['quantity_ordered'] * $item['unit_cost'];
             }
 
-            $taxAmount = $this->request->getPost('tax_amount') ?: 0;
-            $freightCost = $this->request->getPost('freight_cost') ?: 0;
+            // Calculate tax amount from percentage
+            $taxPercentage = (float)($this->request->getPost('tax_percentage') ?: 0);
+            $taxAmount = ($subtotal * $taxPercentage) / 100;
+            $freightCost = (float)($this->request->getPost('freight_cost') ?: 0);
             $totalAmount = $subtotal + $taxAmount + $freightCost;
 
             // Update purchase order
@@ -457,33 +469,53 @@ class PurchaseOrderController extends BaseController
      */
     public function delete($id)
     {
+        log_message('debug', "Delete method called for PO ID: $id");
+        log_message('debug', "Request method: " . $this->request->getMethod());
+        log_message('debug', "Request URI: " . $this->request->uri->getPath());
+        
         $purchaseOrder = $this->purchaseOrderModel->find($id);
 
         if (!$purchaseOrder) {
+            log_message('error', "Purchase order not found for ID: $id");
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Purchase order not found');
         }
 
+        log_message('debug', "Found PO: " . json_encode($purchaseOrder));
+        log_message('debug', "PO Status: " . $purchaseOrder['status']);
+
         // Only allow deletion of draft purchase orders
         if ($purchaseOrder['status'] !== PurchaseOrderModel::STATUS_DRAFT) {
+            log_message('error', "Cannot delete PO ID $id - status is {$purchaseOrder['status']}, not draft");
             return redirect()->back()->with('error', 'Only draft purchase orders can be deleted');
         }
 
         $db = \Config\Database::connect();
         $db->transStart();
 
-        // Delete items first
-        $db->table('purchase_order_items')->where('purchase_order_id', $id)->delete();
-        
-        // Delete purchase order
-        $this->purchaseOrderModel->delete($id);
+        try {
+            // Delete items first
+            log_message('debug', "Deleting items for PO ID: $id");
+            $db->table('purchase_order_items')->where('purchase_order_id', $id)->delete();
+            
+            // Delete purchase order
+            log_message('debug', "Deleting PO ID: $id");
+            $this->purchaseOrderModel->delete($id);
 
-        $db->transComplete();
+            $db->transComplete();
 
-        if ($db->transStatus() === false) {
-            return redirect()->back()->with('error', 'Failed to delete purchase order');
+            if ($db->transStatus() === false) {
+                log_message('error', "Transaction failed for PO ID: $id");
+                return redirect()->back()->with('error', 'Failed to delete purchase order');
+            }
+
+            log_message('info', "Successfully deleted PO ID: $id");
+            return redirect()->to('/admin/purchase-orders')->with('success', 'Purchase order deleted successfully');
+
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', "Exception during delete PO ID $id: " . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to delete purchase order: ' . $e->getMessage());
         }
-
-        return redirect()->to('/admin/purchase-orders')->with('success', 'Purchase order deleted successfully');
     }
 
     /**
@@ -606,12 +638,12 @@ class PurchaseOrderController extends BaseController
             $materialRequest = $this->materialRequestModel->getMaterialRequestWithItems($materialRequestId);
             
             if (!$materialRequest) {
-                return $this->response->setJSON(['error' => 'Material request not found']);
+                return $this->response->setJSON(['success' => false, 'error' => 'Material request not found']);
             }
 
             // Check if the request is approved
             if ($materialRequest['status'] !== MaterialRequestModel::STATUS_APPROVED) {
-                return $this->response->setJSON(['error' => 'Material request is not approved']);
+                return $this->response->setJSON(['success' => false, 'error' => 'Material request is not approved']);
             }
 
             // Get items that can be purchased
@@ -650,7 +682,7 @@ class PurchaseOrderController extends BaseController
 
         } catch (\Exception $e) {
             log_message('error', 'Error getting material request items: ' . $e->getMessage());
-            return $this->response->setJSON(['error' => 'Failed to retrieve material request items']);
+            return $this->response->setJSON(['success' => false, 'error' => 'Failed to retrieve material request items']);
         }
     }
 }
