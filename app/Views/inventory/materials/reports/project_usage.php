@@ -9,8 +9,8 @@
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Project Material Usage Report</h1>
             <p class="text-gray-600">
-                <?= $startDate ? 'From ' . date('M j, Y', strtotime($startDate)) : '' ?> 
-                <?= $endDate ? 'to ' . date('M j, Y', strtotime($endDate)) : '' ?>
+                <?= isset($startDate) && $startDate ? 'From ' . date('M j, Y', strtotime($startDate)) : '' ?> 
+                <?= isset($endDate) && $endDate ? 'to ' . date('M j, Y', strtotime($endDate)) : '' ?>
             </p>
         </div>
         <div class="mt-4 md:mt-0 flex items-center space-x-3">
@@ -26,10 +26,10 @@
                     <div class="py-1">
                         <form action="<?= base_url('admin/materials/generate-report') ?>" method="post" id="export-pdf-form">
                             <input type="hidden" name="report_type" value="project_usage">
-                            <input type="hidden" name="start_date" value="<?= $startDate ?>">
-                            <input type="hidden" name="end_date" value="<?= $endDate ?>">
-                            <input type="hidden" name="project_id" value="<?= $projectId ?? '' ?>">
-                            <input type="hidden" name="category_id" value="<?= $categoryId ?? '' ?>">
+                            <input type="hidden" name="start_date" value="<?= isset($startDate) ? $startDate : '' ?>">
+                            <input type="hidden" name="end_date" value="<?= isset($endDate) ? $endDate : '' ?>">
+                            <input type="hidden" name="project_id" value="<?= isset($projectId) ? $projectId : '' ?>">
+                            <input type="hidden" name="category_id" value="<?= isset($categoryId) ? $categoryId : '' ?>">
                             <input type="hidden" name="format" value="pdf">
                             <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 <i data-lucide="file-text" class="w-4 h-4 inline-block mr-2"></i> Export as PDF
@@ -38,10 +38,10 @@
                         
                         <form action="<?= base_url('admin/materials/generate-report') ?>" method="post" id="export-excel-form">
                             <input type="hidden" name="report_type" value="project_usage">
-                            <input type="hidden" name="start_date" value="<?= $startDate ?>">
-                            <input type="hidden" name="end_date" value="<?= $endDate ?>">
-                            <input type="hidden" name="project_id" value="<?= $projectId ?? '' ?>">
-                            <input type="hidden" name="category_id" value="<?= $categoryId ?? '' ?>">
+                            <input type="hidden" name="start_date" value="<?= isset($startDate) ? $startDate : '' ?>">
+                            <input type="hidden" name="end_date" value="<?= isset($endDate) ? $endDate : '' ?>">
+                            <input type="hidden" name="project_id" value="<?= isset($projectId) ? $projectId : '' ?>">
+                            <input type="hidden" name="category_id" value="<?= isset($categoryId) ? $categoryId : '' ?>">
                             <input type="hidden" name="format" value="excel">
                             <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                 <i data-lucide="file-spreadsheet" class="w-4 h-4 inline-block mr-2"></i> Export as Excel
@@ -65,7 +65,7 @@
             
             <div class="mr-6">
                 <span class="text-sm text-gray-500">Date Range:</span>
-                <p class="font-medium"><?= $startDate ? date('M j, Y', strtotime($startDate)) : 'Start of project' ?> to <?= $endDate ? date('M j, Y', strtotime($endDate)) : 'Present' ?></p>
+                <p class="font-medium"><?= isset($startDate) && $startDate ? date('M j, Y', strtotime($startDate)) : 'Start of project' ?> to <?= isset($endDate) && $endDate ? date('M j, Y', strtotime($endDate)) : 'Present' ?></p>
             </div>
             
             <?php if (!empty($category) && isset($category['name'])): ?>
