@@ -413,6 +413,138 @@ class ExcelExport
     }
     
     /**
+     * Export supplier analysis report
+     * 
+     * @param array $data The supplier analysis data
+     * @return string The Excel file content
+     */
+    public function exportSupplierAnalysis($data)
+    {
+        $reportData = [];
+        
+        // Calculate summary metrics
+        $totalSuppliers = count($data['suppliers']);
+        $activeSuppliers = count(array_filter($data['suppliers'], function($s) { return $s['status'] === 'active'; }));
+        $totalMaterials = array_sum(array_column($data['suppliers'], 'material_count'));
+        $avgRating = $totalSuppliers > 0 ? array_sum(array_column($data['suppliers'], 'rating')) / $totalSuppliers : 0;
+        
+        // Add summary section
+        $reportData[] = [
+            'Summary' => 'Supplier Overview',
+            'Total Suppliers' => '',
+            'Active Suppliers' => '',
+            'Total Materials' => '',
+            'Average Rating' => ''
+        ];
+        
+        $reportData[] = [
+            'Summary' => 'Total Suppliers',
+            'Total Suppliers' => $totalSuppliers,
+            'Active Suppliers' => $activeSuppliers,
+            'Total Materials' => $totalMaterials,
+            'Average Rating' => number_format($avgRating, 1)
+        ];
+        
+        // Add blank row
+        $reportData[] = [
+            'Summary' => '', 'Total Suppliers' => '', 'Active Suppliers' => '', 
+            'Total Materials' => '', 'Average Rating' => ''
+        ];
+        
+        // Add supplier status distribution
+        $statusCounts = [
+            'active' => 0,
+            'inactive' => 0,
+            'pending' => 0
+        ];
+        
+        foreach ($data['suppliers'] as $supplier) {
+            if (isset($statusCounts[$supplier['status']])) {
+                $statusCounts[$supplier['status']]++;
+            }
+        }
+        
+        $reportData[] = ['Summary' => 'Supplier Status Distribution'];
+        $reportData[] = [
+            'Summary' => 'Status', 'Total Suppliers' => 'Count', 
+            'Active Suppliers' => 'Percentage', 'Total Materials' => '', 
+            'Average Rating' => ''
+        ];
+        
+        foreach ($statusCounts as $status => $count) {
+            $percentage = ($totalSuppliers > 0) ? ($count / $totalSuppliers) * 100 : 0;
+            $reportData[] = [
+                'Summary' => ucfirst($status),
+                'Total Suppliers' => $count,
+                'Active Suppliers' => number_format($percentage, 1) . '%',
+                'Total Materials' => '',
+                'Average Rating' => ''
+            ];
+        }
+        
+        // Add blank row
+        $reportData[] = [
+            'Summary' => '', 'Total Suppliers' => '', 'Active Suppliers' => '', 
+            'Total Materials' => '', 'Average Rating' => ''
+        ];
+        
+        // Add supplier details
+        $reportData[] = ['Summary' => 'Supplier Details'];
+        $reportData[] = [
+            'Summary' => '#', 'Total Suppliers' => 'Supplier Code', 
+            'Active Suppliers' => 'Supplier Name', 'Total Materials' => 'Contact Person', 
+            'Average Rating' => 'Email'
+        ];
+        
+        $counter = 1;
+        foreach ($data['suppliers'] as $supplier) {
+            $reportData[] = [
+                'Summary' => $counter,
+                'Total Suppliers' => $supplier['supplier_code'],
+                'Active Suppliers' => $supplier['name'],
+                'Total Materials' => $supplier['contact_person'],
+                'Average Rating' => $supplier['email']
+            ];
+            
+            $counter++;
+        }
+        
+        // Add blank row
+        $reportData[] = [
+            'Summary' => '', 'Total Suppliers' => '', 'Active Suppliers' => '', 
+            'Total Materials' => '', 'Average Rating' => ''
+        ];
+        
+        // Add material-supplier relationships if they exist
+        if (!empty($data['supplierMaterials'])) {
+            $reportData[] = ['Summary' => 'Material-Supplier Relationships'];
+            $reportData[] = [
+                'Summary' => '#', 'Total Suppliers' => 'Material', 
+                'Active Suppliers' => 'Supplier', 'Total Materials' => 'Unit Price', 
+                'Average Rating' => 'Min Order Qty'
+            ];
+            
+            $counter = 1;
+            foreach ($data['supplierMaterials'] as $relationship) {
+                $reportData[] = [
+                    'Summary' => $counter,
+                    'Total Suppliers' => $relationship['name'] . ' (' . $relationship['item_code'] . ')',
+                    'Active Suppliers' => $relationship['supplier_name'],
+                    'Total Materials' => ($relationship['unit_price'] ? 'MWK ' . number_format($relationship['unit_price'], 2) : 'N/A'),
+                    'Average Rating' => ($relationship['min_order_qty'] ? $relationship['min_order_qty'] . ' ' . $relationship['unit'] : 'N/A')
+                ];
+                
+                $counter++;
+            }
+        }
+        
+        $this->data = $reportData;
+        $this->title = 'Supplier Analysis Report';
+        
+        return $this->export();
+    }
+    
+    /**
      * Get proper column header for a field name
      * 
      * @param string $field The raw field name

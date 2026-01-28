@@ -737,4 +737,242 @@ class DomPDFWrapper
             }
         ';
     }
+    
+    /**
+     * Generate supplier analysis report PDF
+     * 
+     * @param array $data Supplier analysis data
+     * @param array $filters Report filters
+     * @return string PDF output
+     */
+    public function generateSupplierAnalysisReport($data, $filters = [])
+    {
+        // Set title
+        $title = 'Supplier Analysis Report';
+        if (!empty($filters['supplier_name'])) {
+            $title .= ' - ' . $filters['supplier_name'];
+        }
+        if (!empty($filters['start_date']) && !empty($filters['end_date'])) {
+            $title .= ' (' . $filters['start_date'] . ' to ' . $filters['end_date'] . ')';
+        }
+        
+        // Start HTML content
+        $html = $this->getPDFHeader($title);
+        $html .= $this->getFiltersSummary($filters);
+        
+        // Check if data exists
+        if (empty($data['suppliers'])) {
+            $html .= '<div style="text-align: center; padding: 20px; color: #777; font-size: 16px;">No supplier data found matching your criteria.</div>';
+            return $this->generatePdf($html, 'supplier_analysis_report.pdf');
+        }
+        
+        // Calculate summary metrics
+        $totalSuppliers = count($data['suppliers']);
+        $activeSuppliers = count(array_filter($data['suppliers'], function($s) { return $s['status'] === 'active'; }));
+        $totalMaterials = array_sum(array_column($data['suppliers'], 'material_count'));
+        $avgRating = $totalSuppliers > 0 ? array_sum(array_column($data['suppliers'], 'rating')) / $totalSuppliers : 0;
+        
+        // Create summary section
+        $html .= '<div class="summary-section">';
+        $html .= '<h3>Supplier Overview</h3>';
+        $html .= '<div class="summary-grid">';
+        $html .= '<div class="summary-item"><strong>Total Suppliers:</strong> ' . $totalSuppliers . '</div>';
+        $html .= '<div class="summary-item"><strong>Active Suppliers:</strong> ' . $activeSuppliers . '</div>';
+        $html .= '<div class="summary-item"><strong>Total Materials:</strong> ' . $totalMaterials . '</div>';
+        $html .= '<div class="summary-item"><strong>Avg. Rating:</strong> ' . number_format($avgRating, 1) . '</div>';
+        $html .= '</div>';
+        $html .= '</div>';
+        
+        // Supplier Status Distribution
+        $statusCounts = [
+            'active' => 0,
+            'inactive' => 0,
+            'pending' => 0
+        ];
+        
+        foreach ($data['suppliers'] as $supplier) {
+            if (isset($statusCounts[$supplier['status']])) {
+                $statusCounts[$supplier['status']]++;
+            }
+        }
+        
+        $html .= '<h3>Supplier Status Distribution</h3>';
+        $html .= '<table class="data-table">';
+        $html .= '<thead>';
+        $html .= '<tr>';
+        $html .= '<th>Status</th>';
+        $html .= '<th>Count</th>';
+        $html .= '<th>Percentage</th>';
+        $html .= '</tr>';
+        $html .= '</thead>';
+        $html .= '<tbody>';
+        
+        foreach ($statusCounts as $status => $count) {
+            $percentage = ($totalSuppliers > 0) ? ($count / $totalSuppliers) * 100 : 0;
+            $html .= '<tr>';
+            $html .= '<td>' . ucfirst($status) . '</td>';
+            $html .= '<td style="text-align: right;">' . $count . '</td>';
+            $html .= '<td style="text-align: right;">' . number_format($percentage, 1) . '%</td>';
+            $html .= '</tr>';
+        }
+        
+        $html .= '</tbody>';
+        $html .= '</table>';
+        
+        // Supplier Details Table
+        $html .= '<h3>Supplier Details</h3>';
+        $html .= '<table class="data-table">';
+        $html .= '<thead>';
+        $html .= '<tr>';
+        $html .= '<th>#</th>';
+        $html .= '<th>Supplier Code</th>';
+        $html .= '<th>Supplier Name</th>';
+        $html .= '<th>Contact Person</th>';
+        $html .= '<th>Email</th>';
+        $html .= '<th>Phone</th>';
+        $html .= '<th>Status</th>';
+        $html .= '<th>Materials</th>';
+        $html .= '<th>Rating</th>';
+        $html .= '<th>Last Order</th>';
+        $html .= '</tr>';
+        $html .= '</thead>';
+        $html .= '<tbody>';
+        
+        $counter = 1;
+        foreach ($data['suppliers'] as $supplier) {
+            $statusClass = 'status-normal';
+            if ($supplier['status'] === 'inactive') {
+                $statusClass = 'status-critical';
+            } elseif ($supplier['status'] === 'pending') {
+                $statusClass = 'status-low';
+            }
+            
+            $html .= '<tr>';
+            $html .= '<td>' . $counter . '</td>';
+            $html .= '<td>' . $supplier['supplier_code'] . '</td>';
+            $html .= '<td>' . $supplier['name'] . '</td>';
+            $html .= '<td>' . $supplier['contact_person'] . '</td>';
+            $html .= '<td>' . $supplier['email'] . '</td>';
+            $html .= '<td>' . $supplier['phone'] . '</td>';
+            $html .= '<td class="' . $statusClass . '">' . ucfirst($supplier['status']) . '</td>';
+            $html .= '<td style="text-align: right;">' . $supplier['material_count'] . '</td>';
+            $html .= '<td style="text-align: right;">' . ($supplier['rating'] ?? 'N/A') . '</td>';
+            $html .= '<td>' . ($supplier['last_order_date'] ? date('Y-m-d', strtotime($supplier['last_order_date'])) : 'Never') . '</td>';
+            $html .= '</tr>';
+            
+            $counter++;
+        }
+        
+        $html .= '</tbody>';
+        $html .= '</table>';
+        
+        // Material-Supplier Relationships
+        if (!empty($data['supplierMaterials'])) {
+            $html .= '<h3>Material-Supplier Relationships</h3>';
+            $html .= '<table class="data-table">';
+            $html .= '<thead>';
+            $html .= '<tr>';
+            $html .= '<th>#</th>';
+            $html .= '<th>Material</th>';
+            $html .= '<th>Supplier</th>';
+            $html .= '<th>Unit Price</th>';
+            $html .= '<th>Min Order Qty</th>';
+            $html .= '<th>Lead Time</th>';
+            $html .= '<th>Notes</th>';
+            $html .= '</tr>';
+            $html .= '</thead>';
+            $html .= '<tbody>';
+            
+            $counter = 1;
+            foreach ($data['supplierMaterials'] as $relationship) {
+                $html .= '<tr>';
+                $html .= '<td>' . $counter . '</td>';
+                $html .= '<td>' . $relationship['name'] . ' (' . $relationship['item_code'] . ')</td>';
+                $html .= '<td>' . $relationship['supplier_name'] . '</td>';
+                $html .= '<td style="text-align: right;">' . ($relationship['unit_price'] ? 'MWK ' . number_format($relationship['unit_price'], 2) : 'N/A') . '</td>';
+                $html .= '<td style="text-align: right;">' . ($relationship['min_order_qty'] ? $relationship['min_order_qty'] . ' ' . $relationship['unit'] : 'N/A') . '</td>';
+                $html .= '<td style="text-align: right;">' . ($relationship['lead_time'] ? $relationship['lead_time'] . ' days' : 'N/A') . '</td>';
+                $html .= '<td>' . ($relationship['notes'] ?? 'N/A') . '</td>';
+                $html .= '</tr>';
+                
+                $counter++;
+            }
+            
+            $html .= '</tbody>';
+            $html .= '</table>';
+        }
+        
+        // Supplier Performance Summary
+        $html .= '<h3>Supplier Performance Summary</h3>';
+        
+        // Top suppliers by material count
+        $suppliersCopy = $data['suppliers'];
+        usort($suppliersCopy, function($a, $b) {
+            return ($b['material_count'] ?? 0) - ($a['material_count'] ?? 0);
+        });
+        $topSuppliers = array_slice($suppliersCopy, 0, 5);
+        
+        $html .= '<h4>Top Suppliers by Material Count</h4>';
+        $html .= '<table class="data-table">';
+        $html .= '<thead>';
+        $html .= '<tr>';
+        $html .= '<th>Rank</th>';
+        $html .= '<th>Supplier</th>';
+        $html .= '<th>Supplier Code</th>';
+        $html .= '<th>Material Count</th>';
+        $html .= '</tr>';
+        $html .= '</thead>';
+        $html .= '<tbody>';
+        
+        $rank = 1;
+        foreach ($topSuppliers as $supplier) {
+            $html .= '<tr>';
+            $html .= '<td>' . $rank . '</td>';
+            $html .= '<td>' . $supplier['name'] . '</td>';
+            $html .= '<td>' . $supplier['supplier_code'] . '</td>';
+            $html .= '<td style="text-align: right;">' . $supplier['material_count'] . '</td>';
+            $html .= '</tr>';
+            $rank++;
+        }
+        
+        $html .= '</tbody>';
+        $html .= '</table>';
+        
+        // Top rated suppliers
+        $suppliersCopy2 = $data['suppliers'];
+        usort($suppliersCopy2, function($a, $b) {
+            return ($b['rating'] ?? 0) - ($a['rating'] ?? 0);
+        });
+        $topRated = array_slice($suppliersCopy2, 0, 5);
+        
+        $html .= '<h4>Top Rated Suppliers</h4>';
+        $html .= '<table class="data-table">';
+        $html .= '<thead>';
+        $html .= '<tr>';
+        $html .= '<th>Rank</th>';
+        $html .= '<th>Supplier</th>';
+        $html .= '<th>Supplier Type</th>';
+        $html .= '<th>Rating</th>';
+        $html .= '</tr>';
+        $html .= '</thead>';
+        $html .= '<tbody>';
+        
+        $rank = 1;
+        foreach ($topRated as $supplier) {
+            $html .= '<tr>';
+            $html .= '<td>' . $rank . '</td>';
+            $html .= '<td>' . $supplier['name'] . '</td>';
+            $html .= '<td>' . $supplier['supplier_type'] . '</td>';
+            $html .= '<td style="text-align: right;">' . ($supplier['rating'] ?? 'N/A') . '</td>';
+            $html .= '</tr>';
+            $rank++;
+        }
+        
+        $html .= '</tbody>';
+        $html .= '</table>';
+        
+        $html .= $this->getPDFFooter();
+        
+        return $this->generatePdf($html, 'supplier_analysis_report.pdf');
+    }
 }

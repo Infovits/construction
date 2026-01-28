@@ -648,6 +648,59 @@ class Materials extends BaseController
         if ($this->request->getMethod() === 'post' && $reportType) {
             switch ($format) {
                 case 'pdf':
+                    // For supplier report, restructure data to match DomPDFWrapper expectations
+                    if ($reportType === 'supplier') {
+                        $supplierReportData = $this->supplierModel->getSupplierReport(
+                            $companyId,
+                            $supplierId,
+                            $startDate,
+                            $endDate
+                        );
+                        
+                        // Restructure data for DomPDFWrapper
+                        $pdfData = [
+                            'suppliers' => $supplierReportData['suppliers'] ?? [],
+                            'supplierMaterials' => $supplierReportData['supplierMaterials'] ?? []
+                        ];
+                        
+                        // Get company info for the PDF header (with fallback)
+                        $companyInfo = [
+                            'name' => 'Construction Management System',
+                            'address' => 'Default Address',
+                            'logo' => null
+                        ];
+                        
+                        try {
+                            // Try to get company info, but don't fail if it doesn't exist
+                            $companyModel = new \App\Models\CompanyModel();
+                            $company = $companyModel->find($companyId);
+                            if ($company) {
+                                $companyInfo = [
+                                    'name' => $company['name'] ?? 'Construction Management System',
+                                    'address' => $company['address'] ?? 'Default Address',
+                                    'logo' => $company['logo'] ?? null
+                                ];
+                            }
+                        } catch (\Exception $e) {
+                            // Use default company info if model doesn't exist or fails
+                            log_message('error', 'Company model not available: ' . $e->getMessage());
+                        }
+                        
+                        // Initialize DomPDF wrapper with company info
+                        $pdf = new \App\Libraries\DomPDFWrapper($companyInfo);
+                        
+                        // Get filters for the PDF
+                        $filters = [
+                            'supplier_id' => $supplierId,
+                            'supplier_name' => $supplierId ? 
+                                $this->supplierModel->find($supplierId)['name'] : null,
+                            'start_date' => $startDate,
+                            'end_date' => $endDate
+                        ];
+                        
+                        return $pdf->generateSupplierAnalysisReport($pdfData, $filters);
+                    }
+                    
                     return $this->generatePDF($data, $reportType);
                     
                 case 'excel':
@@ -681,12 +734,18 @@ class Materials extends BaseController
                             break;
 
                         case 'supplier':
-                            $data['report'] = $this->supplierModel->getSupplierReport(
+                            $supplierReportData = $this->supplierModel->getSupplierReport(
                                 $companyId,
                                 $supplierId,
                                 $startDate,
                                 $endDate
                             );
+                            
+                            // Restructure data for ExcelExport
+                            $data['report'] = [
+                                'suppliers' => $supplierReportData['suppliers'] ?? [],
+                                'supplierMaterials' => $supplierReportData['supplierMaterials'] ?? []
+                            ];
                             break;
 
                         case 'cost_trend':
@@ -848,12 +907,13 @@ class Materials extends BaseController
                             }
                             
                         case 'supplier':
-                            $data['report'] = $this->supplierModel->getSupplierReport(
+                            $supplierReportData = $this->supplierModel->getSupplierReport(
                                 $companyId,
                                 $supplierId,
                                 $startDate,
                                 $endDate
                             );
+                            $data['report'] = $supplierReportData;
                             return view('inventory/materials/reports/supplier', $data);
                             
                         case 'cost_trend':

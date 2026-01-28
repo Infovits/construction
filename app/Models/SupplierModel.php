@@ -307,4 +307,56 @@ class SupplierModel extends Model
         $result = $builder->get()->getRowArray();
         return $result ?: null;
     }
+    
+    /**
+     * Get supplier report data for analysis
+     * 
+     * @param int $companyId
+     * @param int|null $supplierId
+     * @param string|null $startDate
+     * @param string|null $endDate
+     * @return array
+     */
+    public function getSupplierReport($companyId, $supplierId = null, $startDate = null, $endDate = null)
+    {
+        $db = \Config\Database::connect();
+        
+        // Get suppliers with their material counts and last order dates
+        $builder = $db->table('suppliers s');
+        $builder->select('s.id, s.company_id, s.supplier_code, s.name, s.contact_person, s.email,
+            s.phone, s.mobile, s.address, s.city, s.state, s.country, s.tax_number,
+            s.payment_terms, s.credit_limit, s.supplier_type, s.rating, s.status, s.notes,
+            s.created_at, s.updated_at,
+            (SELECT COUNT(*) FROM supplier_materials WHERE supplier_id = s.id) as material_count,
+            (SELECT MAX(delivery_date) FROM deliveries WHERE supplier_id = s.id) as last_order_date');
+        
+        $builder->where('s.company_id', $companyId);
+        
+        if ($supplierId) {
+            $builder->where('s.id', $supplierId);
+        }
+        
+        $suppliers = $builder->get()->getResultArray();
+        
+        // Get material-supplier relationships
+        $materialBuilder = $db->table('supplier_materials sm');
+        $materialBuilder->select('sm.*, m.name, m.item_code, m.unit, s.name as supplier_name');
+        $materialBuilder->join('materials m', 'm.id = sm.material_id');
+        $materialBuilder->join('suppliers s', 's.id = sm.supplier_id');
+        $materialBuilder->where('s.company_id', $companyId);
+        
+        if ($supplierId) {
+            $materialBuilder->where('sm.supplier_id', $supplierId);
+        }
+        
+        $supplierMaterials = $materialBuilder->get()->getResultArray();
+        
+        return [
+            'suppliers' => $suppliers,
+            'supplierMaterials' => $supplierMaterials,
+            'supplierId' => $supplierId,
+            'startDate' => $startDate,
+            'endDate' => $endDate
+        ];
+    }
 }
