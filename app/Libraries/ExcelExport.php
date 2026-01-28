@@ -36,9 +36,13 @@ class ExcelExport
 
         // Add column titles as the first row
         $column = 'A';
-        foreach ($this->data[0] as $field => $value) {
-            $sheet->setCellValue($column . '1', $field);
-            $column++;
+        if (!empty($this->data)) {
+            foreach ($this->data[0] as $field => $value) {
+                // Use proper column headers instead of raw field names
+                $header = $this->getProperHeader($field);
+                $sheet->setCellValue($column . '1', $header);
+                $column++;
+            }
         }
 
         // Apply formatting to header
@@ -294,5 +298,173 @@ class ExcelExport
         $this->title = 'Cost Trend Report';
         
         return $this->export();
+    }
+    
+    /**
+     * Export stock valuation report
+     * 
+     * @param array $data The stock valuation data
+     * @return string The Excel file content
+     */
+    public function exportStockValuation($data)
+    {
+        $reportData = [];
+        
+        // Calculate totals for summary
+        $totalItems = count($data);
+        $totalQuantity = array_sum(array_column($data, 'total_quantity'));
+        $totalValue = array_sum(array_column($data, 'total_value'));
+        $averageUnitCost = $totalQuantity > 0 ? $totalValue / $totalQuantity : 0;
+        
+        // Add summary section
+        $reportData[] = [
+            'Summary' => 'Valuation Summary',
+            'Total Items' => $totalItems,
+            'Total Quantity' => number_format($totalQuantity, 2),
+            'Total Value' => 'MWK ' . number_format($totalValue, 2),
+            'Average Unit Cost' => 'MWK ' . number_format($averageUnitCost, 2)
+        ];
+        
+        // Add blank row
+        $reportData[] = [
+            'Summary' => '', 'Total Items' => '', 'Total Quantity' => '', 
+            'Total Value' => '', 'Average Unit Cost' => ''
+        ];
+        
+        // Add warehouse totals
+        $warehouseTotals = [];
+        foreach ($data as $item) {
+            // Use warehouse_name as the key since warehouse_id might not be available
+            $warehouseKey = $item['warehouse_name'] ?? 'Unknown Warehouse';
+            if (!isset($warehouseTotals[$warehouseKey])) {
+                $warehouseTotals[$warehouseKey] = [
+                    'name' => $item['warehouse_name'] ?? 'Unknown Warehouse',
+                    'items' => 0,
+                    'quantity' => 0,
+                    'value' => 0
+                ];
+            }
+            $warehouseTotals[$warehouseKey]['items']++;
+            $warehouseTotals[$warehouseKey]['quantity'] += $item['total_quantity'];
+            $warehouseTotals[$warehouseKey]['value'] += $item['total_value'];
+        }
+        
+        $reportData[] = ['Summary' => 'Valuation by Warehouse'];
+        $reportData[] = [
+            'Summary' => 'Warehouse', 'Total Items' => 'Items Count', 
+            'Total Quantity' => 'Total Quantity', 'Total Value' => 'Total Value', 
+            'Average Unit Cost' => 'Percentage'
+        ];
+        
+        foreach ($warehouseTotals as $warehouse) {
+            $percentage = ($totalValue > 0) ? ($warehouse['value'] / $totalValue) * 100 : 0;
+            $reportData[] = [
+                'Summary' => $warehouse['name'],
+                'Total Items' => $warehouse['items'],
+                'Total Quantity' => number_format($warehouse['quantity'], 2),
+                'Total Value' => 'MWK ' . number_format($warehouse['value'], 2),
+                'Average Unit Cost' => number_format($percentage, 1) . '%'
+            ];
+        }
+        
+        // Add blank row
+        $reportData[] = [
+            'Summary' => '', 'Total Items' => '', 'Total Quantity' => '', 
+            'Total Value' => '', 'Average Unit Cost' => ''
+        ];
+        
+        // Add material details
+        $reportData[] = ['Summary' => 'Material Valuation Details'];
+        $reportData[] = [
+            'Summary' => '#', 'Total Items' => 'Material', 
+            'Total Quantity' => 'Category', 'Total Value' => 'Warehouse', 
+            'Average Unit Cost' => 'Unit Cost'
+        ];
+        
+        // Sort by total value descending
+        usort($data, function($a, $b) {
+            return $b['total_value'] - $a['total_value'];
+        });
+        
+        $counter = 1;
+        foreach ($data as $item) {
+            $statusText = 'Normal';
+            if ($item['total_quantity'] == 0) {
+                $statusText = 'Out of Stock';
+            } elseif ($item['total_quantity'] <= $item['minimum_quantity']) {
+                $statusText = 'Low Stock';
+            }
+            
+            $reportData[] = [
+                'Summary' => $counter,
+                'Total Items' => $item['material_name'] . ' (' . $item['item_code'] . ')',
+                'Total Quantity' => $item['category_name'] ?? 'Uncategorized',
+                'Total Value' => $item['warehouse_name'],
+                'Average Unit Cost' => 'MWK ' . number_format($item['unit_cost'], 2)
+            ];
+            
+            $counter++;
+        }
+        
+        $this->data = $reportData;
+        $this->title = 'Stock Valuation Report';
+        
+        return $this->export();
+    }
+    
+    /**
+     * Get proper column header for a field name
+     * 
+     * @param string $field The raw field name
+     * @return string The proper column header
+     */
+    private function getProperHeader($field)
+    {
+        $headerMap = [
+            'Summary' => 'Summary',
+            'Total Items' => 'Total Items',
+            'Total Quantity' => 'Total Quantity',
+            'Total Value' => 'Total Value',
+            'Average Unit Cost' => 'Average Unit Cost',
+            'Material ID' => 'Material ID',
+            'Material Name' => 'Material Name',
+            'Item Code' => 'Item Code',
+            'Category ID' => 'Category ID',
+            'Category Name' => 'Category Name',
+            'Warehouse ID' => 'Warehouse ID',
+            'Warehouse Name' => 'Warehouse Name',
+            'Unit' => 'Unit',
+            'Unit Cost' => 'Unit Cost',
+            'Total Quantity' => 'Total Quantity',
+            'Total Value' => 'Total Value',
+            'Minimum Quantity' => 'Minimum Quantity',
+            'Date' => 'Date',
+            'Time' => 'Time',
+            'Warehouse' => 'Warehouse',
+            'Movement Type' => 'Movement Type',
+            'Quantity' => 'Quantity',
+            'Project' => 'Project',
+            'Recorded By' => 'Recorded By',
+            'Project' => 'Project',
+            'Category' => 'Category',
+            'Quantity Used' => 'Quantity Used',
+            'Unit Cost' => 'Unit Cost',
+            'Total Cost' => 'Total Cost',
+            'Material Code' => 'Material Code',
+            'Current Stock' => 'Current Stock',
+            'Minimum Stock' => 'Minimum Stock',
+            'Reorder Level' => 'Reorder Level',
+            'Status' => 'Status',
+            'Last Updated' => 'Last Updated',
+            'Previous Cost' => 'Previous Cost',
+            'Current Cost' => 'Current Cost',
+            'Change %' => 'Change %',
+            'Changed On' => 'Changed On',
+            'Supplier' => 'Supplier',
+            'Items Count' => 'Items Count',
+            'Percentage' => 'Percentage'
+        ];
+        
+        return $headerMap[$field] ?? $field;
     }
 }

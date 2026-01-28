@@ -132,6 +132,160 @@ class DomPDFWrapper
         return $this->generatePdf($html, 'stock_movement_report.pdf');
     }
     
+    public function generateStockValuationReport($data)
+    {
+        // Set title
+        $title = 'Stock Valuation Report';
+        
+        // Start HTML content with CSS styling
+        $html = $this->getPDFHeader($title);
+        
+        // Add detailed explanation section
+        $html .= '<div class="explanation-section">';
+        $html .= '<h3>Report Purpose & Methodology</h3>';
+        $html .= '<div class="explanation-content">';
+        $html .= '<p><strong>Purpose:</strong> This report provides a comprehensive valuation of all materials in stock across all warehouses, showing the total financial value of inventory assets.</p>';
+        $html .= '<p><strong>Methodology:</strong> Valuation is calculated by multiplying the current stock quantity by the unit cost for each material. The unit cost represents the purchase price or standard cost of the material.</p>';
+        $html .= '<p><strong>Key Metrics:</strong></p>';
+        $html .= '<ul>';
+        $html .= '<li><strong>Total Items:</strong> Count of unique materials in stock</li>';
+        $html .= '<li><strong>Total Quantity:</strong> Sum of all material quantities across all warehouses</li>';
+        $html .= '<li><strong>Total Value:</strong> Sum of all material values (quantity × unit cost)</li>';
+        $html .= '<li><strong>Average Unit Cost:</strong> Weighted average cost per unit across all materials</li>';
+        $html .= '</ul>';
+        $html .= '<p><strong>Stock Status Indicators:</strong></p>';
+        $html .= '<ul>';
+        $html .= '<li><span class="status-normal">Normal</span>: Stock levels are adequate</li>';
+        $html .= '<li><span class="status-low">Low Stock</span>: Stock at or below minimum reorder level</li>';
+        $html .= '<li><span class="status-critical">Out of Stock</span>: No stock available</li>';
+        $html .= '</ul>';
+        $html .= '<p><strong>Report Generated:</strong> ' . date('F j, Y \a\t g:i A') . '</p>';
+        $html .= '</div>';
+        $html .= '</div>';
+        
+        // Check if data exists
+        if (empty($data)) {
+            $html .= '<div style="text-align: center; padding: 20px; color: #777; font-size: 16px;">No inventory data found for valuation.</div>';
+            return $this->generatePdf($html, 'stock_valuation_report.pdf');
+        }
+        
+        // Calculate totals
+        $totalItems = count($data);
+        $totalQuantity = array_sum(array_column($data, 'total_quantity'));
+        $totalValue = array_sum(array_column($data, 'total_value'));
+        $averageUnitCost = $totalQuantity > 0 ? $totalValue / $totalQuantity : 0;
+        
+        // Create summary section
+        $html .= '<div class="summary-section">';
+        $html .= '<h3>Valuation Summary</h3>';
+        $html .= '<div class="summary-grid">';
+        $html .= '<div class="summary-item"><strong>Total Items:</strong> ' . $totalItems . '</div>';
+        $html .= '<div class="summary-item"><strong>Total Quantity:</strong> ' . number_format($totalQuantity, 2) . '</div>';
+        $html .= '<div class="summary-item"><strong>Total Value:</strong> MWK ' . number_format($totalValue, 2) . '</div>';
+        $html .= '<div class="summary-item"><strong>Average Unit Cost:</strong> MWK ' . number_format($averageUnitCost, 2) . '</div>';
+        $html .= '</div>';
+        $html .= '</div>';
+        
+        // Valuation by Warehouse
+        $warehouseTotals = [];
+        foreach ($data as $item) {
+            $warehouseId = $item['warehouse_id'];
+            if (!isset($warehouseTotals[$warehouseId])) {
+                $warehouseTotals[$warehouseId] = [
+                    'name' => $item['warehouse_name'],
+                    'items' => 0,
+                    'quantity' => 0,
+                    'value' => 0
+                ];
+            }
+            $warehouseTotals[$warehouseId]['items']++;
+            $warehouseTotals[$warehouseId]['quantity'] += $item['total_quantity'];
+            $warehouseTotals[$warehouseId]['value'] += $item['total_value'];
+        }
+        
+        $html .= '<h3>Valuation by Warehouse</h3>';
+        $html .= '<table class="data-table">';
+        $html .= '<thead>';
+        $html .= '<tr>';
+        $html .= '<th>Warehouse</th>';
+        $html .= '<th>Items Count</th>';
+        $html .= '<th>Total Quantity</th>';
+        $html .= '<th>Total Value</th>';
+        $html .= '<th>Percentage</th>';
+        $html .= '</tr>';
+        $html .= '</thead>';
+        $html .= '<tbody>';
+        
+        foreach ($warehouseTotals as $warehouse) {
+            $percentage = ($totalValue > 0) ? ($warehouse['value'] / $totalValue) * 100 : 0;
+            $html .= '<tr>';
+            $html .= '<td>' . $warehouse['name'] . '</td>';
+            $html .= '<td style="text-align: right;">' . $warehouse['items'] . '</td>';
+            $html .= '<td style="text-align: right;">' . number_format($warehouse['quantity'], 2) . '</td>';
+            $html .= '<td style="text-align: right;">MWK ' . number_format($warehouse['value'], 2) . '</td>';
+            $html .= '<td style="text-align: right;">' . number_format($percentage, 1) . '%</td>';
+            $html .= '</tr>';
+        }
+        
+        $html .= '</tbody>';
+        $html .= '</table>';
+        
+        // Material Valuation Details
+        $html .= '<h3>Material Valuation Details</h3>';
+        $html .= '<table class="data-table">';
+        $html .= '<thead>';
+        $html .= '<tr>';
+        $html .= '<th>#</th>';
+        $html .= '<th>Material</th>';
+        $html .= '<th>Category</th>';
+        $html .= '<th>Warehouse</th>';
+        $html .= '<th>Unit Cost</th>';
+        $html .= '<th>Quantity</th>';
+        $html .= '<th>Total Value</th>';
+        $html .= '<th>Stock Status</th>';
+        $html .= '</tr>';
+        $html .= '</thead>';
+        $html .= '<tbody>';
+        
+        // Sort by total value descending
+        usort($data, function($a, $b) {
+            return $b['total_value'] - $a['total_value'];
+        });
+        
+        $counter = 1;
+        foreach ($data as $item) {
+            $statusClass = 'status-normal';
+            $statusText = 'Normal';
+            
+            if ($item['total_quantity'] == 0) {
+                $statusClass = 'status-critical';
+                $statusText = 'Out of Stock';
+            } elseif ($item['total_quantity'] <= $item['minimum_quantity']) {
+                $statusClass = 'status-low';
+                $statusText = 'Low Stock';
+            }
+            
+            $html .= '<tr>';
+            $html .= '<td>' . $counter . '</td>';
+            $html .= '<td>' . $item['material_name'] . ' (' . $item['item_code'] . ')</td>';
+            $html .= '<td>' . ($item['category_name'] ?? 'Uncategorized') . '</td>';
+            $html .= '<td>' . $item['warehouse_name'] . '</td>';
+            $html .= '<td style="text-align: right;">MWK ' . number_format($item['unit_cost'], 2) . '</td>';
+            $html .= '<td style="text-align: right;">' . number_format($item['total_quantity'], 2) . ' ' . $item['unit'] . '</td>';
+            $html .= '<td style="text-align: right;">MWK ' . number_format($item['total_value'], 2) . '</td>';
+            $html .= '<td class="' . $statusClass . '">' . $statusText . '</td>';
+            $html .= '</tr>';
+            
+            $counter++;
+        }
+        
+        $html .= '</tbody>';
+        $html .= '</table>';
+        $html .= $this->getPDFFooter();
+        
+        return $this->generatePdf($html, 'stock_valuation_report.pdf');
+    }
+    
     /**
      * Generate project usage report PDF
      * 
@@ -512,6 +666,74 @@ class DomPDFWrapper
             
             .page-number {
                 margin: 0;
+            }
+            
+            .explanation-section {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .explanation-section h3 {
+                margin: 0 0 10px 0;
+                font-size: 14px;
+                color: #495057;
+                border-bottom: 2px solid #007bff;
+                padding-bottom: 5px;
+            }
+            
+            .explanation-content {
+                font-size: 11px;
+                line-height: 1.4;
+            }
+            
+            .explanation-content p {
+                margin: 8px 0;
+            }
+            
+            .explanation-content ul {
+                margin: 8px 0 8px 20px;
+                padding: 0;
+            }
+            
+            .explanation-content li {
+                margin: 4px 0;
+            }
+            
+            .summary-section {
+                background-color: #f8f9fa;
+                border: 1px solid #dee2e6;
+                border-radius: 8px;
+                padding: 15px;
+                margin-bottom: 20px;
+            }
+            
+            .summary-section h3 {
+                margin: 0 0 15px 0;
+                font-size: 14px;
+                color: #495057;
+            }
+            
+            .summary-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 10px;
+            }
+            
+            .summary-item {
+                background-color: #fff;
+                padding: 10px;
+                border-radius: 4px;
+                border: 1px solid #dee2e6;
+                font-size: 12px;
+            }
+            
+            .summary-item strong {
+                color: #495057;
+                display: block;
+                margin-bottom: 2px;
             }
         ';
     }

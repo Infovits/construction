@@ -593,6 +593,55 @@ class Materials extends BaseController
             case 'low_stock':
                 $data['report'] = $this->materialModel->getLowStockItems($companyId, $warehouseId, $categoryId);
                 break;
+                
+            case 'valuation':
+                // Get stock valuation data from warehouse stock tables
+                $warehouseStockModel = new \App\Models\WarehouseStockModel();
+                $materialModel = new \App\Models\MaterialModel();
+                
+                // Get all materials with their current stock levels
+                $materials = $materialModel->where('company_id', $companyId)->findAll();
+                $valuationData = [];
+                
+                // Get all categories for this company to avoid multiple database queries
+                $categories = $this->categoryModel->where('company_id', $companyId)->findAll();
+                $categoryMap = [];
+                foreach ($categories as $category) {
+                    $categoryMap[$category['id']] = $category['name'];
+                }
+                
+                foreach ($materials as $material) {
+                    // Get stock levels for this material across all warehouses
+                    $stockLevels = $warehouseStockModel->getMaterialStockLevels($material['id']);
+                    
+                    foreach ($stockLevels as $stock) {
+                        $warehouseModel = new \App\Models\WarehouseModel();
+                        $warehouse = $warehouseModel->find($stock['warehouse_id']);
+                        
+                        $totalValue = $stock['current_quantity'] * $material['unit_cost'];
+                        
+                        // Get category name from the map, or use "Uncategorized" if not found
+                        $categoryName = 'Uncategorized';
+                        if ($material['category_id'] && isset($categoryMap[$material['category_id']])) {
+                            $categoryName = $categoryMap[$material['category_id']];
+                        }
+                        
+                        $valuationData[] = [
+                            'material_name' => $material['name'],
+                            'item_code' => $material['item_code'],
+                            'category_name' => $categoryName,
+                            'warehouse_name' => $warehouse['name'],
+                            'unit' => $material['unit'],
+                            'unit_cost' => $material['unit_cost'],
+                            'total_quantity' => $stock['current_quantity'],
+                            'total_value' => $stock['current_quantity'] * $material['unit_cost'],
+                            'minimum_quantity' => $material['minimum_stock'] ?? 0
+                        ];
+                    }
+                }
+                
+                $data['report'] = $valuationData;
+                break;
         }
         
         // Handle report generation based on format
@@ -658,6 +707,55 @@ class Materials extends BaseController
                             );
                             break;
 
+                        case 'valuation':
+                            // Get stock valuation data from warehouse stock tables
+                            $warehouseStockModel = new \App\Models\WarehouseStockModel();
+                            $materialModel = new \App\Models\MaterialModel();
+                            
+                            // Get all materials with their current stock levels
+                            $materials = $materialModel->where('company_id', $companyId)->findAll();
+                            $valuationData = [];
+                            
+                            // Get all categories for this company to avoid multiple database queries
+                            $categories = $this->categoryModel->where('company_id', $companyId)->findAll();
+                            $categoryMap = [];
+                            foreach ($categories as $category) {
+                                $categoryMap[$category['id']] = $category['name'];
+                            }
+                            
+                            foreach ($materials as $material) {
+                                // Get stock levels for this material across all warehouses
+                                $stockLevels = $warehouseStockModel->getMaterialStockLevels($material['id']);
+                                
+                                foreach ($stockLevels as $stock) {
+                                    $warehouseModel = new \App\Models\WarehouseModel();
+                                    $warehouse = $warehouseModel->find($stock['warehouse_id']);
+                                    
+                                    $totalValue = $stock['current_quantity'] * $material['unit_cost'];
+                                    
+                                    // Get category name from the map, or use "Uncategorized" if not found
+                                    $categoryName = 'Uncategorized';
+                                    if ($material['category_id'] && isset($categoryMap[$material['category_id']])) {
+                                        $categoryName = $categoryMap[$material['category_id']];
+                                    }
+                                    
+                                    $valuationData[] = [
+                                        'material_name' => $material['name'],
+                                        'item_code' => $material['item_code'],
+                                        'category_name' => $categoryName,
+                                        'warehouse_name' => $warehouse['name'],
+                                        'unit' => $material['unit'],
+                                        'unit_cost' => $material['unit_cost'],
+                                        'total_quantity' => $stock['current_quantity'],
+                                        'total_value' => $stock['current_quantity'] * $material['unit_cost'],
+                                        'minimum_quantity' => $material['minimum_stock'] ?? 0
+                                    ];
+                                }
+                            }
+                            
+                            $data['report'] = $valuationData;
+                            break;
+
                         default:
                             // For unsupported report types, return error
                             return redirect()->back()->with('error', 'Excel generation not supported for this report type');
@@ -667,9 +765,54 @@ class Materials extends BaseController
                 case 'html':
                     // For HTML format, prepare and add the report to data array
                     switch ($reportType) {
-                        // case 'valuation':
-                        //     $data['report'] = $this->materialModel->getStockValuationReport($companyId, $warehouseId, $categoryId);
-                        //     return view('inventory/materials/reports/valuation', $data);
+                        case 'valuation':
+                            // Get stock valuation data from warehouse stock tables
+                            $warehouseStockModel = new \App\Models\WarehouseStockModel();
+                            $materialModel = new \App\Models\MaterialModel();
+                            
+                            // Get all materials with their current stock levels
+                            $materials = $materialModel->where('company_id', $companyId)->findAll();
+                            $valuationData = [];
+                            
+                            // Get all categories for this company to avoid multiple database queries
+                            $categories = $this->categoryModel->where('company_id', $companyId)->findAll();
+                            $categoryMap = [];
+                            foreach ($categories as $category) {
+                                $categoryMap[$category['id']] = $category['name'];
+                            }
+                            
+                            foreach ($materials as $material) {
+                                // Get stock levels for this material across all warehouses
+                                $stockLevels = $warehouseStockModel->getMaterialStockLevels($material['id']);
+                                
+                                foreach ($stockLevels as $stock) {
+                                    $warehouseModel = new \App\Models\WarehouseModel();
+                                    $warehouse = $warehouseModel->find($stock['warehouse_id']);
+                                    
+                                    $totalValue = $stock['current_quantity'] * $material['unit_cost'];
+                                    
+                                    // Get category name from the map, or use "Uncategorized" if not found
+                                    $categoryName = 'Uncategorized';
+                                    if ($material['category_id'] && isset($categoryMap[$material['category_id']])) {
+                                        $categoryName = $categoryMap[$material['category_id']];
+                                    }
+                                    
+                                    $valuationData[] = [
+                                        'material_name' => $material['name'],
+                                        'item_code' => $material['item_code'],
+                                        'category_name' => $categoryName,
+                                        'warehouse_name' => $warehouse['name'],
+                                        'unit' => $material['unit'],
+                                        'unit_cost' => $material['unit_cost'],
+                                        'total_quantity' => $stock['current_quantity'],
+                                        'total_value' => $stock['current_quantity'] * $material['unit_cost'],
+                                        'minimum_quantity' => $material['minimum_stock'] ?? 0
+                                    ];
+                                }
+                            }
+                            
+                            $data['report'] = $valuationData;
+                            return view('inventory/materials/reports/valuation', $data);
                             
                         case 'movement':
                             $data['report'] = $this->stockMovementModel->getStockMovementReport(
@@ -917,6 +1060,10 @@ class Materials extends BaseController
                 
             case 'cost_trend':
                 $excelContent = $excel->exportCostTrend($data['report']);
+                break;
+                
+            case 'valuation':
+                $excelContent = $excel->exportStockValuation($data['report']);
                 break;
                 
             default:
