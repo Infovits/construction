@@ -285,9 +285,9 @@ class QualityInspectionModel extends Model
 
         $builder->select('
             COUNT(*) as total,
-            SUM(CASE WHEN status = "passed" THEN 1 ELSE 0 END) as passed,
-            SUM(CASE WHEN status = "failed" THEN 1 ELSE 0 END) as failed,
-            SUM(CASE WHEN status = "pending" OR status = "in_progress" THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN quality_inspections.status = "passed" THEN 1 ELSE 0 END) as passed,
+            SUM(CASE WHEN quality_inspections.status = "failed" THEN 1 ELSE 0 END) as failed,
+            SUM(CASE WHEN quality_inspections.status = "pending" OR quality_inspections.status = "in_progress" THEN 1 ELSE 0 END) as pending,
             SUM(quantity_passed) as total_quantity_passed,
             SUM(quantity_failed) as total_quantity_failed'
         );

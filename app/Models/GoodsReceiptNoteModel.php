@@ -324,7 +324,7 @@ class GoodsReceiptNoteModel extends Model
 
         // Apply the same date filters to items through join
         if (!empty($filters['date_from']) || !empty($filters['date_to']) || !empty($filters['supplier_id']) || !empty($filters['project_id'])) {
-            $itemsQuery->join('goods_receipt_notes', 'goods_receipt_notes.id = goods_receipt_items.goods_receipt_id', 'left');
+            $itemsQuery->join('goods_receipt_notes', 'goods_receipt_notes.id = goods_receipt_items.grn_id', 'left');
 
             if (!empty($filters['date_from'])) {
                 $itemsQuery->where('goods_receipt_notes.delivery_date >=', $filters['date_from']);

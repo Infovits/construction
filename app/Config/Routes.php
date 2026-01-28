@@ -299,6 +299,8 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         // Reports
         $routes->get("reports", "ProcurementReportsController::index");
         $routes->post("reports/generate", "ProcurementReportsController::generate");
+        $routes->get("reports/export/excel/(:any)", "ProcurementReportsController::exportExcel/$1");
+        $routes->get("reports/export/pdf/(:any)", "ProcurementReportsController::exportPdf/$1");
     });
 
     // Direct routes for easier access (aliases to procurement routes)

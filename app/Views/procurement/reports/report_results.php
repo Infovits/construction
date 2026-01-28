@@ -19,10 +19,14 @@
                 <i data-lucide="printer" class="w-4 h-4 mr-2"></i>
                 Print Report
             </button>
-            <button onclick="exportTableToExcel('reportTable', '<?= strtolower(str_replace(' ', '_', $reportTitle)) ?>')" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+            <a href="<?= base_url('admin/procurement/reports/export/excel/' . urlencode($reportTitle)) ?>" class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
                 <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2"></i>
                 Export to Excel
-            </button>
+            </a>
+            <a href="<?= base_url('admin/procurement/reports/export/pdf/' . urlencode($reportTitle)) ?>" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+                Export to PDF
+            </a>
         </div>
     </div>
 
