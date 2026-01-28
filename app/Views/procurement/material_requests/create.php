@@ -25,7 +25,7 @@
             <h3 class="text-lg font-semibold text-gray-900">Request Details</h3>
         </div>
 
-        <form method="POST" action="<?= base_url('admin/material-requests/store') ?>" class="p-6 space-y-6">
+        <form method="POST" action="<?= base_url('admin/material-requests') ?>" class="p-6 space-y-6">
             <?= csrf_field() ?>
             <!-- Basic Information -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

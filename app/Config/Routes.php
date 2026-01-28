@@ -236,56 +236,6 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->get("delete-delivery/(:num)", "Suppliers::deleteDelivery/$1");
     });
 
-    // Material Requests Routes (Direct under admin for easier access)
-    $routes->group("material-requests", function($routes) {
-        $routes->get("/", "MaterialRequestController::index");
-        $routes->get("create", "MaterialRequestController::create");
-        $routes->post("/", "MaterialRequestController::store");
-        $routes->get("(:num)", "MaterialRequestController::view/$1");
-        $routes->get("(:num)/edit", "MaterialRequestController::edit/$1");
-        $routes->post("(:num)", "MaterialRequestController::update/$1");
-        $routes->delete("(:num)", "MaterialRequestController::delete/$1");
-    });
-
-    // Purchase Orders Routes (Direct under admin for easier access)
-    $routes->group("purchase-orders", function($routes) {
-        $routes->get("/", "PurchaseOrderController::index");
-        $routes->get("create", "PurchaseOrderController::create");
-        $routes->post("/", "PurchaseOrderController::store");
-        $routes->get("(:num)", "PurchaseOrderController::view/$1");
-        $routes->get("(:num)/edit", "PurchaseOrderController::edit/$1");
-        $routes->post("(:num)", "PurchaseOrderController::update/$1");
-        $routes->delete("(:num)", "PurchaseOrderController::delete/$1");
-    });
-
-    // Goods Receipt Routes (Direct under admin for easier access)
-    $routes->group("goods-receipt", function($routes) {
-        $routes->get("/", "GoodsReceiptController::index");
-        $routes->get("create", "GoodsReceiptController::create");
-        $routes->post("/", "GoodsReceiptController::store");
-        $routes->get("(:num)", "GoodsReceiptController::view/$1");
-        $routes->get("(:num)/edit", "GoodsReceiptController::edit/$1");
-        $routes->post("(:num)", "GoodsReceiptController::update/$1");
-        $routes->post("(:num)/accept", "GoodsReceiptController::accept/$1");
-        $routes->post("(:num)/reject", "GoodsReceiptController::reject/$1");
-        $routes->get("purchase-order-items/(:num)", "GoodsReceiptController::getPurchaseOrderItems/$1");
-    });
-
-    // Quality Inspections Routes (Direct under admin for easier access)
-    $routes->group("quality-inspections", function($routes) {
-        $routes->get("/", "QualityInspectionController::index");
-        $routes->get("create", "QualityInspectionController::create");
-        $routes->post("/", "QualityInspectionController::store");
-        $routes->get("my-inspections", "QualityInspectionController::myInspections");
-        $routes->get("pending-items", "QualityInspectionController::getPendingItems");
-        $routes->get("(:num)", "QualityInspectionController::view/$1");
-        $routes->get("(:num)/edit", "QualityInspectionController::edit/$1");
-        $routes->post("(:num)", "QualityInspectionController::update/$1");
-        $routes->delete("(:num)", "QualityInspectionController::delete/$1");
-        $routes->get("(:num)/inspect", "QualityInspectionController::inspect/$1");
-        $routes->post("(:num)/complete", "QualityInspectionController::complete/$1");
-    });
-
     // Procurement Routes
     $routes->group("procurement", function($routes) {
         // Material Requests
@@ -342,6 +292,45 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->get("reports", "ProcurementReportsController::index");
         $routes->post("reports/generate", "ProcurementReportsController::generate");
     });
+
+    // Direct routes for easier access (aliases to procurement routes)
+    $routes->get("material-requests", "MaterialRequestController::index");
+    $routes->get("material-requests/create", "MaterialRequestController::create");
+    $routes->post("material-requests", "MaterialRequestController::store");
+    $routes->get("material-requests/(:num)", "MaterialRequestController::show/$1");
+    $routes->get("material-requests/(:num)/edit", "MaterialRequestController::edit/$1");
+    $routes->post("material-requests/(:num)", "MaterialRequestController::update/$1");
+    $routes->delete("material-requests/(:num)", "MaterialRequestController::delete/$1");
+
+    $routes->get("purchase-orders", "PurchaseOrderController::index");
+    $routes->get("purchase-orders/create", "PurchaseOrderController::create");
+    $routes->post("purchase-orders", "PurchaseOrderController::store");
+    $routes->get("purchase-orders/(:num)", "PurchaseOrderController::show/$1");
+    $routes->get("purchase-orders/(:num)/edit", "PurchaseOrderController::edit/$1");
+    $routes->post("purchase-orders/(:num)", "PurchaseOrderController::update/$1");
+    $routes->delete("purchase-orders/(:num)", "PurchaseOrderController::delete/$1");
+
+    $routes->get("goods-receipt", "GoodsReceiptController::index");
+    $routes->get("goods-receipt/create", "GoodsReceiptController::create");
+    $routes->post("goods-receipt", "GoodsReceiptController::store");
+    $routes->get("goods-receipt/(:num)", "GoodsReceiptController::view/$1");
+    $routes->get("goods-receipt/(:num)/edit", "GoodsReceiptController::edit/$1");
+    $routes->post("goods-receipt/(:num)", "GoodsReceiptController::update/$1");
+    $routes->post("goods-receipt/(:num)/accept", "GoodsReceiptController::accept/$1");
+    $routes->post("goods-receipt/(:num)/reject", "GoodsReceiptController::reject/$1");
+    $routes->get("goods-receipt/purchase-order-items/(:num)", "GoodsReceiptController::getPurchaseOrderItems/$1");
+
+    $routes->get("quality-inspections", "QualityInspectionController::index");
+    $routes->get("quality-inspections/create", "QualityInspectionController::create");
+    $routes->post("quality-inspections", "QualityInspectionController::store");
+    $routes->get("quality-inspections/my-inspections", "QualityInspectionController::myInspections");
+    $routes->get("quality-inspections/pending-items", "QualityInspectionController::getPendingItems");
+    $routes->get("quality-inspections/(:num)", "QualityInspectionController::view/$1");
+    $routes->get("quality-inspections/(:num)/edit", "QualityInspectionController::edit/$1");
+    $routes->post("quality-inspections/(:num)", "QualityInspectionController::update/$1");
+    $routes->delete("quality-inspections/(:num)", "QualityInspectionController::delete/$1");
+    $routes->get("quality-inspections/(:num)/inspect", "QualityInspectionController::inspect/$1");
+    $routes->post("quality-inspections/(:num)/complete", "QualityInspectionController::complete/$1");
 
     // Accounting Module Routes
     $routes->group("accounting", ["namespace" => "App\Controllers\Accounting"], function($routes) {

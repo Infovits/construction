@@ -189,6 +189,14 @@ class MaterialRequestController extends BaseController
     }
 
     /**
+     * Show material request details (alias for view)
+     */
+    public function show($id)
+    {
+        return $this->view($id);
+    }
+
+    /**
      * Show material request details
      */
     public function view($id)
@@ -270,9 +278,24 @@ class MaterialRequestController extends BaseController
             return redirect()->back()->withInput()->with('errors', $validation->getErrors());
         }
 
+        // Validate items
+        $items = $this->request->getPost('items') ?: [];
+        
+        if (empty($items)) {
+            return redirect()->back()->withInput()->with('error', 'At least one material item is required');
+        }
+
         try {
             $db = \Config\Database::connect();
             $db->transStart();
+
+            // Calculate total estimated cost
+            $totalEstimatedCost = 0;
+            foreach ($items as $item) {
+                $quantity = (float)($item['quantity_requested'] ?? 0);
+                $unitCost = (float)($item['estimated_unit_cost'] ?? 0);
+                $totalEstimatedCost += $quantity * $unitCost;
+            }
 
             // Update material request
             $updateData = [
@@ -280,6 +303,7 @@ class MaterialRequestController extends BaseController
                 'department_id' => $this->request->getPost('department_id') ?: null,
                 'required_date' => $this->request->getPost('required_date') ?: null,
                 'priority' => $this->request->getPost('priority'),
+                'total_estimated_cost' => $totalEstimatedCost,
                 'notes' => $this->request->getPost('notes')
             ];
 
@@ -288,7 +312,39 @@ class MaterialRequestController extends BaseController
                 return redirect()->back()->withInput()->with('error', 'Failed to update material request');
             }
 
+            // Delete existing items and recreate them
+            $this->materialRequestItemModel->where('material_request_id', $id)->delete();
+
+            // Create new material request items
+            foreach ($items as $item) {
+                $quantity = (float)($item['quantity_requested'] ?? 0);
+                $unitCost = (float)($item['estimated_unit_cost'] ?? 0);
+                
+                $itemData = [
+                    'material_request_id' => $id,
+                    'material_id' => $item['material_id'],
+                    'quantity_requested' => $quantity,
+                    'quantity_approved' => null,
+                    'estimated_unit_cost' => $unitCost,
+                    'estimated_total_cost' => $quantity * $unitCost,
+                    'specification_notes' => $item['specification_notes'] ?? null,
+                    'urgency_notes' => $item['urgency_notes'] ?? null
+                ];
+
+                if (!$this->materialRequestItemModel->insert($itemData)) {
+                    $errors = $this->materialRequestItemModel->errors();
+                    log_message('error', 'Failed to update material request item: ' . json_encode($errors));
+                    $db->transRollback();
+                    return redirect()->back()->withInput()->with('error', 'Failed to update material request items: ' . json_encode($errors));
+                }
+            }
+
             $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return redirect()->back()->withInput()->with('error', 'Failed to update material request');
+            }
+
             return redirect()->to('admin/material-requests/' . $id)->with('success', 'Material request updated successfully');
 
         } catch (\Exception $e) {

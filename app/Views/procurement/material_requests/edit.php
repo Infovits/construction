@@ -47,7 +47,6 @@
     <div class="bg-white rounded-lg shadow-sm border border-gray-200">
         <form action="<?= base_url('admin/material-requests/' . $materialRequest['id']) ?>" method="post" id="material-request-form">
             <?= csrf_field() ?>
-            <input type="hidden" name="_method" value="PUT">
 
             <div class="p-6 space-y-6">
                 <!-- Basic Information -->
