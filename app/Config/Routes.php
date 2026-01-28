@@ -321,6 +321,11 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->delete("purchase-orders/(:num)", "PurchaseOrderController::delete/$1");
     $routes->get("purchase-orders/(:num)/delete", "PurchaseOrderController::delete/$1");
     $routes->post("purchase-orders/(:num)/delete", "PurchaseOrderController::delete/$1");
+    
+    // Additional Purchase Order routes
+    $routes->post("purchase-orders/(:num)/approve", "PurchaseOrderController::approve/$1");
+    $routes->post("purchase-orders/(:num)/acknowledge", "PurchaseOrderController::acknowledge/$1");
+    $routes->post("purchase-orders/(:num)/cancel", "PurchaseOrderController::cancel/$1");
 
     $routes->get("goods-receipt", "GoodsReceiptController::index");
     $routes->get("goods-receipt/create", "GoodsReceiptController::create");

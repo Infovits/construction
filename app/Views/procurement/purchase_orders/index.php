@@ -175,13 +175,6 @@ function deletePO(id) {
         csrfInput.value = '<?= csrf_hash() ?>';
         form.appendChild(csrfInput);
         
-        // Add method override for DELETE
-        const methodInput = document.createElement('input');
-        methodInput.type = 'hidden';
-        methodInput.name = '_method';
-        methodInput.value = 'DELETE';
-        form.appendChild(methodInput);
-        
         document.body.appendChild(form);
         form.submit();
     }
