@@ -21,7 +21,7 @@
 
     <!-- GRN Form -->
     <div class="bg-white rounded-lg shadow-sm border">
-        <form id="grnForm" action="<?= base_url('admin/goods-receipt/store') ?>" method="POST">
+        <form id="grnForm" action="<?= base_url('admin/goods-receipt') ?>" method="POST">
             <?= csrf_field() ?>
             
             <!-- Header Information -->
@@ -247,21 +247,21 @@ function loadPurchaseOrderItems(purchaseOrderId) {
     document.getElementById('supplier_id').value = selectedOption.getAttribute('data-supplier-id') || '';
     document.getElementById('supplier_name').value = selectedOption.getAttribute('data-supplier-name') || '';
 
-    // Load PO items via AJAX
-    fetch(`<?= base_url('admin/purchase-orders/') ?>${purchaseOrderId}/items`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                renderPOItems(data.items);
-                updateSummary();
-            } else {
-                alert('Error loading purchase order items: ' + (data.message || 'Unknown error'));
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error loading purchase order items');
-        });
+            // Load PO items via AJAX
+            fetch(`<?= base_url('admin/goods-receipt/purchase-order-items/') ?>${purchaseOrderId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        renderPOItems(data.items);
+                        updateSummary();
+                    } else {
+                        alert('Error loading purchase order items: ' + (data.message || 'Unknown error'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading purchase order items');
+                });
 }
 
 function renderPOItems(items) {

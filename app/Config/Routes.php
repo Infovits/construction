@@ -330,6 +330,7 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->get("goods-receipt", "GoodsReceiptController::index");
     $routes->get("goods-receipt/create", "GoodsReceiptController::create");
     $routes->post("goods-receipt", "GoodsReceiptController::store");
+    $routes->post("goods-receipt/store", "GoodsReceiptController::store");
     $routes->get("goods-receipt/(:num)", "GoodsReceiptController::view/$1");
     $routes->get("goods-receipt/(:num)/edit", "GoodsReceiptController::edit/$1");
     $routes->post("goods-receipt/(:num)", "GoodsReceiptController::update/$1");

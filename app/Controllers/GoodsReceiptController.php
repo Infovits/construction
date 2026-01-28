@@ -106,7 +106,7 @@ class GoodsReceiptController extends BaseController
             'driver_name' => 'permit_empty|string',
             'freight_cost' => 'permit_empty|decimal|greater_than_equal_to[0]',
             'notes' => 'permit_empty|string',
-            'items' => 'required|array',
+            'items' => 'required',
             'items.*.purchase_order_item_id' => 'required|integer',
             'items.*.material_id' => 'required|integer',
             'items.*.quantity_delivered' => 'required|decimal|greater_than[0]',
@@ -251,7 +251,7 @@ class GoodsReceiptController extends BaseController
             'driver_name' => 'permit_empty|string',
             'freight_cost' => 'permit_empty|decimal|greater_than_equal_to[0]',
             'notes' => 'permit_empty|string',
-            'items' => 'required|array',
+            'items' => 'required',
             'items.*.quantity_delivered' => 'required|decimal|greater_than[0]',
             'items.*.unit_cost' => 'required|decimal|greater_than[0]',
             'items.*.batch_number' => 'permit_empty|string',
@@ -287,7 +287,13 @@ class GoodsReceiptController extends BaseController
                 'notes' => $this->request->getPost('notes')
             ];
 
-            $this->grnModel->update($id, $grnData);
+            log_message('debug', 'Updating GRN ' . $id . ' with data: ' . json_encode($grnData));
+            
+            if (!$this->grnModel->update($id, $grnData)) {
+                throw new \Exception('Failed to update GRN: ' . json_encode($this->grnModel->errors()));
+            }
+
+            log_message('debug', 'GRN updated successfully, updating items: ' . json_encode($items));
 
             // Update GRN items
             foreach ($items as $itemId => $item) {
@@ -299,19 +305,24 @@ class GoodsReceiptController extends BaseController
                     'notes' => $item['notes']
                 ];
 
-                $this->grnItemModel->update($itemId, $itemData);
+                log_message('debug', 'Updating GRN item ' . $itemId . ' with data: ' . json_encode($itemData));
+                
+                if (!$this->grnItemModel->update($itemId, $itemData)) {
+                    throw new \Exception('Failed to update GRN item ' . $itemId . ': ' . json_encode($this->grnItemModel->errors()));
+                }
             }
 
             $db->transComplete();
 
             if ($db->transStatus() === false) {
-                throw new \Exception('Failed to update goods receipt note');
+                throw new \Exception('Database transaction failed');
             }
 
             return redirect()->to('/admin/goods-receipt')->with('success', 'Goods receipt note updated successfully');
 
         } catch (\Exception $e) {
             $db->transRollback();
+            log_message('error', 'GRN update failed: ' . $e->getMessage());
             return redirect()->back()->withInput()->with('error', 'Failed to update goods receipt note: ' . $e->getMessage());
         }
     }

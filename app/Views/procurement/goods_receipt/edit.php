@@ -44,7 +44,6 @@
     <div class="bg-white rounded-lg shadow-sm border border-gray-200">
         <form action="<?= base_url('admin/goods-receipt/' . $grn['id']) ?>" method="post" id="goods-receipt-form">
             <?= csrf_field() ?>
-            <input type="hidden" name="_method" value="PUT">
 
             <div class="p-6 space-y-6">
                 <!-- Basic Information -->
@@ -119,7 +118,7 @@
                                         <div class="md:col-span-2">
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Material</label>
                                             <div class="px-3 py-2 bg-gray-100 border border-gray-300 rounded-md">
-                                                <?= esc($item['material_name']) ?> (<?= esc($item['item_code']) ?>)
+                                                <?= esc($item['material_name']) ?> (<?= esc($item['material_code'] ?? '') ?>)
                                             </div>
                                             <input type="hidden" name="items[<?= $item['id'] ?>][material_id]" value="<?= $item['material_id'] ?>">
                                         </div>
