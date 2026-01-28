@@ -119,7 +119,7 @@
                                             <select name="items[<?= $index ?>][material_id]" class="material-select w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                                                 <option value="">Select Material</option>
                                                 <?php foreach ($materials as $material): ?>
-                                                    <option value="<?= $material['id'] ?>" <?= $item['material_id'] == $material['id'] ? 'selected' : '' ?>>
+                                                    <option value="<?= $material['id'] ?>" <?= $item['material_id'] == $material['id'] ? 'selected' : '' ?> data-unit-cost="<?= $material['unit_cost'] ?>">
                                                         <?= esc($material['name']) ?> (<?= esc($material['item_code']) ?>)
                                                     </option>
                                                 <?php endforeach; ?>
@@ -130,14 +130,14 @@
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
                                             <input type="number" step="0.01" name="items[<?= $index ?>][quantity_requested]"
                                                    value="<?= $item['quantity_requested'] ?>"
-                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent quantity-input" required onchange="calculateRowTotal(this)">
                                         </div>
 
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">Est. Unit Cost</label>
                                             <input type="number" step="0.01" name="items[<?= $index ?>][estimated_unit_cost]"
                                                    value="<?= $item['estimated_unit_cost'] ?>"
-                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent unit-cost-input" required onchange="calculateRowTotal(this)">
                                         </div>
 
                                         <div class="flex items-end">
@@ -167,6 +167,15 @@
                         <?php endif; ?>
                     </div>
                 </div>
+
+                <!-- Total Cost Display -->
+                <div class="border-t pt-6">
+                    <div class="flex justify-end">
+                        <div class="text-lg font-semibold text-gray-900">
+                            Total Estimated Cost: <span id="totalCost">MWK 0.00</span>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Form Actions -->
@@ -191,7 +200,7 @@
                 <select name="items[__INDEX__][material_id]" class="material-select w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
                     <option value="">Select Material</option>
                     <?php foreach ($materials as $material): ?>
-                        <option value="<?= $material['id'] ?>">
+                        <option value="<?= $material['id'] ?>" data-unit-cost="<?= $material['unit_cost'] ?>">
                             <?= esc($material['name']) ?> (<?= esc($material['item_code']) ?>)
                         </option>
                     <?php endforeach; ?>
@@ -201,13 +210,13 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
                 <input type="number" step="0.01" name="items[__INDEX__][quantity_requested]"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent quantity-input" required onchange="calculateRowTotal(this)">
             </div>
 
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">Est. Unit Cost</label>
                 <input type="number" step="0.01" name="items[__INDEX__][estimated_unit_cost]"
-                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent unit-cost-input" required onchange="calculateRowTotal(this)">
             </div>
 
             <div class="flex items-end">
@@ -251,9 +260,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (itemRow) {
                 itemRow.remove();
                 updateItemIndices();
+                calculateTotalCost();
             }
         }
     });
+
+    // Initialize total cost calculation on load
+    calculateTotalCost();
 
     function addItem() {
         const template = document.getElementById('item-template').innerHTML;
@@ -276,7 +289,51 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         itemIndex = itemRows.length;
     }
+
+    // Auto-populate unit cost when material is selected
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('material-select')) {
+            const selectedOption = e.target.selectedOptions[0];
+            const unitCost = selectedOption.getAttribute('data-unit-cost');
+            
+            if (unitCost) {
+                const row = e.target.closest('.item-row');
+                const unitCostInput = row.querySelector('.unit-cost-input');
+                unitCostInput.value = unitCost;
+                calculateRowTotal(unitCostInput);
+            }
+        }
+    });
 });
+
+function calculateRowTotal(input) {
+    const row = input.closest('.item-row');
+    const quantity = parseFloat(row.querySelector('.quantity-input').value) || 0;
+    const unitCost = parseFloat(row.querySelector('.unit-cost-input').value) || 0;
+    const total = quantity * unitCost;
+    
+    // Create or update total display element
+    let totalDisplay = row.querySelector('.row-total');
+    if (!totalDisplay) {
+        totalDisplay = document.createElement('div');
+        totalDisplay.className = 'row-total text-sm font-medium text-gray-900 mt-2';
+        row.querySelector('.unit-cost-input').parentElement.appendChild(totalDisplay);
+    }
+    
+    totalDisplay.textContent = 'MWK ' + total.toFixed(2);
+    calculateTotalCost();
+}
+
+function calculateTotalCost() {
+    let total = 0;
+    document.querySelectorAll('.item-row').forEach(row => {
+        const quantity = parseFloat(row.querySelector('.quantity-input').value) || 0;
+        const unitCost = parseFloat(row.querySelector('.unit-cost-input').value) || 0;
+        total += quantity * unitCost;
+    });
+    
+    document.getElementById('totalCost').textContent = 'MWK ' + total.toFixed(2);
+}
 </script>
 
 <?= $this->endSection() ?>

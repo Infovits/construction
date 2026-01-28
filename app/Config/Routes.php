@@ -246,6 +246,9 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
             $routes->get("(:num)", "MaterialRequestController::show/$1");
             $routes->get("(:num)/edit", "MaterialRequestController::edit/$1");
             $routes->post("(:num)", "MaterialRequestController::update/$1");
+            $routes->post("(:num)/submit", "MaterialRequestController::submit/$1");
+            $routes->post("(:num)/approve", "MaterialRequestController::approve/$1");
+            $routes->post("(:num)/reject", "MaterialRequestController::reject/$1");
             $routes->delete("(:num)", "MaterialRequestController::delete/$1");
         });
 
@@ -300,6 +303,9 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->get("material-requests/(:num)", "MaterialRequestController::show/$1");
     $routes->get("material-requests/(:num)/edit", "MaterialRequestController::edit/$1");
     $routes->post("material-requests/(:num)", "MaterialRequestController::update/$1");
+    $routes->post("material-requests/(:num)/submit", "MaterialRequestController::submit/$1");
+    $routes->post("material-requests/(:num)/approve", "MaterialRequestController::approve/$1");
+    $routes->post("material-requests/(:num)/reject", "MaterialRequestController::reject/$1");
     $routes->delete("material-requests/(:num)", "MaterialRequestController::delete/$1");
 
     $routes->get("purchase-orders", "PurchaseOrderController::index");

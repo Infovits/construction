@@ -306,21 +306,25 @@
 
 <script>
 function approveRequest(id) {
+    console.log('Approving request:', id);
     document.getElementById('approvalForm').action = `<?= base_url('admin/material-requests/') ?>${id}/approve`;
     document.getElementById('approvalModal').classList.remove('hidden');
 }
 
 function rejectRequest(id) {
+    console.log('Rejecting request:', id);
     document.getElementById('rejectionForm').action = `<?= base_url('admin/material-requests/') ?>${id}/reject`;
     document.getElementById('rejectionModal').classList.remove('hidden');
 }
 
 function submitForApproval(id) {
+    console.log('Submitting for approval:', id);
     document.getElementById('submitForm').action = `<?= base_url('admin/material-requests/') ?>${id}/submit`;
     document.getElementById('submitModal').classList.remove('hidden');
 }
 
 function closeModal() {
+    console.log('Closing all modals');
     document.getElementById('approvalModal').classList.add('hidden');
     document.getElementById('rejectionModal').classList.add('hidden');
     document.getElementById('submitModal').classList.add('hidden');
@@ -332,13 +336,17 @@ window.onclick = function(event) {
     modals.forEach(modalId => {
         const modal = document.getElementById(modalId);
         if (event.target == modal) {
+            console.log('Clicking outside modal:', modalId);
             modal.classList.add('hidden');
         }
     });
 }
 
 // Initialize Lucide icons
-lucide.createIcons();
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Initializing Lucide icons');
+    lucide.createIcons();
+});
 </script>
 
 <style>
