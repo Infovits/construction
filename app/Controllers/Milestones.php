@@ -865,8 +865,9 @@ class Milestones extends BaseController
         $start = $this->request->getGet('start');
         $end = $this->request->getGet('end');
 
-        $milestones = $this->milestoneModel->select('tasks.*, projects.name as project_name')
+        $milestones = $this->milestoneModel->select('tasks.*, projects.name as project_name, users.first_name, users.last_name')
                                           ->join('projects', 'tasks.project_id = projects.id')
+                                          ->join('users', 'tasks.assigned_to = users.id', 'left')
                                           ->where('projects.company_id', session('company_id'))
                                           ->where('tasks.is_milestone', 1)
                                           ->where('tasks.planned_end_date IS NOT NULL');
@@ -879,6 +880,15 @@ class Milestones extends BaseController
         }
 
         $milestones = $milestones->findAll();
+
+        // Format the assigned user name for the frontend
+        foreach ($milestones as &$milestone) {
+            if ($milestone['first_name'] && $milestone['last_name']) {
+                $milestone['assigned_to_name'] = $milestone['first_name'] . ' ' . $milestone['last_name'];
+            } else {
+                $milestone['assigned_to_name'] = 'Unassigned';
+            }
+        }
 
         return $this->response->setJSON(['milestones' => $milestones]);
     }

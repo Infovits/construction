@@ -528,7 +528,7 @@ Milestone Details - <?= esc($milestone['title']) ?>
                                     <?php foreach ($related_tasks as $task): ?>
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <a href="<?= base_url('admin/tasks/view/' . $task['id']) ?>" class="text-indigo-600 hover:text-indigo-900">
+                                            <a href="<?= base_url('admin/tasks/' . $task['id']) ?>" class="text-indigo-600 hover:text-indigo-900">
                                                 <?= esc($task['title']) ?>
                                             </a>
                                         </td>
