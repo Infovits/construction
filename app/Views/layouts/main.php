@@ -380,18 +380,18 @@
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'settings-submenu')">
                         <i data-lucide="settings" class="w-5 h-5 flex-shrink-0"></i>
-                        <span class="sidebar-text overflow-hidden whitespace-nowrap">Setting</span>
+                        <span class="sidebar-text overflow-hidden whitespace-nowrap">Settings</span>
                         <i data-lucide="chevron-down" class="w-4 h-4 ml-auto sidebar-text menu-chevron" id="settings-chevron"></i>
                         <div class="tooltip absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
-                            Setting
+                            Settings
                         </div>
                     </a>
                     <div class="submenu" id="settings-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
-                            <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">General</a>
-                            <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Security</a>
-                            <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Preferences</a>
-                            <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Integrations</a>
+                            <a href="<?= base_url('admin/settings/general') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">General</a>
+                            <a href="<?= base_url('admin/settings/security') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Security</a>
+                            <a href="<?= base_url('admin/settings/preferences') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Preferences</a>
+                            <a href="<?= base_url('admin/settings/integrations') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Integrations</a>
                         </div>
                     </div>
                 </div>

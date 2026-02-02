@@ -30,6 +30,14 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->delete("(:num)", "Users::delete/$1");
     });
 
+    // Settings Routes
+    $routes->get("settings", "Settings::index");
+    $routes->get("settings/general", "Settings::general");
+    $routes->get("settings/security", "Settings::security");
+    $routes->get("settings/preferences", "Settings::preferences");
+    $routes->get("settings/integrations", "Settings::integrations");
+    $routes->post("settings/save/(:segment)", "Settings::save/$1");
+
     // Warehouses Routes (Admin)
     $routes->group("warehouses", function($routes) {
         $routes->get("/", "Warehouses::index");

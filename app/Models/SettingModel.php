@@ -12,12 +12,11 @@ class SettingModel extends Model
     protected $returnType = 'array';
     
     protected $allowedFields = [
-        'company_id', 'setting_type', 'setting_key', 'setting_value', 
-        'created_by', 'updated_by'
+        'company_id', 'setting_key', 'setting_value', 'setting_type',
+        'category', 'description', 'is_public', 'updated_by'
     ];
     
     protected $useTimestamps = true;
-    protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
     
     /**
@@ -30,7 +29,7 @@ class SettingModel extends Model
     public function getNotificationSettings($companyId, $type)
     {
         $settings = $this->where('company_id', $companyId)
-            ->where('setting_type', 'notification')
+            ->where('category', 'notification')
             ->where('setting_key', $type)
             ->first();
             
@@ -62,7 +61,7 @@ class SettingModel extends Model
     public function saveNotificationSettings($companyId, $type, array $settings)
     {
         $existingSettings = $this->where('company_id', $companyId)
-            ->where('setting_type', 'notification')
+            ->where('category', 'notification')
             ->where('setting_key', $type)
             ->first();
             
@@ -72,16 +71,17 @@ class SettingModel extends Model
             // Update existing settings
             return $this->update($existingSettings['id'], [
                 'setting_value' => $settingValue,
+                'setting_type' => 'json',
                 'updated_by' => $settings['updated_by'] ?? null
             ]);
         } else {
             // Create new settings
             return $this->insert([
                 'company_id' => $companyId,
-                'setting_type' => 'notification',
+                'category' => 'notification',
                 'setting_key' => $type,
                 'setting_value' => $settingValue,
-                'created_by' => $settings['updated_by'] ?? null,
+                'setting_type' => 'json',
                 'updated_by' => $settings['updated_by'] ?? null
             ]);
         }
@@ -96,15 +96,22 @@ class SettingModel extends Model
      */
     public function getSystemSettings($companyId, $key = null)
     {
-        $query = $this->where('company_id', $companyId)
-            ->where('setting_type', 'system');
+        $query = $this->where('company_id', $companyId);
             
         if ($key !== null) {
             $query->where('setting_key', $key);
             $setting = $query->first();
             
             if ($setting) {
-                return json_decode($setting['setting_value'], true);
+                // Decode based on setting_type
+                if ($setting['setting_type'] === 'json') {
+                    return json_decode($setting['setting_value'], true);
+                } elseif ($setting['setting_type'] === 'boolean') {
+                    return (bool) $setting['setting_value'];
+                } elseif ($setting['setting_type'] === 'number') {
+                    return (int) $setting['setting_value'];
+                }
+                return $setting['setting_value'];
             }
             
             return null;
@@ -114,7 +121,21 @@ class SettingModel extends Model
         $result = [];
         
         foreach ($settings as $setting) {
-            $result[$setting['setting_key']] = json_decode($setting['setting_value'], true);
+            $category = $setting['category'] ?? 'general';
+            if (!isset($result[$category])) {
+                $result[$category] = [];
+            }
+            
+            // Decode based on setting_type
+            if ($setting['setting_type'] === 'json') {
+                $result[$category][$setting['setting_key']] = json_decode($setting['setting_value'], true);
+            } elseif ($setting['setting_type'] === 'boolean') {
+                $result[$category][$setting['setting_key']] = (bool) $setting['setting_value'];
+            } elseif ($setting['setting_type'] === 'number') {
+                $result[$category][$setting['setting_key']] = (int) $setting['setting_value'];
+            } else {
+                $result[$category][$setting['setting_key']] = $setting['setting_value'];
+            }
         }
         
         return $result;
@@ -129,29 +150,43 @@ class SettingModel extends Model
      * @param int $userId The user ID making the change
      * @return bool True if saved successfully, false otherwise
      */
-    public function saveSystemSetting($companyId, $key, $value, $userId)
+    public function saveSystemSetting($companyId, $key, $value, $userId, $category = 'general')
     {
         $existingSetting = $this->where('company_id', $companyId)
-            ->where('setting_type', 'system')
             ->where('setting_key', $key)
             ->first();
-            
-        $settingValue = json_encode($value);
+        
+        // Determine setting type
+        $settingType = 'string';
+        if (is_array($value)) {
+            $settingType = 'json';
+            $settingValue = json_encode($value);
+        } elseif (is_bool($value)) {
+            $settingType = 'boolean';
+            $settingValue = $value ? '1' : '0';
+        } elseif (is_numeric($value)) {
+            $settingType = 'number';
+            $settingValue = (string) $value;
+        } else {
+            $settingValue = $value;
+        }
         
         if ($existingSetting) {
             // Update existing setting
             return $this->update($existingSetting['id'], [
                 'setting_value' => $settingValue,
+                'setting_type' => $settingType,
+                'category' => $category,
                 'updated_by' => $userId
             ]);
         } else {
             // Create new setting
             return $this->insert([
                 'company_id' => $companyId,
-                'setting_type' => 'system',
                 'setting_key' => $key,
                 'setting_value' => $settingValue,
-                'created_by' => $userId,
+                'setting_type' => $settingType,
+                'category' => $category,
                 'updated_by' => $userId
             ]);
         }

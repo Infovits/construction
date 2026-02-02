@@ -1,691 +1,352 @@
 <?= $this->extend('layouts/main') ?>
 
-<?= $this->section('title') ?>Gantt Chart - <?= esc($project['name']) ?><?= $this->endSection() ?>
+<?= $this->section('title') ?>Project Timeline - <?= esc($project['name']) ?><?= $this->endSection() ?>
 
 <?= $this->section('head') ?>
-<!-- Primary DHTMLX Gantt CSS -->
-<link rel="stylesheet" href="https://cdn.dhtmlx.com/gantt/7.1.13/dhtmlxgantt.css" type="text/css">
+<!-- Local DHTMLX Gantt files (download and place in public/assets/gantt/) -->
+<link rel="stylesheet" href="<?= base_url('assets/gantt/dhtmlxgantt.css') ?>" type="text/css">
+<script src="<?= base_url('assets/gantt/dhtmlxgantt.js') ?>"></script>
 
-<!-- Fallback CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dhtmlx-gantt@7.1.13/codebase/dhtmlxgantt.css" type="text/css">
-
-<!-- Load DHTMLX Gantt JS in head to ensure it's available before we need it -->
-<script src="https://cdn.dhtmlx.com/gantt/7.1.13/dhtmlxgantt.js"></script>
-
-<!-- Additional styles for better container sizing -->
 <style>
     #gantt_here {
-        min-height: 600px !important;
-        width: 100% !important;
-        box-sizing: border-box !important;
+        width: 100%;
+        min-height: 700px;
+        border-radius: 0 0 0.5rem 0.5rem;
+        background: white;
+    }
+
+    .gantt-loading {
+        position: absolute;
+        inset: 0;
+        background: rgba(255,255,255,0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        border-radius: 0.5rem;
+    }
+
+    .gantt-loading-content {
+        text-align: center;
+        padding: 2rem;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        border: 1px solid #e5e7eb;
+    }
+
+    .gantt-spinner {
+        width: 48px;
+        height: 48px;
+        border: 5px solid #e5e7eb;
+        border-top: 5px solid #6366f1;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1.25rem;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .gantt-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 700px;
+        background: #f8fafc;
+        border: 2px dashed #d1d5db;
+        border-radius: 0.5rem;
+        color: #6b7280;
+        text-align: center;
+        padding: 3rem 2rem;
+    }
+
+    /* Better task styling */
+    .gantt_task_line {
+        border-radius: 6px !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1) !important;
+    }
+
+    .gantt_task_line:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    }
+
+    .gantt_task_progress {
+        background: rgba(255,255,255,0.85) !important;
+        border-radius: 3px !important;
+    }
+
+    .gantt_marker.today {
+        background: #3b82f6 !important;
+        border-color: #eff6ff !important;
+    }
+
+    @media (max-width: 768px) {
+        #gantt_here {
+            min-height: 500px;
+        }
     }
 </style>
 <?= $this->endSection() ?>
 
-<?= $this->section('scripts') ?>
-<!-- We will handle the scripts in the content section -->
-<?= $this->endSection() ?>
-
 <?= $this->section('content') ?>
-<div class="space-y-6">
-    <!-- Page Header -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-white p-6 rounded-xl shadow border">
         <div>
-            <h1 class="text-2xl font-bold text-gray-900">Project Timeline - <?= esc($project['name']) ?></h1>
-            <p class="text-gray-600"><?= esc($project['project_code']) ?> | Gantt Chart View</p>
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900">
+                Project Timeline
+            </h1>
+            <p class="text-gray-600 mt-1">
+                <?= esc($project['name']) ?> · <?= esc($project['project_code']) ?>
+            </p>
         </div>
-        <div class="flex flex-col sm:flex-row gap-2">
-            <button type="button" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors" onclick="gantt.ext.fullscreen.toggle()">
-                <i data-lucide="maximize" class="w-4 h-4 mr-2"></i>
+
+        <div class="flex flex-wrap gap-3">
+            <button 
+                onclick="gantt.ext.fullscreen.toggle()"
+                class="inline-flex items-center px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5 5m11-1v4m0 0h-4m4 0l-5 5"></path>
+                </svg>
                 Fullscreen
             </button>
-            <button type="button" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors" onclick="exportToPDFServer()">
-                <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
+
+            <a href="<?= base_url('admin/projects/' . $project['id'] . '/gantt/pdf') ?>" target="_blank"
+               class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
                 Export PDF
-            </button>
-            <a href="<?= base_url('admin/projects/view/' . $project['id']) ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i>
+            </a>
+
+            <a href="<?= base_url('admin/projects/view/' . $project['id']) ?>"
+               class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
                 Back to Project
             </a>
-            <a href="<?= base_url('admin/projects/' . $project['id'] . '/gantt/pdf') ?>" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                <i data-lucide="file-text" class="w-4 h-4 mr-2"></i>
-                Export PDF
-            </a>
         </div>
     </div>
 
-    <!-- Gantt Chart Controls -->
-    <div class="bg-white rounded-lg shadow-sm border">
-        <div class="p-4">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div class="flex flex-wrap gap-2">
-                    <button type="button" class="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" onclick="gantt.ext.zoom.setLevel('day')">
-                        Day
-                    </button>
-                    <button type="button" class="px-3 py-1 text-sm bg-indigo-600 text-white border border-indigo-600 rounded-md hover:bg-indigo-700 transition-colors" onclick="gantt.ext.zoom.setLevel('week')">
-                        Week
-                    </button>
-                    <button type="button" class="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" onclick="gantt.ext.zoom.setLevel('month')">
-                        Month
-                    </button>
-                    <button type="button" class="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors" onclick="gantt.ext.zoom.setLevel('quarter')">
-                        Quarter
-                    </button>
+    <!-- Controls -->
+    <div class="bg-white p-5 rounded-xl shadow border">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 flex-wrap">
+            <div class="flex items-center gap-3">
+                <h3 class="text-lg font-semibold text-gray-900">View Controls</h3>
+                <div class="flex bg-gray-100 rounded-lg overflow-hidden">
+                    <button onclick="gantt.ext.zoom.setLevel('day')" class="px-4 py-2 text-sm hover:bg-gray-200">Day</button>
+                    <button onclick="gantt.ext.zoom.setLevel('week')" class="px-4 py-2 text-sm bg-indigo-600 text-white">Week</button>
+                    <button onclick="gantt.ext.zoom.setLevel('month')" class="px-4 py-2 text-sm hover:bg-gray-200">Month</button>
+                    <button onclick="gantt.ext.zoom.setLevel('quarter')" class="px-4 py-2 text-sm hover:bg-gray-200">Quarter</button>
                 </div>
-                <div class="flex flex-wrap gap-4">
-                    <label class="flex items-center space-x-2">
-                        <input type="checkbox" id="showCriticalPath" checked class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                        <span class="text-sm text-gray-700">Show Critical Path</span>
-                    </label>
-                    <label class="flex items-center space-x-2">
-                        <input type="checkbox" id="showProgress" checked class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
-                        <span class="text-sm text-gray-700">Show Progress</span>
-                    </label>
-                </div>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="showCriticalPath" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-sm text-gray-700">Critical Path</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="showProgress" checked class="rounded text-indigo-600 focus:ring-indigo-500">
+                    <span class="text-sm text-gray-700">Progress</span>
+                </label>
             </div>
         </div>
     </div>
 
-    <!-- Project Stats Row -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-l-4 border-l-indigo-500">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wide">Total Tasks</p>
-                    <p class="text-2xl font-bold text-gray-900"><?= count($tasks) ?></p>
-                </div>
-                <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <i data-lucide="check-square" class="w-6 h-6 text-indigo-600"></i>
-                </div>
-            </div>
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-l-indigo-500">
+            <p class="text-sm font-medium text-indigo-600 uppercase">Total Tasks</p>
+            <p class="text-3xl font-bold mt-2"><?= count($tasks) ?></p>
         </div>
-        
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-l-4 border-l-green-500">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-semibold text-green-600 uppercase tracking-wide">Milestones</p>
-                    <p class="text-2xl font-bold text-gray-900"><?= count($milestones) ?></p>
-                </div>
-                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <i data-lucide="flag" class="w-6 h-6 text-green-600"></i>
-                </div>
-            </div>
+
+        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-l-green-500">
+            <p class="text-sm font-medium text-green-600 uppercase">Milestones</p>
+            <p class="text-3xl font-bold mt-2"><?= count($milestones) ?></p>
         </div>
-        
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-l-4 border-l-blue-500">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide">Duration</p>
-                    <p class="text-2xl font-bold text-gray-900">
-                        <?php
-                        if (!empty($project['start_date']) && !empty($project['planned_end_date'])) {
-                            $start = new DateTime($project['start_date']);
-                            $end = new DateTime($project['planned_end_date']);
-                            $duration = $start->diff($end)->days;
-                            echo $duration . ' days';
-                        } else {
-                            echo 'N/A';
-                        }
-                        ?>
-                    </p>
-                </div>
-                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <i data-lucide="calendar" class="w-6 h-6 text-blue-600"></i>
-                </div>
-            </div>
+
+        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-l-blue-500">
+            <p class="text-sm font-medium text-blue-600 uppercase">Duration</p>
+            <p class="text-3xl font-bold mt-2">
+                <?php
+                if (!empty($project['start_date']) && !empty($project['planned_end_date'])) {
+                    $start = new DateTime($project['start_date']);
+                    $end   = new DateTime($project['planned_end_date']);
+                    echo $start->diff($end)->days . ' days';
+                } else {
+                    echo 'N/A';
+                }
+                ?>
+            </p>
         </div>
-        
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-l-4 border-l-yellow-500">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-xs font-semibold text-yellow-600 uppercase tracking-wide">Progress</p>
-                    <p class="text-2xl font-bold text-gray-900"><?= round($project['progress_percentage'] ?? 0, 1) ?>%</p>
-                </div>
-                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <i data-lucide="trending-up" class="w-6 h-6 text-yellow-600"></i>
-                </div>
-            </div>
+
+        <div class="bg-white p-6 rounded-xl shadow border-l-4 border-l-purple-500">
+            <p class="text-sm font-medium text-purple-600 uppercase">Progress</p>
+            <p class="text-3xl font-bold mt-2"><?= round($project['progress_percentage'] ?? 0, 1) ?>%</p>
         </div>
     </div>
 
-    <!-- Gantt Chart Container -->
-    <div class="bg-white rounded-lg shadow-sm border">
-        <div class="p-0 relative" style="min-height: 600px;">
-            <div id="gantt_loading" class="gantt-loading absolute inset-0 z-10">
-                <div class="text-center">
-                    <svg class="animate-spin h-10 w-10 mb-4 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <p class="text-lg font-semibold">Loading Gantt Chart...</p>
-                    <p class="text-sm mt-2 text-gray-600">This may take a few moments...</p>
-                </div>
+    <!-- Gantt Chart -->
+    <div class="bg-white rounded-xl shadow border overflow-hidden relative">
+        <div id="gantt_loading" class="gantt-loading">
+            <div class="gantt-loading-content">
+                <div class="gantt-spinner"></div>
+                <h3 class="text-xl font-semibold text-gray-900 mb-2">Loading Project Timeline</h3>
+                <p class="text-gray-600">Preparing tasks, milestones and dependencies...</p>
             </div>
-            <!-- Make sure the container is visible by default -->
-            <div id="gantt_here" style="width: 100%; height: 600px; border-radius: 0.5rem;"></div>
         </div>
+
+        <div id="gantt_here"></div>
     </div>
 
     <!-- Legend -->
-    <div class="bg-white rounded-lg shadow-sm border">
-        <div class="p-4 border-b">
-            <h3 class="text-lg font-semibold text-gray-900">Legend</h3>
-        </div>
-        <div class="p-4">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div class="flex items-center space-x-3">
-                    <div class="w-5 h-5 bg-indigo-500 rounded"></div>
-                    <span class="text-sm text-gray-700">Regular Tasks</span>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <div class="w-5 h-5 bg-yellow-500 rounded"></div>
-                    <span class="text-sm text-gray-700">Critical Path</span>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <div class="w-5 h-5 bg-green-500 rounded"></div>
-                    <span class="text-sm text-gray-700">Completed Tasks</span>
-                </div>
-                <div class="flex items-center space-x-3">
-                    <div class="w-5 h-5 bg-red-500 rounded"></div>
-                    <span class="text-sm text-gray-700">Milestones</span>
-                </div>
+    <div class="bg-white p-6 rounded-xl shadow border">
+        <h3 class="text-lg font-semibold mb-4">Legend</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="flex items-center gap-3">
+                <div class="w-5 h-2.5 bg-indigo-600 rounded"></div>
+                <span class="text-sm text-gray-700">Regular Tasks</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="w-5 h-2.5 bg-amber-500 rounded"></div>
+                <span class="text-sm text-gray-700">Critical Path</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="w-5 h-2.5 bg-green-500 rounded"></div>
+                <span class="text-sm text-gray-700">Completed</span>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="w-3 h-3 bg-red-600 rounded-full"></div>
+                <span class="text-sm text-gray-700">Milestones</span>
             </div>
         </div>
     </div>
 </div>
 
-<style>
-.legend-color {
-    width: 20px;
-    height: 20px;
-    border-radius: 3px;
-}
-
-.gantt_task_line.critical_path {
-    background-color: #f6c23e !important;
-}
-
-.gantt_task_line.completed {
-    background-color: #1cc88a !important;
-}
-
-.gantt_task_line.milestone {
-    background-color: #e74a3b !important;
-}
-
-.gantt_grid_scale .gantt_grid_head_cell,
-.gantt_grid_scale .gantt_grid_head_cell {
-    background-color: #f8f9fc;
-    border-color: #e3e6f0;
-}
-
-.gantt_layout_root {
-    border: 1px solid #e3e6f0;
-    border-radius: 0.35rem;
-}
-
-/* Placeholder message for when gantt isn't loaded yet */
-.gantt-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 600px;
-    width: 100%;
-    background-color: rgba(248, 249, 252, 0.9);
-    color: #6366f1;
-    z-index: 50;
-}
-
-/* Element to display when no tasks are available */
-.gantt-empty {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 600px;
-    width: 100%;
-    background-color: #f8f9fc;
-    color: #64748b;
-    text-align: center;
-    padding: 2rem;
-}
-
-/* Ensure gantt container has proper sizing */
-#gantt_here {
-    min-height: 600px;
-    position: relative;
-}
-
-/* Custom canvas styles to ensure proper rendering */
-#gantt_here canvas {
-    max-width: 100%;
-}
-</style>
-
 <script>
-// Check if DHTMLX Gantt script is loaded
-function loadGanttScript() {
-    return new Promise((resolve, reject) => {
-        // Library should be already loaded in head
-        if (typeof gantt !== 'undefined') {
-            console.log('DHTMLX Gantt library already loaded');
-            return resolve();
-        } else {
-            console.error('DHTMLX Gantt library not found');
-            
-            // As a last resort, try loading from CDN
-            const script = document.createElement('script');
-            script.src = "https://cdn.jsdelivr.net/npm/dhtmlx-gantt@7.1.13/codebase/dhtmlxgantt.js";
-            script.onload = () => {
-                console.log('DHTMLX Gantt library loaded successfully from fallback CDN');
-                resolve();
-            };
-            script.onerror = () => {
-                console.error('Failed to load DHTMLX Gantt library from all sources');
-                reject(new Error('Failed to load DHTMLX Gantt library'));
-            };
-            document.body.appendChild(script);
-        }
-    });
-}
-
-function initGanttChart() {
-    console.log('Starting Gantt chart initialization');
-    
-    // Check if gantt is defined in global scope
+// Gantt Initialization
+document.addEventListener('DOMContentLoaded', function () {
     if (typeof gantt === 'undefined') {
-        console.error('DHTMLX Gantt library not properly loaded in global scope');
+        console.error('DHTMLX Gantt library not loaded');
         document.getElementById('gantt_loading').innerHTML = `
-            <div class="text-center text-red-600">
-                <p class="text-xl mb-2">Error: Gantt library not available</p>
-                <p>Please try refreshing the page or check your internet connection.</p>
-            </div>
-        `;
+            <div class="text-center p-12 text-red-600">
+                <h3 class="text-2xl font-bold mb-4">Gantt Library Failed to Load</h3>
+                <p>Please check your internet connection or contact support.</p>
+                <button onclick="location.reload()" class="mt-6 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700">
+                    Refresh Page
+                </button>
+            </div>`;
         return;
     }
-    
-    // Ensure the container exists before proceeding
-    const ganttContainer = document.getElementById('gantt_here');
-    if (!ganttContainer) {
-        console.error('Gantt chart container not found in DOM');
-        document.getElementById('gantt_loading').innerHTML = `
-            <div class="text-center text-red-600">
-                <p class="text-xl mb-2">Error: Gantt chart container not found</p>
-                <p>Please try refreshing the page.</p>
-            </div>
-        `;
+
+    const container = document.getElementById('gantt_here');
+    if (!container) {
+        console.error('Gantt container #gantt_here not found');
         return;
     }
-    
-    // Show the gantt container but keep loading visible until initialized
-    ganttContainer.style.display = 'block';
-    
-    // Configure Gantt
-    gantt.config.date_format = "%Y-%m-%d";
-    gantt.config.columns = [
-        {name: "text", label: "Task Name", width: "*", tree: true},
-        {name: "start_date", label: "Start Date", width: 80, align: "center"},
-        {name: "duration", label: "Duration", width: 60, align: "center"},
-        {name: "add", label: "", width: 44}
-    ];
-
-    // Configure plugins
-    gantt.plugins({
-        tooltip: true,
-        marker: true,
-        fullscreen: true,
-        export_api: true
-    });
-
-    // Configure zoom levels
-    gantt.ext.zoom.init({
-        levels: [
-            {
-                name: "day",
-                scale_height: 60,
-                min_column_width: 30,
-                scales: [
-                    {unit: "month", step: 1, format: "%F %Y"},
-                    {unit: "day", step: 1, format: "%j"}
-                ]
-            },
-            {
-                name: "week",
-                scale_height: 60,
-                min_column_width: 50,
-                scales: [
-                    {unit: "month", step: 1, format: "%F %Y"},
-                    {unit: "week", step: 1, format: "Week %W"}
-                ]
-            },
-            {
-                name: "month",
-                scale_height: 60,
-                min_column_width: 120,
-                scales: [
-                    {unit: "year", step: 1, format: "%Y"},
-                    {unit: "month", step: 1, format: "%F"}
-                ]
-            },
-            {
-                name: "quarter",
-                scale_height: 60,
-                min_column_width: 90,
-                scales: [
-                    {unit: "year", step: 1, format: "%Y"},
-                    {unit: "quarter", step: 1, format: "Q%q"}
-                ]
-            }
-        ]
-    });
-
-    // Set default zoom
-    gantt.ext.zoom.setLevel("week");
-
-    // Configure tooltips
-    gantt.templates.tooltip_text = function(start, end, task) {
-        return "<b>Task:</b> " + task.text + "<br/>" +
-               "<b>Start:</b> " + gantt.templates.tooltip_date_format(start) + "<br/>" +
-               "<b>End:</b> " + gantt.templates.tooltip_date_format(end) + "<br/>" +
-               "<b>Progress:</b> " + Math.round(task.progress * 100) + "%";
-    };
-
-    // Configure task colors based on status
-    gantt.templates.task_class = function(start, end, task) {
-        let css = [];
-        
-        if (task.critical_path) {
-            css.push("critical_path");
-        }
-        
-        if (task.progress >= 1) {
-            css.push("completed");
-        }
-        
-        if (task.type === "milestone") {
-            css.push("milestone");
-        }
-        
-        return css.join(" ");
-    };
-
-    // Add today marker
-    gantt.addMarker({
-        start_date: new Date(),
-        css: "today",
-        text: "Today",
-        title: "Today: " + new Date().toDateString()
-    });
-
-    // Log data for debugging
-    console.log("Tasks available:", <?= count($tasks) ?>);
-    console.log("Milestones available:", <?= count($milestones) ?>);
-    
-    // Create a variable with a different name to avoid conflict
-    const ganttTasks = {
-        data: [
-            <?php if (!empty($tasks)) : ?>
-            <?php foreach ($tasks as $index => $task): ?>
-            {
-                id: "task_<?= $task['id'] ?>",
-                text: "<?= addslashes($task['title'] ?? 'Unnamed Task') ?>",
-                start_date: "<?= $task['planned_start_date'] ?>",
-                duration: <?= max(1, (strtotime($task['planned_end_date']) - strtotime($task['planned_start_date'])) / 86400) ?>,
-                progress: <?= ($task['progress_percentage'] ?? 0) / 100 ?>,
-                type: "task",
-                critical_path: <?= $task['is_critical_path'] ? 'true' : 'false' ?>,
-                assigned_to: "<?= addslashes($task['assigned_name'] ?? '') ?>",
-                status: "<?= $task['status'] ?? 'not_started' ?>",
-                priority: "<?= $task['priority'] ?? 'medium' ?>"
-            }<?= $index < count($tasks) - 1 || !empty($milestones) ? ',' : '' ?>
-            <?php endforeach; ?>
-            <?php endif; ?>
-            
-            <?php if (!empty($milestones)) : ?>
-            <?php foreach ($milestones as $index => $milestone): ?>
-            {
-                id: "milestone_<?= $milestone['id'] ?>",
-                text: "<?= addslashes($milestone['title'] ?? 'Unnamed Milestone') ?>",
-                start_date: "<?= $milestone['planned_end_date'] ?>",
-                duration: 0,
-                progress: <?= ($milestone['progress_percentage'] ?? 0) / 100 ?>,
-                type: "milestone",
-                critical_path: false,
-                status: "<?= $milestone['status'] ?? 'not_started' ?>",
-                priority: "<?= $milestone['priority'] ?? 'medium' ?>"
-            }<?= $index < count($milestones) - 1 ? ',' : '' ?>
-            <?php endforeach; ?>
-            <?php endif; ?>
-        ],
-        links: []
-    };
-
-    console.log("Gantt data prepared:", ganttTasks);
-    
-    // Provide a clean dataset to parse
-    const tasks = ganttTasks;
-
-    // Add dependencies
-    <?php if (!empty($tasks)) : ?>
-    <?php foreach ($tasks as $task): ?>
-    <?php if (!empty($task['depends_on'])): ?>
-    <?php $dependencies = explode(',', $task['depends_on']); ?>
-    <?php foreach ($dependencies as $depId): ?>
-    {
-        const depId = "<?= trim($depId) ?>";
-        tasks.links.push({
-            id: "link_<?= $task['id'] ?>_<?= trim($depId) ?>",
-            source: "task_" + depId,
-            target: "task_<?= $task['id'] ?>",
-            type: "0" // finish_to_start
-        });
-        console.log("Added dependency: Task <?= $task['id'] ?> depends on Task " + depId);
-    }
-    <?php endforeach; ?>
-    <?php endif; ?>
-    <?php endforeach; ?>
-    <?php endif; ?>
 
     try {
-        if (typeof gantt === 'undefined') {
-            throw new Error('DHTMLX Gantt library not loaded properly');
-        }
-        
-        // Initialize Gantt by explicitly getting the container element
-        const ganttContainer = document.getElementById('gantt_here');
-        console.log("Initializing gantt chart in container:", ganttContainer);
-        
-        if (!ganttContainer) {
-            throw new Error('Gantt container not found in DOM');
-        }
-        
-        // Make sure the canvas is visible in DOM before initialization
-        if (window.getComputedStyle(ganttContainer).display === 'none') {
-            ganttContainer.style.display = 'block';
-            console.log("Made gantt container visible");
-        }
-        
-        // Use a small delay to ensure DOM is fully ready
-        setTimeout(() => {
-            try {
-                // Initialize the gantt chart with container element
-                gantt.init("gantt_here"); // Use ID string instead of element
-                
-                // Check if we have any tasks or milestones
-                if (tasks.data && tasks.data.length > 0) {
-                    console.log("Parsing tasks into gantt chart:", tasks);
-                    gantt.parse(tasks);
-                } else {
-                    console.log("No tasks to display");
-                    ganttContainer.innerHTML = 
-                        '<div class="flex items-center justify-center h-full">' +
-                            '<div class="text-gray-500 text-center p-8">' +
-                                '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-4"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>' +
-                                '<p>No tasks or milestones with valid dates found for this project.</p>' +
-                                '<p class="mt-2">Add tasks with start and end dates to see the Gantt chart.</p>' +
-                            '</div>' +
-                        '</div>';
-                }
-                
-                // Hide loading indicator only after successful initialization
-                document.getElementById('gantt_loading').style.display = 'none';
-                
-            } catch (innerError) {
-                console.error("Inner error initializing gantt chart:", innerError);
-                document.getElementById('gantt_loading').style.display = 'none';
-                ganttContainer.style.display = 'block';
-                ganttContainer.innerHTML = 
-                    '<div class="flex items-center justify-center h-full">' +
-                        '<div class="text-red-600 text-center p-8">' +
-                            '<p class="text-xl mb-4">Error initializing Gantt chart:</p>' +
-                            '<p>' + innerError.message + '</p>' +
-                            '<p class="mt-2 text-sm">Additional details: ' + (innerError.stack ? innerError.stack.split('\n')[1] : 'No details') + '</p>' +
-                        '</div>' +
-                    '</div>';
-            }
-        }, 100);
-        
-    } catch (error) {
-        // Handle any errors that occur during initialization
-        console.error("Error before gantt initialization:", error);
-        const ganttContainer = document.getElementById('gantt_here');
-        if (ganttContainer) ganttContainer.style.display = 'none';
-        
-        const loadingDiv = document.getElementById("gantt_loading");
-        if (loadingDiv) {
-            loadingDiv.innerHTML = 
-                '<div class="text-red-600 text-center p-8">' +
-                    '<p class="text-xl mb-4">Error initializing Gantt chart:</p>' +
-                    '<p>' + error.message + '</p>' +
-                    '<p class="mt-4 text-sm">Please check browser console for more details.</p>' +
-                '</div>';
-        }
-    }
+        // Basic config
+        gantt.config.date_format = "%Y-%m-%d";
+        gantt.config.xml_date    = "%Y-%m-%d";
 
-    // Event handlers
-    gantt.attachEvent("onTaskClick", function(id, e) {
-        if (id.startsWith("task_")) {
-            const taskId = id.replace("task_", "");
-            window.open("/admin/tasks/" + taskId, "_blank");
-        } else if (id.startsWith("milestone_")) {
-            const milestoneId = id.replace("milestone_", "");
-            window.open("/admin/milestones/" + milestoneId, "_blank");
-        }
-        return true;
-    });
+        gantt.config.columns = [
+            {name: "text",     label: "Task / Milestone", width: "*", tree: true},
+            {name: "start_date", label: "Start", width: 100, align: "center"},
+            {name: "duration", label: "Duration", width: 80, align: "center"},
+            {name: "progress", label: "%", width: 60, align: "center"},
+            {name: "add",      label: "", width: 44}
+        ];
 
-    // Toggle controls
-    document.getElementById('showCriticalPath').addEventListener('change', function() {
-        gantt.refreshData();
-    });
-
-    document.getElementById('showProgress').addEventListener('change', function() {
-        gantt.config.show_progress = this.checked;
-        gantt.refreshData();
-    });
-}
-
-    // Function to export the gantt chart to PDF
-    function exportToPDF() {
-        try {
-            // First check if gantt is defined
-            if (typeof gantt === 'undefined') {
-                alert('Gantt chart library is not loaded. Please try refreshing the page.');
-                return;
-            }
-            
-            // Then check if exportToPDF function exists
-            if (!gantt.exportToPDF) {
-                console.error('exportToPDF function not available in the Gantt library');
-                alert('PDF export functionality is not available. Please ensure you have the Enterprise version of DHTMLX Gantt.');
-                return;
-            }
-            
-            // Check if the chart is properly initialized
-            const container = document.getElementById('gantt_here');
-            if (!container || container.style.display === 'none' || container.children.length === 0) {
-                alert('Gantt chart is not fully loaded or initialized. Please wait and try again.');
-                return;
-            }
-
-            // Execute the export
-            gantt.exportToPDF({
-                name: "project_gantt_<?= $project['project_code'] ?>_<?= date('Y-m-d') ?>.pdf",
-                header: "<h1><?= addslashes($project['name']) ?> - Project Timeline</h1>",
-                footer: "<div style='text-align:center'>Generated on <?= date('F j, Y') ?></div>"
-            });
-        } catch (error) {
-            console.error('Error during PDF export:', error);
-            alert('An error occurred while generating the PDF. Please try again later.');
-        }
-    }
-    
-    // Function to export using server-side PDF generation
-    function exportToPDFServer() {
-        try {
-            // Check if we have a valid project ID
-            const projectId = "<?= $project['id'] ?>";
-            if (!projectId) {
-                alert('Project ID not found. Please refresh the page and try again.');
-                return;
-            }
-            
-            // Redirect to server-side PDF generation
-            window.open("<?= base_url('admin/projects/' . $project['id'] . '/gantt/pdf') ?>", '_blank');
-        } catch (error) {
-            console.error('Error during server-side PDF export:', error);
-            alert('An error occurred while generating the PDF. Please try again later.');
-        }
-    }
-
-// Wait for both DOM and window load to ensure everything is ready
-window.addEventListener('load', function() {
-    console.log('Window fully loaded - starting Gantt initialization');
-    
-    // Get references to DOM elements
-    const ganttLoading = document.getElementById('gantt_loading');
-    const ganttContainer = document.getElementById('gantt_here');
-    
-    if (!ganttLoading || !ganttContainer) {
-        console.error('Critical DOM elements missing:', {
-            'gantt_loading': !!ganttLoading,
-            'gantt_here': !!ganttContainer
+        // Plugins
+        gantt.plugins({
+            tooltip: true,
+            marker: true,
+            fullscreen: true
         });
-        
-        if (ganttLoading) {
-            ganttLoading.innerHTML = `
-                <div class="text-center text-red-600">
-                    <p class="text-xl mb-2">Critical error: DOM elements missing</p>
-                    <p>Please contact support.</p>
-                </div>
-            `;
-        }
-        return;
-    }
-    
-    // Make sure gantt container is visible before initialization
-    ganttContainer.style.display = 'block';
-    
-    // Verify the Gantt library is loaded and initialize
-    loadGanttScript()
-        .then(() => {
-            console.log('Gantt script verified, now initializing chart');
-            // Give a bit more time for everything to settle
-            setTimeout(initGanttChart, 500);
-        })
-        .catch(error => {
-            // Show error if script verification fails
-            if (ganttLoading) {
-                ganttLoading.innerHTML = `
-                    <div class="text-center text-red-600">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-4"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                        <p class="text-xl mb-2">Failed to load Gantt chart library</p>
-                        <p>Please try refreshing the page or check your network connection.</p>
-                        <p class="mt-4 text-sm text-gray-600">Error details: ${error.message}</p>
-                    </div>
-                `;
-            }
-            console.error('Error initializing Gantt chart:', error);
+
+        // Zoom levels
+        gantt.ext.zoom.init({
+            levels: [
+                { name: "day",    scale_height: 50, min_column_width: 30 },
+                { name: "week",   scale_height: 50, min_column_width: 60 },
+                { name: "month",  scale_height: 50, min_column_width: 100 },
+                { name: "quarter", scale_height: 50, min_column_width: 120 }
+            ]
         });
+
+        gantt.ext.zoom.setLevel('week');
+
+        // Data
+        const ganttData = {
+            data: [
+                <?php foreach ($tasks as $t): ?>
+                {
+                    id: <?= $t['id'] ?>,
+                    text: "<?= addslashes($t['title']) ?>",
+                    start_date: "<?= $t['planned_start_date'] ?>",
+                    duration: <?= max(1, (strtotime($t['planned_end_date']) - strtotime($t['planned_start_date'])) / 86400) ?>,
+                    progress: <?= ($t['progress_percentage'] ?? 0) / 100 ?>,
+                    type: "task"
+                },
+                <?php endforeach; ?>
+
+                <?php foreach ($milestones as $m): ?>
+                {
+                    id: "m_<?= $m['id'] ?>",
+                    text: "<?= addslashes($m['title']) ?>",
+                    start_date: "<?= $m['planned_end_date'] ?>",
+                    duration: 0,
+                    type: "milestone"
+                },
+                <?php endforeach; ?>
+            ],
+            links: []
+        };
+
+        // Initialize
+        gantt.init("gantt_here");
+        gantt.parse(ganttData);
+
+        // Hide loading
+        document.getElementById('gantt_loading').style.display = 'none';
+
+        // Today marker
+        gantt.addMarker({
+            start_date: new Date(),
+            css: "today",
+            text: "Today",
+            title: "Today"
+        });
+
+        // Critical path & progress toggles
+        document.getElementById('showCriticalPath')?.addEventListener('change', function() {
+            gantt.config.highlight_critical_path = this.checked;
+            gantt.refreshData();
+        });
+
+        document.getElementById('showProgress')?.addEventListener('change', function() {
+            gantt.config.show_progress = this.checked;
+            gantt.refreshData();
+        });
+
+    } catch (err) {
+        console.error('Gantt init error:', err);
+        document.getElementById('gantt_loading').innerHTML = `
+            <div class="text-center p-12 text-red-600">
+                <h3 class="text-2xl font-bold mb-4">Failed to Load Timeline</h3>
+                <p>${err.message}</p>
+                <button onclick="location.reload()" class="mt-6 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    Try Again
+                </button>
+            </div>`;
+    }
 });
 </script>
 
