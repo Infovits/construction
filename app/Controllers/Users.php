@@ -599,6 +599,88 @@ class Users extends BaseController
         ]);
     }
 
+    /**
+     * Delete user
+     */
+    public function delete($id)
+    {
+        $this->checkPermission('users.delete');
+
+        $user = $this->userModel->find($id);
+
+        if (!$user || $user['company_id'] != session('company_id')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'User not found']);
+        }
+
+        // Prevent deleting yourself
+        if ($user['id'] == session('user_id')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'You cannot delete your own user account']);
+        }
+
+        // Start transaction
+        $this->db->transStart();
+
+        try {
+            // Delete user roles
+            $this->db->table('user_roles')->where('user_id', $id)->delete();
+
+            // Delete employee details
+            $this->employeeDetailModel->where('user_id', $id)->delete();
+
+            // Delete user
+            if ($this->userModel->delete($id)) {
+                $this->db->transComplete();
+                
+                if ($this->db->transStatus() !== false) {
+                    return $this->response->setJSON(['success' => true, 'message' => 'User deleted successfully']);
+                }
+            }
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            log_message('error', 'Failed to delete user: ' . $e->getMessage());
+        }
+
+        return $this->response->setJSON(['success' => false, 'message' => 'Failed to delete user']);
+    }
+
+    /**
+     * Toggle user status (active/inactive)
+     */
+    public function toggle($id)
+    {
+        $this->checkPermission('users.edit');
+
+        $user = $this->userModel->find($id);
+
+        if (!$user || $user['company_id'] != session('company_id')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'User not found']);
+        }
+
+        // Prevent toggling yourself
+        if ($user['id'] == session('user_id')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'You cannot change your own user status']);
+        }
+
+        $newStatus = $user['status'] === 'active' ? 'inactive' : 'active';
+
+        if ($this->userModel->update($id, ['status' => $newStatus])) {
+            return $this->response->setJSON([
+                'success' => true, 
+                'message' => 'User status updated successfully',
+                'status' => $newStatus
+            ]);
+        }
+
+        return $this->response->setJSON(['success' => false, 'message' => 'Failed to update user status']);
+    }
+
+    private function checkPermission($permission)
+    {
+        if (!hasPermission($permission)) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Access denied');
+        }
+    }
+
     // Helper Methods
     private function generateEmployeeId()
     {

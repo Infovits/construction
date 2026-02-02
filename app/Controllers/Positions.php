@@ -65,10 +65,9 @@ class Positions extends BaseController
             'title' => 'required|min_length[2]|max_length[100]',
             'code' => 'required|min_length[2]|max_length[20]|is_unique[job_positions.code]',
             'department_id' => 'required|numeric',
-            'level' => 'required|in_list[entry,junior,senior,lead,manager,director,executive]',
+            'employment_type' => 'required|in_list[full_time,part_time,contract,temporary,intern]',
             'description' => 'permit_empty|max_length[1000]',
             'requirements' => 'permit_empty|max_length[1000]',
-            'responsibilities' => 'permit_empty|max_length[1000]',
             'min_salary' => 'permit_empty|numeric|greater_than_equal_to[0]',
             'max_salary' => 'permit_empty|numeric|greater_than_equal_to[0]'
         ];
@@ -82,13 +81,12 @@ class Positions extends BaseController
             'department_id' => $this->request->getPost('department_id'),
             'title' => $this->request->getPost('title'),
             'code' => strtoupper($this->request->getPost('code')),
-            'level' => $this->request->getPost('level'),
+            'employment_type' => $this->request->getPost('employment_type'),
             'description' => $this->request->getPost('description'),
             'requirements' => $this->request->getPost('requirements'),
-            'responsibilities' => $this->request->getPost('responsibilities'),
             'min_salary' => $this->request->getPost('min_salary') ?: 0.00,
             'max_salary' => $this->request->getPost('max_salary') ?: 0.00,
-            'status' => 'active'
+            'is_active' => $this->request->getPost('is_active') ? 1 : 0
         ];
 
         if ($this->jobPositionModel->insert($data)) {
@@ -135,10 +133,9 @@ class Positions extends BaseController
             'title' => 'required|min_length[2]|max_length[100]',
             'code' => "required|min_length[2]|max_length[20]|is_unique[job_positions.code,id,$id]",
             'department_id' => 'required|numeric',
-            'level' => 'required|in_list[entry,junior,senior,lead,manager,director,executive]',
+            'employment_type' => 'required|in_list[full_time,part_time,contract,temporary,intern]',
             'description' => 'permit_empty|max_length[1000]',
             'requirements' => 'permit_empty|max_length[1000]',
-            'responsibilities' => 'permit_empty|max_length[1000]',
             'min_salary' => 'permit_empty|numeric|greater_than_equal_to[0]',
             'max_salary' => 'permit_empty|numeric|greater_than_equal_to[0]'
         ];
@@ -151,13 +148,12 @@ class Positions extends BaseController
             'department_id' => $this->request->getPost('department_id'),
             'title' => $this->request->getPost('title'),
             'code' => strtoupper($this->request->getPost('code')),
-            'level' => $this->request->getPost('level'),
+            'employment_type' => $this->request->getPost('employment_type'),
             'description' => $this->request->getPost('description'),
             'requirements' => $this->request->getPost('requirements'),
-            'responsibilities' => $this->request->getPost('responsibilities'),
             'min_salary' => $this->request->getPost('min_salary') ?: 0.00,
             'max_salary' => $this->request->getPost('max_salary') ?: 0.00,
-            'status' => $this->request->getPost('status')
+            'is_active' => $this->request->getPost('is_active') ? 1 : 0
         ];
 
         if ($this->jobPositionModel->update($id, $data)) {
@@ -206,9 +202,9 @@ class Positions extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Position not found']);
         }
 
-        $newStatus = $position['status'] === 'active' ? 'inactive' : 'active';
+        $newStatus = $position['is_active'] ? 0 : 1;
 
-        if ($this->jobPositionModel->update($id, ['status' => $newStatus])) {
+        if ($this->jobPositionModel->update($id, ['is_active' => $newStatus])) {
             return $this->response->setJSON([
                 'success' => true, 
                 'message' => 'Position status updated successfully',

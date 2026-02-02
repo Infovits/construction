@@ -405,8 +405,8 @@ function toggleUserStatus(userId, currentStatus) {
         return;
     }
     
-    fetch(`/admin/users/deactivate/${userId}`, {
-        method: 'POST',
+    fetch(`/admin/users/toggle/${userId}`, {
+        method: 'PATCH',
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
         }
@@ -468,6 +468,12 @@ function deleteUser(userId, userName) {
         } else {
             alert('Error: ' + data.message);
         }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred');
+    });
+}
     })
     .catch(error => {
         console.error('Error:', error);

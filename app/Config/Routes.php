@@ -27,7 +27,41 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->post("store", "Users::store");
         $routes->get("edit/(:num)", "Users::edit/$1");
         $routes->post("update/(:num)", "Users::update/$1");
+        $routes->delete("delete/(:num)", "Users::delete/$1");
         $routes->delete("(:num)", "Users::delete/$1");
+        $routes->patch("toggle/(:num)", "Users::toggle/$1");
+    });
+
+    // HR & Admin Routes
+    $routes->group("roles", function($routes) {
+        $routes->get("/", "Roles::index");
+        $routes->get("create", "Roles::create");
+        $routes->post("store", "Roles::store");
+        $routes->get("(:num)/edit", "Roles::edit/$1");
+        $routes->post("update/(:num)", "Roles::update/$1");
+        $routes->get("(:num)/duplicate", "Roles::duplicate/$1");
+        $routes->delete("delete/(:num)", "Roles::delete/$1");
+    });
+
+    $routes->group("departments", function($routes) {
+        $routes->get("/", "Departments::index");
+        $routes->get("create", "Departments::create");
+        $routes->post("store", "Departments::store");
+        $routes->get("edit/(:num)", "Departments::edit/$1");
+        $routes->post("update/(:num)", "Departments::update/$1");
+        $routes->delete("delete/(:num)", "Departments::delete/$1");
+        $routes->patch("toggle/(:num)", "Departments::toggle/$1");
+    });
+
+    $routes->group("positions", function($routes) {
+        $routes->get("/", "Positions::index");
+        $routes->get("create", "Positions::create");
+        $routes->post("store", "Positions::store");
+        $routes->get("(:num)/edit", "Positions::edit/$1");
+        $routes->post("update/(:num)", "Positions::update/$1");
+        $routes->delete("delete/(:num)", "Positions::delete/$1");
+        $routes->patch("toggle/(:num)", "Positions::toggle/$1");
+        $routes->get("by-department", "Positions::byDepartment");
     });
 
     // Settings Routes

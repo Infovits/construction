@@ -62,14 +62,18 @@
                 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Employment Type</label>
-                    <select name="employment_type" 
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <select name="employment_type" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 <?= $validation->hasError('employment_type') ? 'border-red-500' : '' ?>">
+                        <option value="">Select Employment Type</option>
                         <option value="full_time" <?= old('employment_type') == 'full_time' ? 'selected' : '' ?>>Full Time</option>
                         <option value="part_time" <?= old('employment_type') == 'part_time' ? 'selected' : '' ?>>Part Time</option>
                         <option value="contract" <?= old('employment_type') == 'contract' ? 'selected' : '' ?>>Contract</option>
                         <option value="temporary" <?= old('employment_type') == 'temporary' ? 'selected' : '' ?>>Temporary</option>
                         <option value="intern" <?= old('employment_type') == 'intern' ? 'selected' : '' ?>>Intern</option>
                     </select>
+                    <?php if ($validation->hasError('employment_type')): ?>
+                        <p class="text-red-500 text-sm mt-1"><?= $validation->getError('employment_type') ?></p>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
