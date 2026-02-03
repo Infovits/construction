@@ -73,13 +73,15 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->get("drafts", "Messages::drafts");
         $routes->get("(:num)", "Messages::show/$1");
         $routes->post("(:num)/send", "Messages::send/$1");
+        $routes->get("(:num)/typing", "Messages::typing/$1");
+        $routes->get("(:num)/typing-status", "Messages::typingStatus/$1");
     });
 
     // Notifications Routes
     $routes->group("notifications", function($routes) {
         $routes->get("/", "Notifications::index");
         $routes->get("recent", "Notifications::recent");
-        $routes->post("(:num)/read", "Notifications::markRead/$1");
+        $routes->get("(:num)/read", "Notifications::markRead/$1");
     });
 
     // Settings Routes

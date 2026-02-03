@@ -630,7 +630,7 @@
                 'tasks-submenu': /^\/admin\/tasks/,
                 'milestones-submenu': /^\/admin\/milestones/,
                 'clients-submenu': /^\/admin\/clients/,
-                'message-submenu': /^\/admin\/message/,
+                'message-submenu': /^\/admin\/messages/,
                 'inventory-submenu': /^\/admin\/materials|^\/admin\/material-categories|^\/admin\/warehouses|^\/admin\/suppliers/,
                 'procurement-submenu': /^\/admin\/procurement/,
                 'accounting-submenu': /^\/admin\/accounting/,
@@ -772,7 +772,7 @@
                                 <h4 class="font-medium text-gray-900 text-sm">${notification.title}</h4>
                                 <p class="text-gray-600 text-sm mt-1">${notification.message ?? ''}</p>
                                 <div class="flex items-center justify-between mt-2">
-                                    <span class="text-xs text-gray-500">${notification.created_at}</span>
+                                    <span class="text-xs text-gray-500">${notification.time ?? ''}</span>
                                     ${!isRead ? '<span class="w-2 h-2 bg-indigo-500 rounded-full"></span>' : ''}
                                 </div>
                             </div>
@@ -800,10 +800,8 @@
 
         function markNotificationRead(id, link) {
             fetch(`<?= base_url('admin/notifications') ?>/${id}/read`, {
-                method: 'POST',
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': '<?= csrf_hash() ?>'
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
             }).finally(() => {
                 if (link) {
