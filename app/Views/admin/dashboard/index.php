@@ -264,16 +264,16 @@
                 
                 <div class="mt-4 grid grid-cols-3 gap-4 pt-4 border-t">
                     <div class="text-center">
-                        <p class="text-xs text-gray-600">Total</p>
-                        <p class="text-lg font-bold text-gray-900"><?= $project_stats['total'] ?? 0 ?></p>
+                        <p class="text-xs text-gray-600">Projects Created</p>
+                        <p class="text-lg font-bold text-indigo-600"><?= array_sum(array_column($client_stats, 'projects')) ?? 0 ?></p>
                     </div>
                     <div class="text-center">
-                        <p class="text-xs text-gray-600">Active</p>
-                        <p class="text-lg font-bold text-green-600"><?= $project_stats['active'] ?? 0 ?></p>
+                        <p class="text-xs text-gray-600">Tasks Created</p>
+                        <p class="text-lg font-bold text-green-600"><?= array_sum(array_column($client_stats, 'tasks')) ?? 0 ?></p>
                     </div>
                     <div class="text-center">
-                        <p class="text-xs text-gray-600">Completed</p>
-                        <p class="text-lg font-bold text-blue-600"><?= $project_stats['completed'] ?? 0 ?></p>
+                        <p class="text-xs text-gray-600">Milestones Created</p>
+                        <p class="text-lg font-bold text-amber-600"><?= array_sum(array_column($client_stats, 'milestones')) ?? 0 ?></p>
                     </div>
                 </div>
             </div>
@@ -351,6 +351,9 @@
                                 </a>
                                 <a href="<?= base_url('admin/tasks/create') ?>" class="block bg-indigo-500 text-white px-3 md:px-4 py-2 rounded-lg font-medium hover:bg-indigo-400 transition-colors text-sm text-center">
                                     <i data-lucide="check-square" class="w-4 h-4 inline-block mr-1"></i> New Task
+                                </a>
+                                <a href="<?= base_url('admin/milestones/create') ?>" class="block bg-purple-500 text-white px-3 md:px-4 py-2 rounded-lg font-medium hover:bg-purple-400 transition-colors text-sm text-center">
+                                    <i data-lucide="flag" class="w-4 h-4 inline-block mr-1"></i> New Milestone
                                 </a>
                             </div>
                         </div>
@@ -443,20 +446,65 @@ document.addEventListener('DOMContentLoaded', function() {
             type: 'line',
             data: {
                 labels: clientStats.map(item => item.month),
-                datasets: [{
-                    label: 'Projects Created',
-                    data: clientStats.map(item => item.count),
-                    borderColor: '#4F46E5',
-                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
+                datasets: [
+                    {
+                        label: 'Projects Created',
+                        data: clientStats.map(item => item.projects),
+                        borderColor: '#4F46E5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        tension: 0.4,
+                        fill: false,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Tasks Created',
+                        data: clientStats.map(item => item.tasks),
+                        borderColor: '#10B981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: false,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Milestones Created',
+                        data: clientStats.map(item => item.milestones),
+                        borderColor: '#F59E0B',
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        tension: 0.4,
+                        fill: false,
+                        borderWidth: 2
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                plugins: { 
+                    legend: { 
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            padding: 15,
+                            font: { size: 12 }
+                        }
+                    } 
+                },
+                scales: { 
+                    y: { 
+                        beginAtZero: true, 
+                        ticks: { stepSize: 1 },
+                        title: {
+                            display: true,
+                            text: 'Count'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Month'
+                        }
+                    }
+                }
             }
         });
     }

@@ -1,11 +1,13 @@
 <?= $this->extend('layouts/main') ?>
 
 <?= $this->section('content') ?>
-<div class="space-y-6">
+<div class="space-y-8">
     <!-- Page Header -->
-    <div>
-        <h1 class="text-3xl font-bold text-gray-900">System Overview</h1>
-        <p class="text-gray-600 mt-1">Complete view of your system's current status and health</p>
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-4xl font-bold text-gray-900">System Overview</h1>
+            <p class="text-gray-600 mt-1">Comprehensive view of all system modules and real-time statistics</p>
+        </div>
     </div>
 
     <!-- System Health Status -->
@@ -45,97 +47,205 @@
         </div>
     </div>
 
-    <!-- Core Metrics Overview -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <!-- Total Users -->
-        <div class="bg-white rounded-lg border shadow-sm p-6 hover:shadow-md transition">
-            <div class="flex items-start justify-between">
-                <div>
-                    <p class="text-gray-600 text-sm font-medium">Total Users</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-2"><?= $total_users ?? 0 ?></p>
-                    <div class="flex gap-4 mt-4">
-                        <span class="text-xs">
-                            <span class="font-semibold text-green-600"><?= $active_users ?? 0 ?></span>
-                            <span class="text-gray-600">Active</span>
-                        </span>
-                        <span class="text-xs">
-                            <span class="font-semibold text-gray-600"><?= $inactive_users ?? 0 ?></span>
-                            <span class="text-gray-600">Inactive</span>
-                        </span>
+    <!-- HR & USERS MODULE -->
+    <div class="bg-white rounded-lg border shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-6 flex items-center pb-4 border-b">
+            <i data-lucide="users" class="w-5 h-5 mr-2 text-indigo-600"></i>
+            Human Resources & Users
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-indigo-50 rounded-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-600 text-sm font-medium">Total Users</p>
+                        <p class="text-3xl font-bold text-gray-900 mt-2"><?= $total_users ?? 0 ?></p>
                     </div>
+                    <i data-lucide="users-2" class="w-12 h-12 text-indigo-600 opacity-20"></i>
                 </div>
-                <div class="p-3 bg-indigo-100 rounded-lg">
-                    <i data-lucide="users" class="w-6 h-6 text-indigo-600"></i>
+                <div class="mt-4 pt-4 border-t border-indigo-200">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Active:</span>
+                        <span class="font-semibold text-green-600"><?= $active_users ?? 0 ?></span>
+                    </div>
+                    <div class="flex justify-between text-sm mt-2">
+                        <span class="text-gray-600">Inactive:</span>
+                        <span class="font-semibold text-red-600"><?= $inactive_users ?? 0 ?></span>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Total Projects -->
-        <div class="bg-white rounded-lg border shadow-sm p-6 hover:shadow-md transition">
-            <div class="flex items-start justify-between">
-                <div>
-                    <p class="text-gray-600 text-sm font-medium">Total Projects</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-2"><?= $total_projects ?? 0 ?></p>
-                    <div class="flex gap-4 mt-4">
-                        <span class="text-xs">
-                            <span class="font-semibold text-blue-600"><?= $active_projects ?? 0 ?></span>
-                            <span class="text-gray-600">Active</span>
-                        </span>
-                        <span class="text-xs">
-                            <span class="font-semibold text-gray-600"><?= $completed_projects ?? 0 ?></span>
-                            <span class="text-gray-600">Done</span>
-                        </span>
-                    </div>
+    <!-- PROJECT MANAGEMENT MODULE -->
+    <div class="bg-white rounded-lg border shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-6 flex items-center pb-4 border-b">
+            <i data-lucide="briefcase" class="w-5 h-5 mr-2 text-green-600"></i>
+            Project Management
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-green-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Total Projects</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2"><?= $total_projects ?? 0 ?></p>
+                <div class="mt-4 pt-4 border-t border-green-200 space-y-2 text-sm">
+                    <div class="flex justify-between"><span class="text-gray-600">Active:</span><span class="font-semibold text-blue-600"><?= $active_projects ?? 0 ?></span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Completed:</span><span class="font-semibold text-green-600"><?= $completed_projects ?? 0 ?></span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">On Hold:</span><span class="font-semibold text-amber-600"><?= $on_hold_projects ?? 0 ?></span></div>
                 </div>
-                <div class="p-3 bg-green-100 rounded-lg">
-                    <i data-lucide="briefcase" class="w-6 h-6 text-green-600"></i>
+            </div>
+
+            <div class="bg-orange-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Tasks</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2"><?= $task_stats['total'] ?? 0 ?></p>
+                <div class="mt-2">
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-green-600 h-2 rounded-full" style="width: <?= $task_stats['completion_rate'] ?? 0 ?>%"></div>
+                    </div>
+                    <p class="text-xs text-gray-600 mt-2"><?= $task_stats['completion_rate'] ?? 0 ?>% Completed</p>
+                </div>
+                <div class="mt-4 pt-4 border-t border-orange-200 space-y-2 text-sm">
+                    <div class="flex justify-between"><span class="text-gray-600">In Progress:</span><span class="font-semibold text-blue-600"><?= $task_stats['in_progress'] ?? 0 ?></span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Overdue:</span><span class="font-semibold text-red-600"><?= $task_stats['overdue'] ?? 0 ?></span></div>
+                </div>
+            </div>
+
+            <div class="bg-red-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Milestones</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2"><?= $milestone_stats['total'] ?? 0 ?></p>
+                <div class="mt-2">
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-red-600 h-2 rounded-full" style="width: <?= $milestone_stats['completion_rate'] ?? 0 ?>%"></div>
+                    </div>
+                    <p class="text-xs text-gray-600 mt-2"><?= $milestone_stats['completion_rate'] ?? 0 ?>% Completed</p>
+                </div>
+                <div class="mt-4 pt-4 border-t border-red-200 space-y-2 text-sm">
+                    <div class="flex justify-between"><span class="text-gray-600">Completed:</span><span class="font-semibold text-green-600"><?= $milestone_stats['completed'] ?? 0 ?></span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">In Progress:</span><span class="font-semibold text-blue-600"><?= $milestone_stats['in_progress'] ?? 0 ?></span></div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Total Tasks -->
-        <div class="bg-white rounded-lg border shadow-sm p-6 hover:shadow-md transition">
-            <div class="flex items-start justify-between">
-                <div>
-                    <p class="text-gray-600 text-sm font-medium">Total Tasks</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-2"><?= $total_tasks ?? 0 ?></p>
-                    <div class="flex gap-4 mt-4">
-                        <span class="text-xs">
-                            <span class="font-semibold text-orange-600"><?= $pending_tasks ?? 0 ?></span>
-                            <span class="text-gray-600">Pending</span>
-                        </span>
-                        <span class="text-xs">
-                            <span class="font-semibold text-green-600"><?= $completed_tasks ?? 0 ?></span>
-                            <span class="text-gray-600">Done</span>
-                        </span>
+    <!-- COMMUNICATIONS MODULE -->
+    <div class="bg-white rounded-lg border shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-6 flex items-center pb-4 border-b">
+            <i data-lucide="message-circle" class="w-5 h-5 mr-2 text-purple-600"></i>
+            Communications
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-purple-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Conversations</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2"><?= $total_conversations ?? 0 ?></p>
+                <div class="mt-4 pt-4 border-t border-purple-200">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Active:</span>
+                        <span class="font-semibold text-blue-600"><?= $active_conversations ?? 0 ?></span>
                     </div>
                 </div>
-                <div class="p-3 bg-orange-100 rounded-lg">
-                    <i data-lucide="check-square" class="w-6 h-6 text-orange-600"></i>
+            </div>
+
+            <div class="bg-indigo-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Total Messages</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2"><?= $total_messages ?? 0 ?></p>
+                <p class="text-xs text-gray-600 mt-4">Across all conversations</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- CLIENT & SUPPLIER MODULE -->
+    <div class="bg-white rounded-lg border shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-6 flex items-center pb-4 border-b">
+            <i data-lucide="building" class="w-5 h-5 mr-2 text-cyan-600"></i>
+            Clients & Suppliers
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-cyan-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Clients</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2"><?= $client_stats['total'] ?? 0 ?></p>
+                <div class="mt-4 pt-4 border-t border-cyan-200 space-y-2 text-sm">
+                    <div class="flex justify-between"><span class="text-gray-600">Active:</span><span class="font-semibold text-green-600"><?= $client_stats['active'] ?? 0 ?></span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Inactive:</span><span class="font-semibold text-red-600"><?= $client_stats['inactive'] ?? 0 ?></span></div>
+                </div>
+            </div>
+
+            <div class="bg-teal-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Suppliers</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2"><?= $supplier_stats['total'] ?? 0 ?></p>
+                <div class="mt-4 pt-4 border-t border-teal-200 space-y-2 text-sm">
+                    <div class="flex justify-between"><span class="text-gray-600">Active:</span><span class="font-semibold text-green-600"><?= $supplier_stats['active'] ?? 0 ?></span></div>
+                    <div class="flex justify-between"><span class="text-gray-600">Inactive:</span><span class="font-semibold text-red-600"><?= $supplier_stats['inactive'] ?? 0 ?></span></div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Conversations -->
-        <div class="bg-white rounded-lg border shadow-sm p-6 hover:shadow-md transition">
-            <div class="flex items-start justify-between">
-                <div>
-                    <p class="text-gray-600 text-sm font-medium">Conversations</p>
-                    <p class="text-3xl font-bold text-gray-900 mt-2"><?= $total_conversations ?? 0 ?></p>
-                    <div class="flex gap-4 mt-4">
-                        <span class="text-xs">
-                            <span class="font-semibold text-indigo-600"><?= $active_conversations ?? 0 ?></span>
-                            <span class="text-gray-600">Active</span>
-                        </span>
-                        <span class="text-xs">
-                            <span class="font-semibold text-gray-600"><?= $archived_conversations ?? 0 ?></span>
-                            <span class="text-gray-600">Archived</span>
-                        </span>
+    <!-- INVENTORY MODULE -->
+    <div class="bg-white rounded-lg border shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-6 flex items-center pb-4 border-b">
+            <i data-lucide="package" class="w-5 h-5 mr-2 text-amber-600"></i>
+            Inventory Management
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-amber-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Total Materials</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2"><?= $inventory_stats['total'] ?? 0 ?></p>
+                <p class="text-xs text-gray-600 mt-4">In all warehouses</p>
+            </div>
+
+            <div class="bg-orange-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Low Stock</p>
+                <p class="text-3xl font-bold text-orange-600 mt-2"><?= $inventory_stats['low_stock'] ?? 0 ?></p>
+                <p class="text-xs text-gray-600 mt-4">Items below threshold</p>
+            </div>
+
+            <div class="bg-red-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Out of Stock</p>
+                <p class="text-3xl font-bold text-red-600 mt-2"><?= $inventory_stats['out_of_stock'] ?? 0 ?></p>
+                <p class="text-xs text-gray-600 mt-4">Require immediate ordering</p>
+            </div>
+        </div>
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-sky-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Warehouses</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2"><?= $warehouse_stats['total'] ?? 0 ?></p>
+                <div class="mt-4 pt-4 border-t border-sky-200">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-600">Active:</span>
+                        <span class="font-semibold text-green-600"><?= $warehouse_stats['active'] ?? 0 ?></span>
                     </div>
                 </div>
-                <div class="p-3 bg-purple-100 rounded-lg">
-                    <i data-lucide="message-square" class="w-6 h-6 text-purple-600"></i>
-                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PROCUREMENT MODULE -->
+    <div class="bg-white rounded-lg border shadow-sm p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-6 flex items-center pb-4 border-b">
+            <i data-lucide="shopping-cart" class="w-5 h-5 mr-2 text-fuchsia-600"></i>
+            Procurement
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="bg-fuchsia-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Total POs</p>
+                <p class="text-3xl font-bold text-gray-900 mt-2"><?= $purchase_order_stats['total'] ?? 0 ?></p>
+                <p class="text-xs text-gray-600 mt-4">Purchase Orders</p>
+            </div>
+
+            <div class="bg-pink-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Pending</p>
+                <p class="text-3xl font-bold text-pink-600 mt-2"><?= $purchase_order_stats['pending'] ?? 0 ?></p>
+                <p class="text-xs text-gray-600 mt-4">Awaiting approval</p>
+            </div>
+
+            <div class="bg-blue-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Approved</p>
+                <p class="text-3xl font-bold text-blue-600 mt-2"><?= $purchase_order_stats['approved'] ?? 0 ?></p>
+                <p class="text-xs text-gray-600 mt-4">Ready for delivery</p>
+            </div>
+
+            <div class="bg-green-50 rounded-lg p-6">
+                <p class="text-gray-600 text-sm font-medium">Delivered</p>
+                <p class="text-3xl font-bold text-green-600 mt-2"><?= $purchase_order_stats['delivered'] ?? 0 ?></p>
+                <p class="text-xs text-gray-600 mt-4">Completed orders</p>
             </div>
         </div>
     </div>
@@ -236,7 +346,7 @@
                             <p class="text-sm font-medium text-gray-900"><?= esc($activity['title'] ?? '') ?></p>
                             <p class="text-xs text-gray-500"><?= esc($activity['description'] ?? '') ?></p>
                         </div>
-                        <p class="text-xs text-gray-500 flex-shrink-0"><?= $this->getTimeAgo($activity['time'] ?? date('Y-m-d H:i:s')) ?></p>
+                        <p class="text-xs text-gray-500 flex-shrink-0"><?= time_elapsed_string($activity['time'] ?? date('Y-m-d H:i:s')) ?></p>
                     </div>
                 <?php endforeach; ?>
             <?php else: ?>

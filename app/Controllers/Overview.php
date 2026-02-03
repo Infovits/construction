@@ -7,6 +7,12 @@ use App\Models\ProjectModel;
 use App\Models\TaskModel;
 use App\Models\ConversationModel;
 use App\Models\NotificationModel;
+use App\Models\ClientModel;
+use App\Models\SupplierModel;
+use App\Models\MaterialModel;
+use App\Models\WarehouseModel;
+use App\Models\PurchaseOrderModel;
+use App\Models\MilestoneModel;
 
 class Overview extends BaseController
 {
@@ -28,18 +34,38 @@ class Overview extends BaseController
         
         $data = [
             'title' => 'System Overview',
+            // Core HR & Users
             'total_users' => $totalUsers,
             'active_users' => $activeUsers,
             'inactive_users' => $totalUsers - $activeUsers,
+            
+            // Projects
             'total_projects' => $projectModel->where('company_id', $companyId)->countAllResults(),
             'active_projects' => $projectModel->where('company_id', $companyId)->where('status', 'active')->countAllResults(),
             'completed_projects' => $projectModel->where('company_id', $companyId)->where('status', 'completed')->countAllResults(),
-            'total_tasks' => $this->getTaskCount($companyId, null),
-            'pending_tasks' => $this->getTaskCount($companyId, 'pending'),
-            'completed_tasks' => $this->getTaskCount($companyId, 'completed'),
+            'on_hold_projects' => $projectModel->where('company_id', $companyId)->where('status', 'on_hold')->countAllResults(),
+            
+            // Tasks & Milestones
+            'task_stats' => $this->getTaskStats($companyId),
+            'milestone_stats' => $this->getMilestoneStats($companyId),
+            
+            // Communications
             'total_conversations' => $conversationModel->where('company_id', $companyId)->countAllResults(),
             'active_conversations' => $this->getActiveConversationCount($companyId),
-            'archived_conversations' => 0,
+            'total_messages' => $this->getMessageCount($companyId),
+            
+            // Clients & Suppliers
+            'client_stats' => $this->getClientStats($companyId),
+            'supplier_stats' => $this->getSupplierStats($companyId),
+            
+            // Inventory
+            'inventory_stats' => $this->getInventoryStats($companyId),
+            'warehouse_stats' => $this->getWarehouseStats($companyId),
+            
+            // Procurement
+            'purchase_order_stats' => $this->getPurchaseOrderStats($companyId),
+            
+            // System Health
             'system_health' => $this->getSystemHealth(),
             'storage_info' => $this->getStorageInfo(),
             'security_status' => $this->getSecurityStatus(),
@@ -49,18 +75,171 @@ class Overview extends BaseController
         return view('admin/overview/index', $data);
     }
 
-    private function getTaskCount($companyId, $status = null)
+    private function getTaskStats($companyId)
     {
         $taskModel = new TaskModel();
         
-        $query = $taskModel->join('projects', 'tasks.project_id = projects.id')
-            ->where('projects.company_id', $companyId);
+        $total = $taskModel->join('projects', 'tasks.project_id = projects.id')
+            ->where('projects.company_id', $companyId)
+            ->where('tasks.is_milestone', 0)
+            ->countAllResults();
 
-        if ($status) {
-            $query->where('tasks.status', $status);
-        }
+        $completed = $taskModel->join('projects', 'tasks.project_id = projects.id')
+            ->where('projects.company_id', $companyId)
+            ->where('tasks.status', 'completed')
+            ->where('tasks.is_milestone', 0)
+            ->countAllResults();
 
-        return $query->countAllResults();
+        $inProgress = $taskModel->join('projects', 'tasks.project_id = projects.id')
+            ->where('projects.company_id', $companyId)
+            ->where('tasks.status', 'in_progress')
+            ->where('tasks.is_milestone', 0)
+            ->countAllResults();
+
+        $pending = $taskModel->join('projects', 'tasks.project_id = projects.id')
+            ->where('projects.company_id', $companyId)
+            ->where('tasks.status', 'pending')
+            ->where('tasks.is_milestone', 0)
+            ->countAllResults();
+
+        $overdue = $taskModel->join('projects', 'tasks.project_id = projects.id')
+            ->where('projects.company_id', $companyId)
+            ->where('tasks.planned_end_date <', date('Y-m-d'))
+            ->where('tasks.is_milestone', 0)
+            ->whereNotIn('tasks.status', ['completed', 'cancelled'])
+            ->countAllResults();
+
+        return [
+            'total' => $total,
+            'completed' => $completed,
+            'in_progress' => $inProgress,
+            'pending' => $pending,
+            'overdue' => $overdue,
+            'completion_rate' => $total > 0 ? round(($completed / $total) * 100) : 0
+        ];
+    }
+
+    private function getMilestoneStats($companyId)
+    {
+        $taskModel = new TaskModel();
+        
+        $total = $taskModel->join('projects', 'tasks.project_id = projects.id')
+            ->where('projects.company_id', $companyId)
+            ->where('tasks.is_milestone', 1)
+            ->countAllResults();
+
+        $completed = $taskModel->join('projects', 'tasks.project_id = projects.id')
+            ->where('projects.company_id', $companyId)
+            ->where('tasks.status', 'completed')
+            ->where('tasks.is_milestone', 1)
+            ->countAllResults();
+
+        $inProgress = $taskModel->join('projects', 'tasks.project_id = projects.id')
+            ->where('projects.company_id', $companyId)
+            ->where('tasks.status', 'in_progress')
+            ->where('tasks.is_milestone', 1)
+            ->countAllResults();
+
+        return [
+            'total' => $total,
+            'completed' => $completed,
+            'in_progress' => $inProgress,
+            'completion_rate' => $total > 0 ? round(($completed / $total) * 100) : 0
+        ];
+    }
+
+    private function getClientStats($companyId)
+    {
+        $clientModel = new ClientModel();
+        
+        $total = $clientModel->where('company_id', $companyId)->countAllResults();
+        $active = $clientModel->where('company_id', $companyId)->where('status', 'active')->countAllResults();
+
+        return [
+            'total' => $total,
+            'active' => $active,
+            'inactive' => $total - $active
+        ];
+    }
+
+    private function getSupplierStats($companyId)
+    {
+        $supplierModel = new SupplierModel();
+        
+        $total = $supplierModel->where('company_id', $companyId)->countAllResults();
+        $active = $supplierModel->where('company_id', $companyId)->where('status', 'active')->countAllResults();
+
+        return [
+            'total' => $total,
+            'active' => $active,
+            'inactive' => $total - $active
+        ];
+    }
+
+    private function getInventoryStats($companyId)
+    {
+        $materialModel = new MaterialModel();
+        
+        $total = $materialModel->where('company_id', $companyId)->countAllResults();
+        $lowStock = $materialModel->where('company_id', $companyId)
+            ->where('current_stock <=', 10)
+            ->countAllResults();
+        $outOfStock = $materialModel->where('company_id', $companyId)
+            ->where('current_stock', 0)
+            ->countAllResults();
+
+        return [
+            'total' => $total,
+            'low_stock' => $lowStock,
+            'out_of_stock' => $outOfStock
+        ];
+    }
+
+    private function getWarehouseStats($companyId)
+    {
+        $warehouseModel = new WarehouseModel();
+        
+        $total = $warehouseModel->where('company_id', $companyId)->countAllResults();
+        $active = $warehouseModel->where('company_id', $companyId)->where('status', 'active')->countAllResults();
+
+        return [
+            'total' => $total,
+            'active' => $active
+        ];
+    }
+
+    private function getPurchaseOrderStats($companyId)
+    {
+        $poModel = new PurchaseOrderModel();
+        
+        $total = $poModel->join('projects', 'projects.id = purchase_orders.project_id')
+            ->where('projects.company_id', $companyId)
+            ->countAllResults();
+        $pending = $poModel->join('projects', 'projects.id = purchase_orders.project_id')
+            ->where('projects.company_id', $companyId)
+            ->where('purchase_orders.status', 'pending')
+            ->countAllResults();
+        $approved = $poModel->join('projects', 'projects.id = purchase_orders.project_id')
+            ->where('projects.company_id', $companyId)
+            ->where('purchase_orders.status', 'approved')
+            ->countAllResults();
+        $delivered = $poModel->join('projects', 'projects.id = purchase_orders.project_id')
+            ->where('projects.company_id', $companyId)
+            ->where('purchase_orders.status', 'delivered')
+            ->countAllResults();
+
+        return [
+            'total' => $total,
+            'pending' => $pending,
+            'approved' => $approved,
+            'delivered' => $delivered
+        ];
+    }
+
+    private function getMessageCount($companyId)
+    {
+        $messageModel = new \App\Models\MessageModel();
+        return $messageModel->getCompanyMessageCount($companyId);
     }
 
     private function getActiveConversationCount($companyId)

@@ -220,18 +220,41 @@ class Dashboard extends BaseController
     private function getClientStats()
     {
         $projectModel = new \App\Models\ProjectModel();
+        $taskModel = new \App\Models\TaskModel();
         $companyId = session('company_id');
         
-        // Get projects by status over the last 12 months
+        // Get projects, tasks, and milestones created over the last 12 months
         $monthlyData = [];
         for ($i = 11; $i >= 0; $i--) {
             $month = date('Y-m', strtotime("-$i months"));
-            $count = $projectModel->where('company_id', $companyId)
+            $monthName = date('M', strtotime("-$i months"));
+            
+            // Count projects created in this month
+            $projectsCount = $projectModel->where('company_id', $companyId)
                 ->where("DATE_FORMAT(created_at, '%Y-%m')", $month)
                 ->countAllResults();
+            
+            // Count tasks created in this month
+            $tasksCount = $taskModel->select('tasks.id')
+                ->join('projects', 'tasks.project_id = projects.id')
+                ->where('projects.company_id', $companyId)
+                ->where('tasks.is_milestone', 0)
+                ->where("DATE_FORMAT(tasks.created_at, '%Y-%m')", $month)
+                ->countAllResults();
+            
+            // Count milestones created in this month
+            $milestonesCount = $taskModel->select('tasks.id')
+                ->join('projects', 'tasks.project_id = projects.id')
+                ->where('projects.company_id', $companyId)
+                ->where('tasks.is_milestone', 1)
+                ->where("DATE_FORMAT(tasks.created_at, '%Y-%m')", $month)
+                ->countAllResults();
+            
             $monthlyData[] = [
-                'month' => date('M', strtotime("-$i months")),
-                'count' => $count
+                'month' => $monthName,
+                'projects' => $projectsCount,
+                'tasks' => $tasksCount,
+                'milestones' => $milestonesCount
             ];
         }
         
