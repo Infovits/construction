@@ -38,4 +38,24 @@ class ConversationModel extends Model
 
         return $db->query($sql, [$userId, $companyId])->getResultArray();
     }
+
+    public function getActiveConversationCount($companyId)
+    {
+        return $this->where('company_id', $companyId)
+            ->countAllResults();
+    }
+
+    public function getConversationParticipantNames($conversationId)
+    {
+        $db = $this->db;
+        $participants = $db->table('conversation_participants cp')
+            ->select('u.first_name, u.last_name')
+            ->join('users u', 'u.id = cp.user_id', 'left')
+            ->where('cp.conversation_id', $conversationId)
+            ->get()
+            ->getResultArray();
+
+        $names = array_map(fn($p) => $p['first_name'] . ' ' . $p['last_name'], $participants);
+        return implode(', ', $names);
+    }
 }

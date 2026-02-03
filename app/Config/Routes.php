@@ -20,6 +20,12 @@ $routes->group("auth", function($routes) {
 $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->get("dashboard", "Dashboard::index");
 
+    // Analytics, Reports & Overview Routes
+    $routes->get("analytics", "Analytics::index");
+    $routes->get("reports", "Reports::index");
+    $routes->post("reports/generate", "Reports::generate");
+    $routes->get("overview", "Overview::index");
+
     // User Management Routes
     $routes->group("users", function($routes) {
         $routes->get("/", "Users::index");

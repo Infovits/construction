@@ -126,17 +126,25 @@ class Messages extends BaseController
 
         $companyId = session('company_id');
         $userId = session('user_id');
-        $recipientId = (int)$this->request->getPost('recipient_id');
+        $recipientIdsStr = trim((string)$this->request->getPost('recipient_ids'));
         $messageBody = trim((string)$this->request->getPost('message'));
         $attachment = $this->request->getFile('attachment');
         $hasAttachment = $attachment && $attachment->getError() !== UPLOAD_ERR_NO_FILE;
 
-        if (!$recipientId || ($messageBody === '' && !$hasAttachment)) {
-            return redirect()->back()->with('error', 'Please select a recipient and enter a message or attach a file.');
+        if (!$recipientIdsStr || ($messageBody === '' && !$hasAttachment)) {
+            return redirect()->back()->with('error', 'Please select at least one recipient and enter a message or attach a file.');
+        }
+
+        // Parse recipient IDs
+        $recipientIds = array_filter(array_map('intval', explode(',', $recipientIdsStr)));
+        
+        if (empty($recipientIds)) {
+            return redirect()->back()->with('error', 'Please select at least one recipient.');
         }
 
         $this->db->transStart();
 
+        // Create conversation with all participants
         $conversationId = $this->conversationModel->insert([
             'company_id' => $companyId,
             'subject' => null,
@@ -145,6 +153,7 @@ class Messages extends BaseController
             'updated_at' => date('Y-m-d H:i:s'),
         ]);
 
+        // Add sender as participant
         $this->participantModel->insert([
             'conversation_id' => $conversationId,
             'user_id' => $userId,
@@ -152,13 +161,21 @@ class Messages extends BaseController
             'added_at' => date('Y-m-d H:i:s'),
         ]);
 
-        $this->participantModel->insert([
-            'conversation_id' => $conversationId,
-            'user_id' => $recipientId,
-            'last_read_at' => null,
-            'added_at' => date('Y-m-d H:i:s'),
-        ]);
+        // Add all recipients as participants
+        foreach ($recipientIds as $recipientId) {
+            if ((int)$recipientId === (int)$userId) {
+                continue; // Skip if recipient is sender
+            }
+            
+            $this->participantModel->insert([
+                'conversation_id' => $conversationId,
+                'user_id' => $recipientId,
+                'last_read_at' => null,
+                'added_at' => date('Y-m-d H:i:s'),
+            ]);
+        }
 
+        // Insert the message
         $messageId = $this->messageModel->insert([
             'conversation_id' => $conversationId,
             'sender_id' => $userId,
@@ -175,16 +192,25 @@ class Messages extends BaseController
             ->set(['last_read_at' => date('Y-m-d H:i:s')])
             ->update();
 
-        $this->notificationModel->insert([
-            'user_id' => $recipientId,
-            'company_id' => $companyId,
-            'type' => 'message',
-            'title' => 'New Message',
-            'message' => $messageBody,
-            'link' => base_url('admin/messages/' . $conversationId),
-            'is_read' => 0,
-            'created_at' => date('Y-m-d H:i:s'),
-        ]);
+        // Send notification to all recipients
+        foreach ($recipientIds as $recipientId) {
+            if ((int)$recipientId === (int)$userId) {
+                continue;
+            }
+            
+            $this->notificationModel->insert([
+                'user_id' => $recipientId,
+                'company_id' => $companyId,
+                'notification_type' => 'in_app',
+                'title' => 'New Message',
+                'message' => $messageBody ?: '(Message with attachment)',
+                'related_type' => 'conversation',
+                'related_id' => $conversationId,
+                'priority' => 'medium',
+                'status' => 'pending',
+                'is_read' => 0,
+            ]);
+        }
 
         $this->db->transComplete();
 
@@ -297,12 +323,14 @@ class Messages extends BaseController
             $this->notificationModel->insert([
                 'user_id' => $p['user_id'],
                 'company_id' => $companyId,
-                'type' => 'message',
+                'notification_type' => 'in_app',
                 'title' => 'New Message',
-                'message' => $messageBody,
-                'link' => base_url('admin/messages/' . $conversationId),
+                'message' => $messageBody ?: '(Message with attachment)',
+                'related_type' => 'conversation',
+                'related_id' => $conversationId,
+                'priority' => 'medium',
+                'status' => 'pending',
                 'is_read' => 0,
-                'created_at' => date('Y-m-d H:i:s'),
             ]);
         }
 
@@ -378,16 +406,26 @@ class Messages extends BaseController
             return;
         }
 
+        // Validate file size (2MB max)
+        $maxSize = 2 * 1024 * 1024; // 2MB in bytes
+        if ($attachment->getSize() > $maxSize) {
+            log_message('warning', 'File upload rejected: exceeds 2MB limit. Size: ' . $attachment->getSize());
+            return;
+        }
+
         $allowedMime = [
-            'image/png', 'image/jpeg', 'image/gif',
+            'image/png', 'image/jpeg', 'image/gif', 'image/webp',
             'application/pdf',
             'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'application/vnd.ms-excel',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation'
         ];
 
         if (!$attachment->isValid() || !in_array($attachment->getMimeType(), $allowedMime, true)) {
+            log_message('warning', 'File upload rejected: invalid MIME type. Type: ' . $attachment->getMimeType());
             return;
         }
 
@@ -414,5 +452,25 @@ class Messages extends BaseController
         if (!hasPermission($permission)) {
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Access denied');
         }
+    }
+
+    /**
+     * Verify user is a participant in the conversation
+     * Prevents data leaks if user manually accesses conversation IDs they're not part of
+     */
+    private function verifyConversationAccess($conversationId)
+    {
+        $userId = session('user_id');
+        
+        $participant = $this->participantModel
+            ->where('conversation_id', $conversationId)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$participant) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('Access denied');
+        }
+
+        return $participant;
     }
 }

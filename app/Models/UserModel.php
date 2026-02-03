@@ -272,4 +272,23 @@ class UserModel extends Model
             ->orderBy('users.first_name', 'ASC')
             ->findAll();
     }
+
+    public function getDailyActiveCount($companyId)
+    {
+        $today = date('Y-m-d');
+        $startOfDay = $today . ' 00:00:00';
+        $endOfDay = $today . ' 23:59:59';
+
+        // Count users who sent messages or accessed conversations today
+        $db = $this->db;
+        $result = $db->query("
+            SELECT COUNT(DISTINCT m.sender_id) as active_count
+            FROM messages m
+            JOIN users u ON u.id = m.sender_id
+            WHERE u.company_id = ?
+            AND DATE(m.created_at) = ?
+        ", [$companyId, $today])->getRow();
+
+        return $result ? intval($result->active_count) : 0;
+    }
 }

@@ -157,9 +157,10 @@
                         </div>
                     <div class="submenu" id="dashboard-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
-                            <a href="<?php echo base_url('admin/dashboard') ?>" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Analytics</a>
-                            <a href="#" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Reports</a>
-                            <a href="#" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Overview</a>
+                            <a href="<?= base_url('admin/dashboard') ?>" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Main Dashboard</a>
+                            <a href="<?= base_url('admin/analytics') ?>" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Analytics</a>
+                            <a href="<?= base_url('admin/reports') ?>" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Reports</a>
+                            <a href="<?= base_url('admin/overview') ?>" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Overview</a>
                         </div>
                     </div>
                 </div>
@@ -756,17 +757,23 @@
                 notifications.forEach(notification => {
                     const isRead = parseInt(notification.is_read, 10) === 1;
                     const notificationItem = document.createElement('div');
-                    notificationItem.className = `p-4 ${isRead ? 'bg-gray-50' : 'bg-white'} cursor-pointer`;
+                    notificationItem.className = `p-4 ${isRead ? 'bg-gray-50' : 'bg-white'} cursor-pointer hover:bg-indigo-50`;
 
-                    const type = notification.type || 'info';
-                    const iconColor = type === 'danger' ? 'text-red-500' : 
-                                     type === 'warning' ? 'text-yellow-500' :
-                                     type === 'success' ? 'text-green-500' : 'text-blue-500';
+                    // Build link from related_type and related_id
+                    let link = '#';
+                    if (notification.related_type === 'conversation' && notification.related_id) {
+                        link = '<?= base_url('admin/messages/') ?>' + notification.related_id;
+                    }
+
+                    const notificationType = notification.notification_type || 'in_app';
+                    const iconColor = notificationType === 'email' ? 'text-blue-500' : 
+                                     notificationType === 'push' ? 'text-purple-500' :
+                                     notificationType === 'sms' ? 'text-green-500' : 'text-blue-500';
 
                     notificationItem.innerHTML = `
                         <div class="flex items-start space-x-3">
                             <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center ${iconColor}">
-                                <i data-lucide="${getNotificationIcon(type)}" class="w-4 h-4"></i>
+                                <i data-lucide="bell" class="w-4 h-4"></i>
                             </div>
                             <div class="flex-1">
                                 <h4 class="font-medium text-gray-900 text-sm">${notification.title}</h4>
@@ -780,7 +787,7 @@
                     `;
 
                     notificationItem.addEventListener('click', function() {
-                        markNotificationRead(notification.id, notification.link);
+                        markNotificationRead(notification.id, link);
                     });
 
                     notificationList.appendChild(notificationItem);
@@ -831,6 +838,11 @@
             const bellBtn = document.getElementById('notificationBtn');
             const bellIcon = bellBtn?.querySelector('i');
             
+            // Don't close if clicking on recipient dropdown in messages
+            if (event.target.closest('#recipientSearch') || event.target.closest('#userDropdown') || event.target.closest('#dropdownToggle')) {
+                return;
+            }
+            
             if (bellBtn && !bellBtn.contains(event.target) && !dropdown.contains(event.target)) {
                 dropdown.classList.add('hidden');
             }
@@ -845,7 +857,12 @@
         // Close dropdown when clicking outside
         document.addEventListener('click', function(event) {
             const dropdown = document.getElementById('userDropdown');
-            const userProfile = event.target.closest('.relative');
+            const userProfile = event.target.closest('.relative:not([style*="z-index"])');
+            
+            // Don't close if clicking on recipient dropdown in messages
+            if (event.target.closest('#recipientSearch') || event.target.closest('#userDropdown') || event.target.closest('#dropdownToggle')) {
+                return;
+            }
             
             if (!userProfile && !dropdown.classList.contains('hidden')) {
                 dropdown.classList.add('hidden');

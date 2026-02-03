@@ -1,0 +1,75 @@
+
+
+<?= $this->section('js') ?>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const clientChartCanvas = document.getElementById('clientChart');
+    if (clientChartCanvas) {
+        const clientStats = <?= json_encode($client_stats) ?>;
+        new Chart(clientChartCanvas, {
+            type: 'line',
+            data: {
+                labels: clientStats.map(item => item.month),
+                datasets: [{
+                    label: 'Projects Created',
+                    data: clientStats.map(item => item.count),
+                    borderColor: '#4F46E5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            }
+        });
+    }
+    
+    const siteHealthCanvas = document.getElementById('siteHealthChart');
+    if (siteHealthCanvas) {
+        const siteHealth = <?= json_encode($site_health) ?>;
+        new Chart(siteHealthCanvas, {
+            type: 'doughnut',
+            data: { 
+                datasets: [{ 
+                    data: [siteHealth.score, 100 - siteHealth.score], 
+                    backgroundColor: ['#4F46E5', '#E5E7EB'], 
+                    borderWidth: 0 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: true, 
+                cutout: '75%', 
+                plugins: { legend: { display: false }, tooltip: { enabled: false } } 
+            }
+        });
+    }
+    
+    const taskCompletionCanvas = document.getElementById('taskCompletionChart');
+    if (taskCompletionCanvas) {
+        const completionRate = <?= $task_stats['total'] > 0 ? round(($task_stats['completed'] / $task_stats['total']) * 100) : 0 ?>;
+        new Chart(taskCompletionCanvas, {
+            type: 'doughnut',
+            data: { 
+                datasets: [{ 
+                    data: [completionRate, 100 - completionRate], 
+                    backgroundColor: ['#10B981', '#E5E7EB'], 
+                    borderWidth: 0 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: true, 
+                cutout: '75%', 
+                plugins: { legend: { display: false }, tooltip: { enabled: false } } 
+            }
+        });
+    }
+});
+</script>
+<?= $this->endSection() ?>

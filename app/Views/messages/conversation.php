@@ -43,7 +43,7 @@
             <?php endif; ?>
         </div>
 
-        <form method="POST" action="<?= base_url('admin/messages/' . $conversation['id'] . '/send') ?>" enctype="multipart/form-data" class="border-t pt-4">
+        <form method="POST" action="<?= base_url('admin/messages/' . $conversation['id'] . '/send') ?>" enctype="multipart/form-data" class="border-t pt-4" id="messageForm">
             <?= csrf_field() ?>
             <div class="flex items-center space-x-3">
                 <textarea id="messageInput" name="message" rows="2" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" placeholder="Type a message..."></textarea>
@@ -51,6 +51,7 @@
                 <label for="attachmentInput" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer">Attach</label>
                 <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Send</button>
             </div>
+            <p id="attachmentError" class="text-xs text-red-600 mt-2 hidden"></p>
         </form>
     </div>
 </div>
@@ -61,7 +62,54 @@
 document.addEventListener('DOMContentLoaded', function() {
     const messageInput = document.getElementById('messageInput');
     const typingIndicator = document.getElementById('typingIndicator');
+    const attachmentInput = document.getElementById('attachmentInput');
+    const attachmentError = document.getElementById('attachmentError');
+    const messageForm = document.getElementById('messageForm');
     let typingTimeout;
+
+    // File validation
+    const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB
+    const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'];
+    
+    attachmentInput.addEventListener('change', function(e) {
+        attachmentError.classList.add('hidden');
+        attachmentError.textContent = '';
+
+        if (!this.files || this.files.length === 0) {
+            return;
+        }
+
+        const file = this.files[0];
+        const extension = file.name.split('.').pop().toLowerCase();
+
+        // Check file size
+        if (file.size > MAX_FILE_SIZE) {
+            attachmentError.textContent = 'File size exceeds 2MB limit. Please choose a smaller file.';
+            attachmentError.classList.remove('hidden');
+            attachmentInput.value = '';
+            return;
+        }
+
+        // Check file extension
+        if (!ALLOWED_EXTENSIONS.includes(extension)) {
+            attachmentError.textContent = 'File type not allowed. Please use images, PDF, or Office documents.';
+            attachmentError.classList.remove('hidden');
+            attachmentInput.value = '';
+            return;
+        }
+    });
+
+    // Form submission validation
+    messageForm.addEventListener('submit', function(e) {
+        const message = messageInput.value.trim();
+        const hasAttachment = attachmentInput.files && attachmentInput.files.length > 0;
+
+        if (!message && !hasAttachment) {
+            e.preventDefault();
+            alert('Please enter a message or attach a file');
+            return false;
+        }
+    });
 
     function sendTyping() {
         fetch('<?= base_url('admin/messages/' . $conversation['id'] . '/typing') ?>', {

@@ -252,4 +252,12 @@ class TaskModel extends Model
 
         return $projectCode . '-' . $prefix . '-' . str_pad($newNumber, 3, '0', STR_PAD_LEFT);
     }
+
+    public function getCompletedTasksCount($companyId)
+    {
+        return $this->join('projects', 'tasks.project_id = projects.id')
+            ->where('projects.company_id', $companyId)
+            ->where('tasks.status', 'completed')
+            ->countAllResults();
+    }
 }

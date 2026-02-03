@@ -67,4 +67,18 @@ abstract class BaseController extends Controller
             }
         }
     }
+
+    /**
+     * Get human-readable time difference from now
+     * 
+     * @param string $datetime
+     * @return string
+     */
+    protected function getTimeAgo($datetime)
+    {
+        if (!function_exists('time_elapsed_string')) {
+            helper('utility');
+        }
+        return time_elapsed_string($datetime);
+    }
 }

@@ -13,7 +13,13 @@
                 <div class="p-6 text-center text-gray-500">No notifications found.</div>
             <?php else: ?>
                 <?php foreach ($notifications as $notification): ?>
-                    <a href="<?= $notification['link'] ? esc($notification['link']) : '#' ?>" class="block p-4 hover:bg-gray-50">
+                    <?php
+                        $link = '#';
+                        if ($notification['related_type'] === 'conversation' && !empty($notification['related_id'])) {
+                            $link = base_url('admin/messages/' . $notification['related_id']);
+                        }
+                    ?>
+                    <a href="<?= esc($link) ?>" class="block p-4 hover:bg-gray-50">
                         <div class="flex items-start justify-between">
                             <div>
                                 <h4 class="font-medium text-gray-900 text-sm"><?= esc($notification['title']) ?></h4>
