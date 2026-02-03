@@ -59,6 +59,15 @@ class Settings extends BaseController
         $companyId = session('company_id');
         $userId = session('user_id');
 
+        // Handle logo upload for general settings
+        if ($section === 'general') {
+            $logoPath = $this->handleLogoUpload();
+            if ($logoPath !== null) {
+                // Logo was uploaded or removed
+                $this->settingModel->saveSystemSetting($companyId, 'general_company_logo', $logoPath, $userId, 'general');
+            }
+        }
+
         $payload = $this->buildSectionPayload($section);
         
         // Save each setting individually
@@ -75,6 +84,59 @@ class Settings extends BaseController
         }
 
         return redirect()->back()->with('error', 'Failed to save settings.');
+    }
+
+    private function handleLogoUpload()
+    {
+        // Check if logo should be removed
+        if ($this->request->getPost('remove_logo') === '1') {
+            $existingLogo = $this->request->getPost('existing_logo');
+            if ($existingLogo && file_exists(FCPATH . $existingLogo)) {
+                unlink(FCPATH . $existingLogo);
+            }
+            return '';
+        }
+
+        // Check if a new logo was uploaded
+        $logo = $this->request->getFile('company_logo');
+        if ($logo && $logo->isValid() && !$logo->hasMoved()) {
+            // Validate file
+            if (!$logo->isValid()) {
+                return null;
+            }
+
+            $validationRule = [
+                'company_logo' => [
+                    'rules' => 'uploaded[company_logo]|max_size[company_logo,2048]|is_image[company_logo]|mime_in[company_logo,image/jpg,image/jpeg,image/png,image/gif]',
+                ],
+            ];
+
+            if (!$this->validate($validationRule)) {
+                return null;
+            }
+
+            // Create uploads directory if it doesn't exist
+            $uploadPath = FCPATH . 'uploads/logos/';
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+
+            // Delete old logo if exists
+            $existingLogo = $this->request->getPost('existing_logo');
+            if ($existingLogo && file_exists(FCPATH . $existingLogo)) {
+                unlink(FCPATH . $existingLogo);
+            }
+
+            // Generate unique filename
+            $newName = 'logo_' . session('company_id') . '_' . time() . '.' . $logo->getExtension();
+            
+            // Move file
+            if ($logo->move($uploadPath, $newName)) {
+                return 'uploads/logos/' . $newName;
+            }
+        }
+
+        return null;
     }
 
     private function renderSettingsPage(string $activeTab, string $pageTitle)

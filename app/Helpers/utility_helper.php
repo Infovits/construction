@@ -33,8 +33,29 @@ if (!function_exists('time_elapsed_string')) {
 }
 
 if (!function_exists('format_currency')) {
-    function format_currency($amount, $currency = 'MWK') {
-        return $currency . ' ' . number_format($amount, 2);
+    function format_currency($amount, $currency = null) {
+        // Load settings helper if not already loaded
+        if (!function_exists('get_currency')) {
+            helper('settings');
+        }
+        
+        // Use system currency if not specified
+        if ($currency === null) {
+            $currency = get_currency();
+        }
+        
+        // Currency symbols
+        $symbols = [
+            'MWK' => 'MK',
+            'USD' => '$',
+            'EUR' => '€',
+            'GBP' => '£',
+            'ZAR' => 'R',
+        ];
+        
+        $symbol = $symbols[$currency] ?? $currency;
+        
+        return $symbol . ' ' . number_format($amount, 2);
     }
 }
 

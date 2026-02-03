@@ -143,6 +143,11 @@ class RoleModel extends Model
                 'reports.create' => 'Create Custom Reports',
                 'reports.export' => 'Export Reports'
             ],
+            'Messaging & Notifications' => [
+                'messages.view' => 'View Messages',
+                'messages.create' => 'Send Messages',
+                'notifications.view' => 'View Notifications'
+            ],
             'Settings' => [
                 'settings.view' => 'View Settings',
                 'settings.edit' => 'Edit Settings',
@@ -171,7 +176,8 @@ class RoleModel extends Model
                 'is_system_role' => true,
                 'permissions' => json_encode([
                     'dashboard.*', 'users.*', 'projects.*', 'tasks.*', 'inventory.*',
-                    'accounting.*', 'hr.*', 'assets.*', 'safety.*', 'files.*', 'reports.*'
+                    'accounting.*', 'hr.*', 'assets.*', 'safety.*', 'files.*', 'reports.*',
+                    'messages.*', 'notifications.view'
                 ])
             ],
             [
@@ -182,7 +188,8 @@ class RoleModel extends Model
                 'is_system_role' => true,
                 'permissions' => json_encode([
                     'dashboard.view', 'projects.*', 'tasks.*', 'files.view', 'files.upload',
-                    'reports.view', 'users.view', 'inventory.view', 'safety.view'
+                    'reports.view', 'users.view', 'inventory.view', 'safety.view',
+                    'messages.view', 'messages.create', 'notifications.view'
                 ])
             ],
             [
@@ -193,7 +200,8 @@ class RoleModel extends Model
                 'is_system_role' => true,
                 'permissions' => json_encode([
                     'dashboard.view', 'projects.view', 'tasks.view', 'tasks.edit',
-                    'attendance.*', 'safety.*', 'assets.view', 'files.view'
+                    'attendance.*', 'safety.*', 'assets.view', 'files.view',
+                    'messages.view', 'messages.create', 'notifications.view'
                 ])
             ],
             [

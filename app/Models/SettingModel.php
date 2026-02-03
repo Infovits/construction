@@ -13,10 +13,11 @@ class SettingModel extends Model
     
     protected $allowedFields = [
         'company_id', 'setting_key', 'setting_value', 'setting_type',
-        'category', 'description', 'is_public', 'updated_by'
+        'category', 'description', 'is_public', 'updated_by', 'updated_at'
     ];
     
     protected $useTimestamps = true;
+    protected $createdField = '';
     protected $updatedField = 'updated_at';
     
     /**

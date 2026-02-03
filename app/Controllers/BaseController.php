@@ -57,5 +57,14 @@ abstract class BaseController extends Controller
         
         // Make validation service globally available for all controllers
         $this->validator = \Config\Services::validation();
+        
+        // Set timezone from settings
+        helper('settings');
+        if (session('company_id')) {
+            $timezone = get_timezone();
+            if ($timezone) {
+                date_default_timezone_set($timezone);
+            }
+        }
     }
 }

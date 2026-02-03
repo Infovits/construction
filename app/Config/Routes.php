@@ -64,6 +64,24 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->get("by-department", "Positions::byDepartment");
     });
 
+    // Messaging Routes
+    $routes->group("messages", function($routes) {
+        $routes->get("/", "Messages::index");
+        $routes->get("new", "Messages::new");
+        $routes->post("start", "Messages::start");
+        $routes->get("sent", "Messages::sent");
+        $routes->get("drafts", "Messages::drafts");
+        $routes->get("(:num)", "Messages::show/$1");
+        $routes->post("(:num)/send", "Messages::send/$1");
+    });
+
+    // Notifications Routes
+    $routes->group("notifications", function($routes) {
+        $routes->get("/", "Notifications::index");
+        $routes->get("recent", "Notifications::recent");
+        $routes->post("(:num)/read", "Notifications::markRead/$1");
+    });
+
     // Settings Routes
     $routes->get("settings", "Settings::index");
     $routes->get("settings/general", "Settings::general");

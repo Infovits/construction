@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $title ?? 'Helmet- Construction Management System' ?></title>
+    <title><?= $title ?? get_company_name() ?></title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -130,11 +130,18 @@
             <div class="p-4 md:p-6">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 bg-gradient-to-r from-pink-500 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <i data-lucide="trending-up" class="w-5 h-5 text-white"></i>
+                        <?php 
+                        helper('settings');
+                        $logo = get_company_logo();
+                        if (strpos($logo, 'logo-placeholder') === false): ?>
+                            <img src="<?= $logo ?>" alt="<?= get_company_name() ?>" class="w-full h-full object-contain rounded-lg">
+                        <?php else: ?>
+                            <i data-lucide="building-2" class="w-5 h-5 text-white"></i>
+                        <?php endif; ?>
                     </div>
                     <div class="sidebar-text overflow-hidden">
-                        <h1 class="text-lg md:text-xl font-bold text-gray-800 whitespace-nowrap">Helmet</h1>
-                        <p class="text-xs md:text-sm text-gray-500 whitespace-nowrap">ERP</p>
+                        <h1 class="text-lg md:text-xl font-bold text-gray-800 whitespace-nowrap"><?= get_company_name() ?></h1>
+                        <p class="text-xs md:text-sm text-gray-500 whitespace-nowrap">Management System</p>
                     </div>
                 </div>
             </div>
@@ -242,9 +249,10 @@
                     </a>
                     <div class="submenu" id="message-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
-                            <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Inbox</a>
-                            <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Sent</a>
-                            <a href="#" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Drafts</a>
+                            <a href="<?= base_url('admin/messages') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Inbox</a>
+                            <a href="<?= base_url('admin/messages/new') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">New Message</a>
+                            <a href="<?= base_url('admin/messages/sent') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Sent</a>
+                            <a href="<?= base_url('admin/messages/drafts') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Drafts</a>
                         </div>
                     </div>
                 </div>
@@ -707,6 +715,7 @@
 
         // Load notifications on page load
         loadNotifications();
+        setInterval(loadNotifications, 30000);
 
         // Notification functionality
         function toggleNotifications() {
@@ -725,96 +734,83 @@
         function loadNotifications() {
             const notificationList = document.getElementById('notificationList');
             const notificationBadge = document.getElementById('notificationBadge');
-            
-            // Mock notifications data - replace with actual API call
-            const mockNotifications = [
-                {
-                    id: 1,
-                    title: 'Project Deadline Approaching',
-                    message: 'Project "Construction Site A" deadline is in 2 days',
-                    time: '2 hours ago',
-                    type: 'warning',
-                    read: false
-                },
-                {
-                    id: 2,
-                    title: 'New Material Request',
-                    message: 'John Doe requested 50 units of Cement',
-                    time: '4 hours ago',
-                    type: 'info',
-                    read: false
-                },
-                {
-                    id: 3,
-                    title: 'Task Completed',
-                    message: 'Task "Foundation Work" has been completed',
-                    time: '1 day ago',
-                    type: 'success',
-                    read: true
-                },
-                {
-                    id: 4,
-                    title: 'Budget Alert',
-                    message: 'Project "Site B" has exceeded 80% of its budget',
-                    time: '2 days ago',
-                    type: 'danger',
-                    read: false
-                },
-                {
-                    id: 5,
-                    title: 'Quality Inspection Due',
-                    message: 'Quality inspection for "Material Delivery" is due tomorrow',
-                    time: '3 days ago',
-                    type: 'warning',
-                    read: true
+
+            fetch('<?= base_url('admin/notifications/recent') ?>', {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
                 }
-            ];
-            
-            // Render notifications
-            notificationList.innerHTML = '';
-            let unreadCount = 0;
-            
-            mockNotifications.forEach(notification => {
-                const notificationItem = document.createElement('div');
-                notificationItem.className = `p-4 ${notification.read ? 'bg-gray-50' : 'bg-white'}`;
-                
-                const iconColor = notification.type === 'danger' ? 'text-red-500' : 
-                                 notification.type === 'warning' ? 'text-yellow-500' :
-                                 notification.type === 'success' ? 'text-green-500' : 'text-blue-500';
-                
-                notificationItem.innerHTML = `
-                    <div class="flex items-start space-x-3">
-                        <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center ${iconColor}">
-                            <i data-lucide="${getNotificationIcon(notification.type)}" class="w-4 h-4"></i>
-                        </div>
-                        <div class="flex-1">
-                            <h4 class="font-medium text-gray-900 text-sm">${notification.title}</h4>
-                            <p class="text-gray-600 text-sm mt-1">${notification.message}</p>
-                            <div class="flex items-center justify-between mt-2">
-                                <span class="text-xs text-gray-500">${notification.time}</span>
-                                ${!notification.read ? '<span class="w-2 h-2 bg-indigo-500 rounded-full"></span>' : ''}
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) return;
+
+                const notifications = data.notifications || [];
+                const unreadCount = data.unread_count || 0;
+
+                notificationList.innerHTML = '';
+
+                if (notifications.length === 0) {
+                    notificationList.innerHTML = '<div class="p-4 text-center text-gray-500">No notifications</div>';
+                }
+
+                notifications.forEach(notification => {
+                    const isRead = parseInt(notification.is_read, 10) === 1;
+                    const notificationItem = document.createElement('div');
+                    notificationItem.className = `p-4 ${isRead ? 'bg-gray-50' : 'bg-white'} cursor-pointer`;
+
+                    const type = notification.type || 'info';
+                    const iconColor = type === 'danger' ? 'text-red-500' : 
+                                     type === 'warning' ? 'text-yellow-500' :
+                                     type === 'success' ? 'text-green-500' : 'text-blue-500';
+
+                    notificationItem.innerHTML = `
+                        <div class="flex items-start space-x-3">
+                            <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center ${iconColor}">
+                                <i data-lucide="${getNotificationIcon(type)}" class="w-4 h-4"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="font-medium text-gray-900 text-sm">${notification.title}</h4>
+                                <p class="text-gray-600 text-sm mt-1">${notification.message ?? ''}</p>
+                                <div class="flex items-center justify-between mt-2">
+                                    <span class="text-xs text-gray-500">${notification.created_at}</span>
+                                    ${!isRead ? '<span class="w-2 h-2 bg-indigo-500 rounded-full"></span>' : ''}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                `;
-                
-                notificationList.appendChild(notificationItem);
-                
-                if (!notification.read) {
-                    unreadCount++;
+                    `;
+
+                    notificationItem.addEventListener('click', function() {
+                        markNotificationRead(notification.id, notification.link);
+                    });
+
+                    notificationList.appendChild(notificationItem);
+                });
+
+                if (unreadCount > 0) {
+                    notificationBadge.textContent = unreadCount;
+                    notificationBadge.classList.remove('hidden');
+                } else {
+                    notificationBadge.classList.add('hidden');
                 }
+
+                lucide.createIcons();
+            })
+            .catch(() => {});
+        }
+
+        function markNotificationRead(id, link) {
+            fetch(`<?= base_url('admin/notifications') ?>/${id}/read`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': '<?= csrf_hash() ?>'
+                }
+            }).finally(() => {
+                if (link) {
+                    window.location.href = link;
+                }
+                loadNotifications();
             });
-            
-            // Update badge
-            if (unreadCount > 0) {
-                notificationBadge.textContent = unreadCount;
-                notificationBadge.classList.remove('hidden');
-            } else {
-                notificationBadge.classList.add('hidden');
-            }
-            
-            // Initialize Lucide icons
-            lucide.createIcons();
         }
         
         function getNotificationIcon(type) {
@@ -828,8 +824,7 @@
         }
         
         function viewAllNotifications() {
-            // Redirect to notifications page or open modal
-            alert('Redirecting to notifications page...');
+            window.location.href = '<?= base_url('admin/notifications') ?>';
         }
         
         // Close notification dropdown when clicking outside
