@@ -11,14 +11,160 @@ class ExcelExport
 {
     protected $data;
     protected $title;
+    protected $headers = [];
+    protected $generatedDate;
 
-    public function __construct($data, $title = 'Report')
+    public function __construct($data = [], $title = 'Report')
     {
         $this->data = $data;
         $this->title = $title;
+        $this->generatedDate = date('Y-m-d H:i:s');
+    }
+
+    public function setTitle($title)
+    {
+        $this->title = $title;
+        return $this;
+    }
+
+    public function setData($data)
+    {
+        $this->data = $data;
+        return $this;
+    }
+
+    public function setHeaders($headers)
+    {
+        $this->headers = $headers;
+        return $this;
+    }
+
+    public function setGeneratedDate($date)
+    {
+        $this->generatedDate = $date;
+        return $this;
     }
 
     public function export()
+    {
+        // If headers and data are set separately, use them
+        if (!empty($this->headers) && !empty($this->data)) {
+            return $this->exportWithHeaders();
+        }
+
+        // Otherwise use the original export method
+        return $this->exportLegacy();
+    }
+
+    /**
+     * Export data with explicitly set headers
+     */
+    private function exportWithHeaders()
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle(substr($this->title, 0, 31)); // Max 31 characters for sheet title
+
+        // Set document properties for better compatibility
+        $spreadsheet->getProperties()
+            ->setCreator('Construction Management System')
+            ->setLastModifiedBy('Construction Management System')
+            ->setTitle($this->title)
+            ->setSubject($this->title)
+            ->setDescription('Generated Excel Report')
+            ->setKeywords('report excel')
+            ->setCategory('Report');
+
+        // Add headers
+        $column = 'A';
+        foreach ($this->headers as $header) {
+            $sheet->setCellValue($column . '1', $header);
+            $column++;
+        }
+
+        // Get last column letter
+        $lastColumn = chr(ord('A') + count($this->headers) - 1);
+
+        // Style header row
+        $sheet->getStyle('A1:' . $lastColumn . '1')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+                'name' => 'Arial',
+                'size' => 10,
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '4472C4'],
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => 'CCCCCC'],
+                ],
+            ],
+        ]);
+
+        // Set column widths
+        for ($i = 0; $i < count($this->headers); $i++) {
+            $colLetter = chr(ord('A') + $i);
+            $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+            $sheet->getColumnDimension($colLetter)->setWidth(15);
+        }
+
+        // Add data to the sheet
+        $row = 2;
+        foreach ($this->data as $record) {
+            $column = 'A';
+            foreach ($record as $value) {
+                // Ensure proper data type handling
+                if (is_numeric($value)) {
+                    $sheet->setCellValueExplicit($column . $row, $value, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_NUMERIC);
+                } else {
+                    $sheet->setCellValueExplicit($column . $row, $value, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                }
+                $column++;
+            }
+            $row++;
+        }
+
+        // Style the data rows
+        if ($row > 2) {
+            $sheet->getStyle('A2:' . $lastColumn . ($row - 1))->applyFromArray([
+                'font' => [
+                    'name' => 'Arial',
+                    'size' => 9,
+                ],
+                'alignment' => [
+                    'vertical' => Alignment::VERTICAL_CENTER,
+                ],
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                        'color' => ['rgb' => 'CCCCCC'],
+                    ],
+                ],
+            ]);
+        }
+
+        // Return file content for download
+        $writer = new Xlsx($spreadsheet);
+        ob_start();
+        $writer->save('php://output');
+        $fileContent = ob_get_clean();
+
+        return $fileContent;
+    }
+
+    /**
+     * Export using legacy method (for backward compatibility)
+     */
+    private function exportLegacy()
     {
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -142,6 +288,30 @@ class ExcelExport
             $fileContent = ob_get_clean();
             return $fileContent;
         }
+    }
+
+    /**
+     * Export to file and trigger download
+     */
+    public function exportToFile($filename = null)
+    {
+        if (!$filename) {
+            $title = preg_replace('/[^a-zA-Z0-9-_]/', '_', $this->title);
+            $filename = $title . '-' . date('Y-m-d') . '.xlsx';
+        }
+
+        $fileContent = $this->export();
+
+        // Set headers for file download
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . strlen($fileContent));
+        header('Cache-Control: max-age=0');
+        header('Pragma: public');
+        header('Expires: 0');
+
+        echo $fileContent;
+        exit;
     }
     
     /**
