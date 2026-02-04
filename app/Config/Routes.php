@@ -517,6 +517,83 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
 
 });
 
+// ============================================================
+// BACKWARD COMPATIBILITY REDIRECTS - External routes
+// ============================================================
+// Redirect /projects to /admin/projects
+$routes->get("projects", function() {
+    return redirect()->to("/admin/projects");
+});
+$routes->get("projects/(:any)", function($any) {
+    return redirect()->to("/admin/projects/$any");
+});
+
+// ============================================================
+// FILE MANAGEMENT ROUTES
+// ============================================================
+$routes->group("file-management", ["filter" => "auth"], function($routes) {
+    $routes->get("", "FileManagement::index");
+    $routes->get("index", "FileManagement::index");
+    $routes->post("upload", "FileManagement::upload");
+    $routes->get("view/(:num)", "FileManagement::view/$1");
+    $routes->get("download/(:num)", "FileManagement::download/$1");
+    $routes->post("delete/(:num)", "FileManagement::delete/$1");
+    $routes->post("updateVersion/(:num)", "FileManagement::updateVersion/$1");
+    $routes->post("comment/(:num)", "FileManagement::comment/$1");
+    $routes->get("search", "FileManagement::search");
+    $routes->get("category/(:num)", "FileManagement::byCategory/$1");
+    $routes->post("grantAccess/(:num)", "FileManagement::grantAccess/$1");
+    
+    // Category Management
+    $routes->get("categories", "FileManagement::categories");
+    $routes->post("categories/store", "FileManagement::storeCategory");
+    $routes->post("categories/update/(:num)", "FileManagement::updateCategory/$1");
+    $routes->post("categories/delete/(:num)", "FileManagement::deleteCategory/$1");
+});
+
+// ============================================================
+// INCIDENT & SAFETY REPORTING ROUTES
+// ============================================================
+$routes->group("incident-safety", ["filter" => "auth"], function($routes) {
+    // Dashboard
+    $routes->get("dashboard", "IncidentSafety::dashboard");
+    $routes->get("", "IncidentSafety::dashboard");
+
+    // Incidents
+    $routes->group("incidents", function($routes) {
+        $routes->get("", "IncidentSafety::incidents");
+        $routes->get("list", "IncidentSafety::incidents");
+        $routes->get("create", "IncidentSafety::createIncident");
+        $routes->post("store", "IncidentSafety::storeIncident");
+        $routes->get("(:num)", "IncidentSafety::viewIncident/$1");
+        $routes->post("(:num)/status", "IncidentSafety::updateIncidentStatus/$1");
+        $routes->post("(:num)/photos", "IncidentSafety::uploadIncidentPhotos/$1");
+        $routes->post("(:num)/action-steps", "IncidentSafety::addActionStep/$1");
+        $routes->post("action-steps/(:num)/complete", "IncidentSafety::completeActionStep/$1");
+    });
+
+    // Safety Audits
+    $routes->group("audits", function($routes) {
+        $routes->get("", "IncidentSafety::audits");
+        $routes->get("list", "IncidentSafety::audits");
+        $routes->get("create", "IncidentSafety::createAudit");
+        $routes->post("store", "IncidentSafety::storeAudit");
+        $routes->get("(:num)", "IncidentSafety::viewAudit/$1");
+    });
+
+    // Safety Reports
+    $routes->group("reports", function($routes) {
+        $routes->get("", "IncidentSafety::reports");
+        $routes->get("list", "IncidentSafety::reports");
+        $routes->get("create", "IncidentSafety::createReport");
+        $routes->post("store", "IncidentSafety::storeReport");
+        $routes->get("(:num)", "IncidentSafety::viewReport/$1");
+    });
+
+    // Analytics
+    $routes->get("analytics", "IncidentSafety::analytics");
+});
+
 // Default redirect to dashboard if logged in, login if not
 $routes->get("/", function() {
     return session("user_id") ? redirect()->to("/admin/dashboard") : redirect()->to("/auth/login");

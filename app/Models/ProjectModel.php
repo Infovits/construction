@@ -112,6 +112,22 @@ class ProjectModel extends Model
         ];
     }
 
+    public function getProjectById($projectId, $companyId = null)
+    {
+        $companyId = $companyId ?: session('company_id');
+
+        return $this->select('projects.*, clients.name as client_name, project_categories.name as category_name,
+                            CONCAT(pm.first_name, " ", pm.last_name) as project_manager_name,
+                            CONCAT(ss.first_name, " ", ss.last_name) as site_supervisor_name')
+            ->join('clients', 'projects.client_id = clients.id', 'left')
+            ->join('project_categories', 'projects.category_id = project_categories.id', 'left')
+            ->join('users pm', 'projects.project_manager_id = pm.id', 'left')
+            ->join('users ss', 'projects.site_supervisor_id = ss.id', 'left')
+            ->where('projects.id', $projectId)
+            ->where('projects.company_id', $companyId)
+            ->first();
+    }
+
     public function getProjectWithTeam($projectId)
     {
         $db = \Config\Database::connect();

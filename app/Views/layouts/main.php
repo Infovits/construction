@@ -280,7 +280,47 @@
                     </div>
                 </div>
 
+                <!-- File Management Section -->
+                <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
+                    <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'files-submenu')">
+                        <i data-lucide="folder" class="w-5 h-5 flex-shrink-0"></i>
+                        <span class="sidebar-text overflow-hidden whitespace-nowrap">File Management</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 ml-auto sidebar-text menu-chevron" id="files-chevron"></i>
+                        <div class="tooltip absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
+                            File Management
+                        </div>
+                    </a>
+                    <div class="submenu" id="files-submenu">
+                        <div class="sidebar-text ml-8 mt-2 space-y-1">
+                            <a href="<?= base_url('file-management') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">All Files</a>
+                            <a href="<?= base_url('file-management?action=upload') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Upload File</a>
+                            <a href="<?= base_url('file-management/search') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Search Files</a>
+                            <a href="<?= base_url('file-management/categories') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Manage Categories</a>
+                        </div>
+                    </div>
+                </div>
 
+                <!-- Incident & Safety Section -->
+                <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
+                    <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'safety-submenu')">
+                        <i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0"></i>
+                        <span class="sidebar-text overflow-hidden whitespace-nowrap">Safety & Incidents</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 ml-auto sidebar-text menu-chevron" id="safety-chevron"></i>
+                        <div class="tooltip absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
+                            Safety & Incidents
+                        </div>
+                    </a>
+                    <div class="submenu" id="safety-submenu">
+                        <div class="sidebar-text ml-8 mt-2 space-y-1">
+                            <a href="<?= base_url('incident-safety/dashboard') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Dashboard</a>
+                            <a href="<?= base_url('incident-safety/incidents') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Incidents</a>
+                            <a href="<?= base_url('incident-safety/incidents/create') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Report Incident</a>
+                            <a href="<?= base_url('incident-safety/audits') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Safety Audits</a>
+                            <a href="<?= base_url('incident-safety/reports') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Safety Reports</a>
+                            <a href="<?= base_url('incident-safety/analytics') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Analytics</a>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Procurement Management Section -->
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
