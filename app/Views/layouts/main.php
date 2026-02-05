@@ -525,9 +525,17 @@
                     </a>
                 </div>
             </nav>
-              <div class="absolute bottom-0 w-full p-4 md:p-6">
+              <div class="absolute bottom-0 w-full p-4 md:p-6 border-t border-gray-200 bg-white space-y-2">
+                <a href="<?= base_url('admin/users/profile') ?>" 
+                   class="flex items-center space-x-3 text-gray-600 hover:text-gray-800 nav-item relative transition-colors duration-200 p-2 rounded hover:bg-gray-50">
+                    <i data-lucide="user" class="w-5 h-5 flex-shrink-0"></i>
+                    <span class="sidebar-text overflow-hidden whitespace-nowrap">My Profile</span>
+                    <div class="tooltip absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
+                        My Profile
+                    </div>
+                </a>
                 <a href="<?= base_url('auth/logout') ?>" 
-                   class="flex items-center space-x-3 text-gray-600 hover:text-gray-800 nav-item relative transition-colors duration-200"
+                   class="flex items-center space-x-3 text-gray-600 hover:text-gray-800 nav-item relative transition-colors duration-200 p-2 rounded hover:bg-gray-50"
                    onclick="return confirm('Are you sure you want to logout?')">
                     <i data-lucide="log-out" class="w-5 h-5 flex-shrink-0"></i>
                     <span class="sidebar-text overflow-hidden whitespace-nowrap">Log Out</span>

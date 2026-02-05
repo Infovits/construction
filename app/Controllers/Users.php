@@ -605,6 +605,168 @@ class Users extends BaseController
     }
 
     /**
+     * Display logged-in user's profile
+     */
+    public function profile()
+    {
+        if (!session('user_id') || !session('company_id')) {
+            return redirect()->to('/auth/login')->with('error', 'Please log in first');
+        }
+
+        $userId = session('user_id');
+        $user = $this->userModel->getUserWithDetails($userId);
+
+        if (!$user) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('User profile not found');
+        }
+
+        $data = [
+            'title' => 'My Profile',
+            'pageTitle' => 'My Profile',
+            'user' => $user,
+            'validation' => \Config\Services::validation(),
+            'genderOptions' => $this->getGenderOptions(),
+            'roles' => $this->roleModel->getActiveRoles(),
+            'departments' => $this->departmentModel->getActiveDepartments(),
+            'positions' => $this->jobPositionModel->getActivePositions()
+        ];
+
+        return view('admin/users/profile', $data);
+    }
+
+    /**
+     * Update logged-in user's profile
+     */
+    public function updateProfile()
+    {
+        if (!session('user_id') || !session('company_id')) {
+            return redirect()->to('/auth/login')->with('error', 'Please log in first');
+        }
+
+        if ($this->request->getMethod() !== 'post') {
+            return redirect()->to(base_url('admin/users/profile'));
+        }
+
+        $userId = session('user_id');
+        $user = $this->userModel->find($userId);
+
+        if (!$user) {
+            throw new \CodeIgniter\Exceptions\PageNotFoundException('User profile not found');
+        }
+
+        // Validation rules
+        $rules = [
+            'email' => [
+                'rules' => 'required|valid_email|is_unique[users.email,id,'.$userId.']',
+                'errors' => [
+                    'required' => 'Email is required',
+                    'valid_email' => 'Please enter a valid email address',
+                    'is_unique' => 'Email already exists'
+                ]
+            ],
+            'first_name' => [
+                'rules' => 'required|min_length[2]|max_length[100]',
+                'errors' => [
+                    'required' => 'First name is required',
+                    'min_length' => 'First name must be at least 2 characters'
+                ]
+            ],
+            'last_name' => [
+                'rules' => 'required|min_length[2]|max_length[100]',
+                'errors' => [
+                    'required' => 'Last name is required',
+                    'min_length' => 'Last name must be at least 2 characters'
+                ]
+            ],
+            'phone' => [
+                'rules' => 'permit_empty|min_length[10]|max_length[20]',
+                'errors' => [
+                    'min_length' => 'Phone number must be at least 10 characters'
+                ]
+            ],
+            'date_of_birth' => 'permit_empty|valid_date'
+        ];
+
+        // Add password validation only if password is provided
+        if ($this->request->getPost('current_password')) {
+            $rules['current_password'] = [
+                'rules' => 'required|callback_verify_password',
+                'errors' => [
+                    'required' => 'Current password is required to change password',
+                    'callback_verify_password' => 'Current password is incorrect'
+                ]
+            ];
+            $rules['new_password'] = [
+                'rules' => 'required|min_length[8]',
+                'errors' => [
+                    'required' => 'New password is required',
+                    'min_length' => 'Password must be at least 8 characters'
+                ]
+            ];
+            $rules['new_password_confirm'] = [
+                'rules' => 'required|matches[new_password]',
+                'errors' => [
+                    'required' => 'Password confirmation is required',
+                    'matches' => 'Passwords do not match'
+                ]
+            ];
+        }
+
+        // Perform validation
+        if (!$this->validate($rules)) {
+            $this->session->setFlashdata('validation', $this->validator);
+            return redirect()->to(base_url('admin/users/profile'))->withInput();
+        }
+
+        try {
+            // Prepare user data
+            $userData = [
+                'email' => trim($this->request->getPost('email')),
+                'first_name' => trim($this->request->getPost('first_name')),
+                'last_name' => trim($this->request->getPost('last_name')),
+                'middle_name' => trim($this->request->getPost('middle_name')) ?: null,
+                'phone' => trim($this->request->getPost('phone')) ?: null,
+                'mobile' => trim($this->request->getPost('mobile')) ?: null,
+                'date_of_birth' => $this->request->getPost('date_of_birth') ?: null,
+                'gender' => $this->request->getPost('gender') ?: null,
+                'national_id' => trim($this->request->getPost('national_id')) ?: null,
+                'address' => trim($this->request->getPost('address')) ?: null,
+                'city' => trim($this->request->getPost('city')) ?: null,
+                'emergency_contact_name' => trim($this->request->getPost('emergency_contact_name')) ?: null,
+                'emergency_contact_phone' => trim($this->request->getPost('emergency_contact_phone')) ?: null,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            // Update password if provided
+            if ($this->request->getPost('new_password')) {
+                $userData['password'] = password_hash($this->request->getPost('new_password'), PASSWORD_DEFAULT);
+                $userData['password_changed_at'] = date('Y-m-d H:i:s');
+            }
+
+            // Update user
+            if (!$this->userModel->update($userId, $userData)) {
+                throw new \Exception('Failed to update profile');
+            }
+
+            // Log activity
+            $this->logActivity('profile_updated', 'users', $userId, [
+                'email' => $userData['email'],
+                'first_name' => $userData['first_name'],
+                'last_name' => $userData['last_name']
+            ]);
+
+            return redirect()->to(base_url('admin/users/profile'))
+                ->with('success', 'Your profile has been updated successfully');
+
+        } catch (\Exception $e) {
+            log_message('error', 'Profile update failed: ' . $e->getMessage());
+            return redirect()->to(base_url('admin/users/profile'))
+                ->withInput()
+                ->with('error', 'Failed to update profile: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Get positions by department ID - AJAX endpoint
      */
     public function getPositionsByDepartment()
@@ -933,5 +1095,20 @@ class Users extends BaseController
         } catch (\Exception $e) {
             log_message('error', 'Failed to log activity: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Validation callback to verify current password
+     */
+    public function verify_password(string $value): bool
+    {
+        $userId = session('user_id');
+        $user = $this->userModel->find($userId);
+
+        if (!$user) {
+            return false;
+        }
+
+        return password_verify($value, $user['password']);
     }
 }

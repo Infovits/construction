@@ -29,6 +29,8 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     // User Management Routes
     $routes->group("users", function($routes) {
         $routes->get("/", "Users::index");
+        $routes->get("profile", "Users::profile");
+        $routes->post("profile/update", "Users::updateProfile");
         $routes->get("create", "Users::create");
         $routes->post("store", "Users::store");
         $routes->get("edit/(:num)", "Users::edit/$1");
