@@ -74,8 +74,12 @@ class SafetyAuditModel extends Model
 
     public function getAuditById($auditId, $companyId)
     {
-        return $this->where('id', $auditId)
-                    ->where('company_id', $companyId)
+        return $this->select('safety_audits.*, projects.name as project_name, 
+                             CONCAT(auditor.first_name, " ", auditor.last_name) as auditor_name')
+                    ->join('projects', 'projects.id = safety_audits.project_id', 'left')
+                    ->join('users as auditor', 'auditor.id = safety_audits.auditor_id', 'left')
+                    ->where('safety_audits.id', $auditId)
+                    ->where('safety_audits.company_id', $companyId)
                     ->first();
     }
 

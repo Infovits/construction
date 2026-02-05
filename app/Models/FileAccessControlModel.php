@@ -18,6 +18,7 @@ class FileAccessControlModel extends Model
 
     protected $useTimestamps = true;
     protected $createdField = 'granted_at';
+    protected $updatedField = '';
 
     protected $validationRules = [
         'file_id' => 'required|integer',
@@ -39,11 +40,26 @@ class FileAccessControlModel extends Model
                     ->first();
     }
 
+    public function checkAccessByRole($fileId, $roleId, $accessType)
+    {
+        $now = date('Y-m-d H:i:s');
+
+        return $this->where('file_id', $fileId)
+                    ->where('role_id', $roleId)
+                    ->where('access_type', $accessType)
+                    ->where('is_revoked', 0)
+                    ->where(function($builder) use ($now) {
+                        $builder->where('expires_at >=', $now)
+                               ->orWhere('expires_at', null);
+                    })
+                    ->first();
+    }
+
     public function getUsersWithAccess($fileId)
     {
         return $this->where('file_id', $fileId)
                     ->where('is_revoked', 0)
-                    ->select('user_id, access_type, expires_at')
+                    ->select('id, user_id, role_id, access_type, expires_at')
                     ->findAll();
     }
 

@@ -4,9 +4,27 @@
 
 <?= $this->section('styles') ?>
 <style>
-.status-badge { @apply inline-block px-3 py-1 rounded-full font-semibold text-sm; }
-.tab-button { @apply px-4 py-2 font-medium border-b-2 border-transparent text-gray-700 hover:text-gray-900 transition-colors; }
-.tab-button.active { @apply border-b-indigo-600 text-indigo-600; }
+.status-badge { 
+    display: inline-block;
+    padding: 0.75rem 1rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+.tab-button { 
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    color: #374151;
+    transition: all 0.2s;
+}
+.tab-button:hover {
+    color: #111827;
+}
+.tab-button.active { 
+    border-bottom-color: #4f46e5;
+    color: #4f46e5;
+}
 </style>
 <?= $this->endSection() ?>
 
@@ -160,6 +178,32 @@
                 <h3 class="text-lg font-bold text-gray-900 mb-4">Immediate Actions</h3>
                 <p class="text-gray-700 whitespace-pre-wrap"><?= nl2br($incident['immediate_actions_taken'] ?? 'No immediate actions recorded') ?></p>
             </div>
+
+            <!-- Status Update Card -->
+            <div class="bg-white rounded-lg shadow-sm border p-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4">Update Status</h3>
+                <form id="statusUpdateForm" class="space-y-4">
+                    <?= csrf_field() ?>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">New Status</label>
+                        <select name="status" id="statusSelect" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                            <option value="reported" <?= $incident['status'] === 'reported' ? 'selected' : '' ?>>Reported</option>
+                            <option value="investigating" <?= $incident['status'] === 'investigating' ? 'selected' : '' ?>>Investigating</option>
+                            <option value="under_review" <?= $incident['status'] === 'under_review' ? 'selected' : '' ?>>Under Review</option>
+                            <option value="resolved" <?= $incident['status'] === 'resolved' ? 'selected' : '' ?>>Resolved</option>
+                            <option value="closed" <?= $incident['status'] === 'closed' ? 'selected' : '' ?>>Closed</option>
+                            <option value="reopened" <?= $incident['status'] === 'reopened' ? 'selected' : '' ?>>Reopened</option>
+                        </select>
+                    </div>
+                    <div id="notesSection" class="<?= $incident['status'] === 'resolved' ? '' : 'hidden' ?>">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Investigation Findings / Notes</label>
+                        <textarea name="notes" id="statusNotes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent" placeholder="Enter findings or notes..."></textarea>
+                    </div>
+                    <button type="submit" class="w-full px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium">
+                        <i class="fas fa-save mr-2"></i> Update Status
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -186,7 +230,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <?php foreach ($photos as $photo): ?>
                             <div class="rounded-lg overflow-hidden border border-gray-200 hover:shadow-md transition">
-                                <img src="<?= base_url($photo['photo_path']) ?>" alt="Incident Photo" class="w-full h-48 object-cover">
+                                <img src="<?= base_url('incident-safety/photos/' . $photo['id']) ?>" alt="Incident Photo" class="w-full h-48 object-cover">
                                 <div class="p-3 bg-gray-50">
                                     <p class="font-semibold text-gray-900 text-sm"><?= ucfirst($photo['photo_type'] ?? '') ?></p>
                                     <p class="text-xs text-gray-600 mt-1"><?= $photo['description'] ?? 'No description' ?></p>
@@ -202,7 +246,50 @@
 
             <!-- Action Steps Tab -->
             <div class="tab-content hidden" id="actions">
-                <h3 class="text-lg font-bold text-gray-900 mb-4">Corrective Actions</h3>
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-900">Corrective Actions</h3>
+                    <button type="button" onclick="toggleActionForm()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
+                        <i class="fas fa-plus mr-2"></i> Add Action
+                    </button>
+                </div>
+
+                <!-- Add Action Form -->
+                <div id="actionForm" class="hidden mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-900 mb-3">New Corrective Action</h4>
+                    <form id="addActionForm" class="space-y-3">
+                        <?= csrf_field() ?>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Action Description *</label>
+                            <textarea name="action_description" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" rows="2" placeholder="Describe the corrective action to be taken..."></textarea>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Assign To *</label>
+                                <select name="assigned_to" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">Select Person</option>
+                                    <?php if (!empty($users)): ?>
+                                        <?php foreach ($users as $user): ?>
+                                            <option value="<?= $user['id'] ?>"><?= $user['first_name'] . ' ' . $user['last_name'] ?></option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Due Date *</label>
+                                <input type="date" name="due_date" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                        <div class="flex gap-2 justify-end">
+                            <button type="button" onclick="toggleActionForm()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors text-sm">
+                                Cancel
+                            </button>
+                            <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm">
+                                <i class="fas fa-save mr-2"></i> Save Action
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
                 <?php if (!empty($actionSteps)): ?>
                     <div class="overflow-x-auto">
                         <table class="w-full">
@@ -272,7 +359,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Completed By</label>
-                            <p class="text-lg font-semibold text-gray-900"><?= $incident['investigation_completed_by_name'] ?? 'N/A' ?></p>
+                            <p class="text-lg font-semibold text-gray-900"><?= $incident['investigator_name'] ?? 'N/A' ?></p>
                         </div>
                     </div>
                 <?php else: ?>
@@ -317,6 +404,110 @@
             }
         });
     });
+
+    // Status update functionality
+    const statusSelect = document.getElementById('statusSelect');
+    const notesSection = document.getElementById('notesSection');
+    const statusForm = document.getElementById('statusUpdateForm');
+
+    // Show/hide notes section based on status
+    statusSelect.addEventListener('change', function() {
+        if (this.value === 'resolved') {
+            notesSection.classList.remove('hidden');
+        } else {
+            notesSection.classList.add('hidden');
+        }
+    });
+
+    // Handle status update form submission
+    statusForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Updating...';
+        
+        fetch('<?= base_url("incident-safety/incidents/" . $incident['id'] . "/status") ?>', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg mb-4';
+                alertDiv.innerHTML = '<i class="fas fa-check-circle mr-2"></i>' + data.message;
+                document.querySelector('.space-y-6').insertBefore(alertDiv, document.querySelector('.space-y-6').firstChild);
+                
+                // Reload page after 2 seconds
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
+            } else {
+                alert('Error: ' + data.message);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating status');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    });
+
+    // Action steps functionality
+    function toggleActionForm() {
+        const form = document.getElementById('actionForm');
+        form.classList.toggle('hidden');
+    }
+
+    const addActionForm = document.getElementById('addActionForm');
+    if (addActionForm) {
+        addActionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+            
+            fetch('<?= base_url("incident-safety/incidents/" . $incident['id'] . "/action-steps") ?>', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Action step added successfully');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while adding action step');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    }
     </script>
 
 </div>

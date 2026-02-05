@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title ?? get_company_name() ?></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -293,8 +294,7 @@
                     <div class="submenu" id="files-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
                             <a href="<?= base_url('file-management') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">All Files</a>
-                            <a href="<?= base_url('file-management?action=upload') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Upload File</a>
-                            <a href="<?= base_url('file-management/search') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Search Files</a>
+                            <a href="<?= base_url('file-management/archived') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Archived Files</a>
                             <a href="<?= base_url('file-management/categories') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Manage Categories</a>
                         </div>
                     </div>
@@ -878,8 +878,19 @@
             const bellBtn = document.getElementById('notificationBtn');
             const bellIcon = bellBtn?.querySelector('i');
             
-            // Don't close if clicking on recipient dropdown in messages
-            if (event.target.closest('#recipientSearch') || event.target.closest('#userDropdown') || event.target.closest('#dropdownToggle')) {
+            // Don't close if clicking on message recipient dropdown
+            if (event.target.closest('#messageRecipientDropdownBtn') || 
+                event.target.closest('#userDropdown') || 
+                event.target.closest('#messageDropdownBtnText')) {
+                return;
+            }
+            
+            // Don't close if clicking on navigation elements
+            if (event.target.closest('nav') || 
+                event.target.closest('.nav-item') || 
+                event.target.closest('.menu-chevron') ||
+                event.target.closest('#sidebarToggle') ||
+                event.target.closest('#mobileMenuBtn')) {
                 return;
             }
             

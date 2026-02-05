@@ -74,8 +74,14 @@ class SafetyReportModel extends Model
 
     public function getReportById($reportId, $companyId)
     {
-        return $this->where('id', $reportId)
-                    ->where('company_id', $companyId)
+        return $this->select('safety_reports.*, projects.name as project_name, 
+                             CONCAT(generator.first_name, " ", generator.last_name) as generated_by_name,
+                             CONCAT(approver.first_name, " ", approver.last_name) as approved_by_name')
+                    ->join('projects', 'projects.id = safety_reports.project_id', 'left')
+                    ->join('users as generator', 'generator.id = safety_reports.generated_by', 'left')
+                    ->join('users as approver', 'approver.id = safety_reports.approved_by', 'left')
+                    ->where('safety_reports.id', $reportId)
+                    ->where('safety_reports.company_id', $companyId)
                     ->first();
     }
 

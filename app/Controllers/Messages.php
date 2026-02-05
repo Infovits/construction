@@ -406,10 +406,16 @@ class Messages extends BaseController
             return;
         }
 
+        // Get MIME type before moving the file (this is the key fix)
+        $mimeType = $attachment->getMimeType();
+        $originalName = $attachment->getClientName();
+        $fileSize = (int)$attachment->getSize();
+        $extension = $attachment->getExtension();
+
         // Validate file size (2MB max)
         $maxSize = 2 * 1024 * 1024; // 2MB in bytes
-        if ($attachment->getSize() > $maxSize) {
-            log_message('warning', 'File upload rejected: exceeds 2MB limit. Size: ' . $attachment->getSize());
+        if ($fileSize > $maxSize) {
+            log_message('warning', 'File upload rejected: exceeds 2MB limit. Size: ' . $fileSize);
             return;
         }
 
@@ -424,8 +430,8 @@ class Messages extends BaseController
             'application/vnd.openxmlformats-officedocument.presentationml.presentation'
         ];
 
-        if (!$attachment->isValid() || !in_array($attachment->getMimeType(), $allowedMime, true)) {
-            log_message('warning', 'File upload rejected: invalid MIME type. Type: ' . $attachment->getMimeType());
+        if (!$attachment->isValid() || !in_array($mimeType, $allowedMime, true)) {
+            log_message('warning', 'File upload rejected: invalid MIME type. Type: ' . $mimeType);
             return;
         }
 
@@ -434,14 +440,14 @@ class Messages extends BaseController
             mkdir($uploadPath, 0755, true);
         }
 
-        $newName = 'msg_' . $messageId . '_' . time() . '.' . $attachment->getExtension();
+        $newName = 'msg_' . $messageId . '_' . time() . '.' . $extension;
         if ($attachment->move($uploadPath, $newName)) {
             $this->attachmentModel->insert([
                 'message_id' => $messageId,
-                'file_name' => $attachment->getClientName(),
+                'file_name' => $originalName,
                 'file_path' => 'uploads/messages/' . $newName,
-                'file_size' => (int)$attachment->getSize(),
-                'mime_type' => $attachment->getMimeType(),
+                'file_size' => $fileSize,
+                'mime_type' => $mimeType,
                 'created_at' => date('Y-m-d H:i:s'),
             ]);
         }

@@ -4,7 +4,17 @@
 
 <?= $this->section('styles') ?>
 <style>
-.audit-card { @apply bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow; }
+.audit-card { 
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    transition: box-shadow 0.2s;
+}
+.audit-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
 </style>
 <?= $this->endSection() ?>
 
@@ -41,7 +51,6 @@
     <div class="bg-white rounded-lg shadow-sm border p-6">
         <form method="GET" action="<?= base_url('incident-safety/audits') ?>" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-                <div class="col-md-3">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Project</label>
                     <select name="project_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
@@ -152,10 +161,20 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <a href="<?= base_url('incident-safety/audits/' . $audit['id']) ?>" 
-                                       class="text-indigo-600 hover:text-indigo-900 transition" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
+                                    <div class="flex items-center gap-3">
+                                        <a href="<?= base_url('incident-safety/audits/' . $audit['id']) ?>" 
+                                           class="text-indigo-600 hover:text-indigo-900 transition" title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="<?= base_url('incident-safety/audits/edit/' . $audit['id']) ?>" 
+                                           class="text-blue-600 hover:text-blue-900 transition" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button onclick="deleteAudit(<?= $audit['id'] ?>)" 
+                                                class="text-red-600 hover:text-red-900 transition" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -178,5 +197,32 @@
         </nav>
     <?php endif; ?>
 </div>
+
+<script>
+function deleteAudit(auditId) {
+    if (confirm('Are you sure you want to delete this audit? This action cannot be undone.')) {
+        fetch('<?= base_url("incident-safety/audits/delete/") ?>' + auditId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': '<?= csrf_hash() ?>'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Error deleting audit');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the audit');
+        });
+    }
+}
+</script>
 
 <?= $this->endSection() ?>

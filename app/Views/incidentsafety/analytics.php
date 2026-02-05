@@ -4,8 +4,24 @@
 
 <?= $this->section('styles') ?>
 <style>
-.metric-card { @apply bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow; }
-.chart-container { @apply bg-white rounded-lg shadow-sm border p-6; }
+.metric-card { 
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    transition: box-shadow 0.2s;
+}
+.metric-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+.chart-container { 
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+}
 </style>
 <?= $this->endSection() ?>
 

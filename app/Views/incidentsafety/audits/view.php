@@ -4,7 +4,13 @@
 
 <?= $this->section('styles') ?>
 <style>
-.conformance-badge { @apply inline-block px-3 py-1 rounded-full font-semibold text-sm; }
+.conformance-badge { 
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
 </style>
 <?= $this->endSection() ?>
 
@@ -133,16 +139,24 @@
             </div>
 
             <!-- Attached Documents -->
-            <?php if (!empty($audit['document_path'])): ?>
-                <div class="bg-white rounded-lg shadow-sm border p-6 mt-6">
-                    <h3 class="text-lg font-bold text-gray-900 mb-4 pb-4 border-b">
-                        <i class="fas fa-file-pdf mr-2"></i>Audit Document
-                    </h3>
-                    <a href="<?= base_url($audit['document_path']) ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors" download>
+            <div class="bg-white rounded-lg shadow-sm border p-6 mt-6">
+                <h3 class="text-lg font-bold text-gray-900 mb-4 pb-4 border-b">
+                    <i class="fas fa-file-pdf mr-2"></i>Audit Document
+                </h3>
+                <?php if (!empty($audit['document_path'])): ?>
+                    <a href="<?= base_url('incident-safety/audits/' . $audit['id'] . '/document') ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors" download>
                         <i class="fas fa-download mr-2"></i> Download Document
                     </a>
-                </div>
-            <?php endif; ?>
+                    <p class="text-xs text-gray-500 mt-2">
+                        <i class="fas fa-file mr-1"></i><?= basename($audit['document_path']) ?>
+                    </p>
+                <?php else: ?>
+                    <p class="text-gray-600 text-sm">
+                        <i class="fas fa-info-circle mr-2"></i>No document uploaded for this audit.
+                    </p>
+                <?php endif; ?>
+            </div>
+
 
             <!-- Audit Findings List -->
             <?php if (!empty($findings)): ?>

@@ -4,7 +4,17 @@
 
 <?= $this->section('styles') ?>
 <style>
-.report-card { @apply bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow; }
+.report-card { 
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    transition: box-shadow 0.2s;
+}
+.report-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
 </style>
 <?= $this->endSection() ?>
 
@@ -147,10 +157,20 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <a href="<?= base_url('incident-safety/reports/' . $report['id']) ?>" 
-                                       class="text-indigo-600 hover:text-indigo-900 transition" title="View">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
+                                    <div class="flex items-center gap-3">
+                                        <a href="<?= base_url('incident-safety/reports/' . $report['id']) ?>" 
+                                           class="text-indigo-600 hover:text-indigo-900 transition" title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="<?= base_url('incident-safety/reports/edit/' . $report['id']) ?>" 
+                                           class="text-blue-600 hover:text-blue-900 transition" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button onclick="deleteReport(<?= $report['id'] ?>)" 
+                                                class="text-red-600 hover:text-red-900 transition" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -173,5 +193,32 @@
         </nav>
     <?php endif; ?>
 </div>
+
+<script>
+function deleteReport(reportId) {
+    if (confirm('Are you sure you want to delete this report? This action cannot be undone.')) {
+        fetch('<?= base_url("incident-safety/reports/delete/") ?>' + reportId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': '<?= csrf_hash() ?>'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Error deleting report');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the report');
+        });
+    }
+}
+</script>
 
 <?= $this->endSection() ?>

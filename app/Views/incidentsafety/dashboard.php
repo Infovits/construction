@@ -69,207 +69,200 @@
 
     <!-- Recent Incidents & Open Items -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <h6 class="text-muted mb-1">Critical (30d)</h6>
-                            <h3 class="mb-0 text-danger"><?= count($criticalIncidents) ?></h3>
-                        </div>
-                        <i class="fas fa-fire fa-3x text-danger opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Recent Audits</h6>
-                            <h3 class="mb-0"><?= count($recentAudits) ?></h3>
-                        </div>
-                        <i class="fas fa-clipboard-check fa-3x text-success opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row">
         <!-- Recent Incidents -->
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Recent Incidents</h5>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Title</th>
-                                <th>Severity</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-gray-100">
+                <h3 class="text-lg font-semibold text-gray-900">Recent Incidents</h3>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Code</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Title</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Severity</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <?php if (count($recentIncidents) > 0): ?>
                             <?php foreach ($recentIncidents as $incident): ?>
-                                <tr>
-                                    <td>
-                                        <a href="<?= base_url('incident-safety/incidents/' . $incident['id']) ?>">
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <a href="<?= base_url('incident-safety/incidents/' . $incident['id']) ?>" class="text-indigo-600 hover:text-indigo-800 font-semibold">
                                             <?= $incident['incident_code'] ?>
                                         </a>
                                     </td>
-                                    <td><?= substr($incident['title'], 0, 30) ?>...</td>
-                                    <td>
+                                    <td class="px-6 py-4 text-sm text-gray-900"><?= substr($incident['title'], 0, 40) ?>...</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
                                         <?php
-                                            $severityLabels = [
-                                                4 => 'Critical',
-                                                3 => 'High',
-                                                2 => 'Medium',
-                                                1 => 'Low'
+                                            $severityConfig = [
+                                                4 => ['label' => 'Critical', 'class' => 'bg-red-100 text-red-800'],
+                                                3 => ['label' => 'High', 'class' => 'bg-orange-100 text-orange-800'],
+                                                2 => ['label' => 'Medium', 'class' => 'bg-yellow-100 text-yellow-800'],
+                                                1 => ['label' => 'Low', 'class' => 'bg-green-100 text-green-800']
                                             ];
+                                            $sev = $severityConfig[$incident['severity_id']] ?? ['label' => 'Unknown', 'class' => 'bg-gray-100 text-gray-800'];
                                         ?>
-                                        <span class="badge bg-danger">
-                                            <?= $severityLabels[$incident['severity_id']] ?? 'Unknown' ?>
+                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full <?= $sev['class'] ?>">
+                                            <?= $sev['label'] ?>
                                         </span>
                                     </td>
-                                    <td>
-                                        <span class="badge bg-warning text-dark">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                                             <?= ucfirst(str_replace('_', ' ', $incident['status'])) ?>
                                         </span>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="card-footer">
-                    <a href="<?= base_url('incident-safety/incidents') ?>" class="btn btn-sm btn-outline-primary">View All</a>
-                </div>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="4" class="px-6 py-8 text-center text-gray-500">
+                                    <i class="fas fa-inbox text-3xl mb-2 block"></i>
+                                    No recent incidents
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 border-t bg-gray-50">
+                <a href="<?= base_url('incident-safety/incidents') ?>" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium text-sm">
+                    View All Incidents <i class="fas fa-arrow-right ml-2"></i>
+                </a>
             </div>
         </div>
 
+        <!-- Open Action Items -->
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-gray-100">
+                <h3 class="text-lg font-semibold text-gray-900">Open Action Items</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <?php if (!empty($openActionSteps) && count($openActionSteps) > 0): ?>
+                    <?php foreach (array_slice($openActionSteps, 0, 5) as $step): ?>
+                        <div class="flex items-start gap-3 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-tasks text-orange-600 text-lg"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900"><?= $step['description'] ?? 'No description' ?></p>
+                                <p class="text-xs text-gray-600 mt-1">
+                                    <i class="fas fa-calendar mr-1"></i>
+                                    Due: <?= !empty($step['due_date']) ? date('M d, Y', strtotime($step['due_date'])) : 'Not set' ?>
+                                </p>
+                            </div>
+                            <div class="flex-shrink-0">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                                    Pending
+                                </span>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="text-center py-12">
+                        <i class="fas fa-check-circle text-green-400 text-5xl mb-3"></i>
+                        <p class="text-gray-500 font-medium">No open action items</p>
+                        <p class="text-sm text-gray-400 mt-1">All actions have been completed</p>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <?php if (!empty($openActionSteps) && count($openActionSteps) > 5): ?>
+                <div class="px-6 py-4 border-t bg-gray-50">
+                    <a href="<?= base_url('incident-safety/incidents') ?>" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium text-sm">
+                        View All Action Items <i class="fas fa-arrow-right ml-2"></i>
+                    </a>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- Recent Audits & Critical Items -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Recent Audits -->
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Recent Safety Audits</h5>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-sm mb-0">
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Type</th>
-                                <th>Conformance</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($recentAudits as $audit): ?>
-                                <tr>
-                                    <td>
-                                        <a href="<?= base_url('incident-safety/audits/' . $audit['id']) ?>">
-                                            <?= $audit['audit_code'] ?>
-                                        </a>
-                                    </td>
-                                    <td><?= ucfirst($audit['audit_type']) ?></td>
-                                    <td>
-                                        <span class="badge bg-info"><?= $audit['conformance_percentage'] ?>%</span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary">
-                                            <?= ucfirst($audit['status']) ?>
-                                        </span>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="card-footer">
-                    <a href="<?= base_url('incident-safety/audits') ?>" class="btn btn-sm btn-outline-primary">View All</a>
-                </div>
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="px-6 py-4 border-b bg-gradient-to-r from-gray-50 to-gray-100">
+                <h3 class="text-lg font-semibold text-gray-900">Recent Safety Audits</h3>
             </div>
-        </div>
-    </div>
-
-    <!-- Open Incidents -->
-    <?php if (count($openIncidents) > 0): ?>
-    <div class="row">
-        <div class="col-12 mb-4">
-            <div class="card border-warning">
-                <div class="card-header bg-warning text-dark">
-                    <h5 class="mb-0"><i class="fas fa-exclamation"></i> Open & In-Progress Incidents</h5>
-                </div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                            <tr>
-                                <th>Code</th>
-                                <th>Title</th>
-                                <th>Project</th>
-                                <th>Date</th>
-                                <th>Severity</th>
-                                <th>Assigned To</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($openIncidents as $incident): ?>
-                                <tr>
-                                    <td><strong><?= $incident['incident_code'] ?></strong></td>
-                                    <td><?= substr($incident['title'], 0, 40) ?></td>
-                                    <td><?= $incident['project_id'] ?></td>
-                                    <td><?= date('M d, Y', strtotime($incident['incident_date'])) ?></td>
-                                    <td>
-                                        <?php
-                                            $severityBadge = [
-                                                4 => 'Critical',
-                                                3 => 'High',
-                                                2 => 'Medium',
-                                                1 => 'Low'
-                                            ];
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Project</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-700">Score</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <?php if (!empty($recentAudits) && count($recentAudits) > 0): ?>
+                            <?php foreach (array_slice($recentAudits, 0, 5) as $audit): ?>
+                                <tr class="hover:bg-gray-50 transition">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        <?= !empty($audit['audit_date']) ? date('M d, Y', strtotime($audit['audit_date'])) : 'N/A' ?>
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-900">
+                                        <?= $audit['project_name'] ?? 'N/A' ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <?php 
+                                        $score = $audit['overall_score'] ?? 0;
+                                        $scoreClass = $score >= 80 ? 'text-green-600' : ($score >= 60 ? 'text-yellow-600' : 'text-red-600');
                                         ?>
-                                        <span class="badge bg-danger">
-                                            <?= $severityBadge[$incident['severity_id']] ?? 'Unknown' ?>
+                                        <span class="text-sm font-bold <?= $scoreClass ?>">
+                                            <?= $score ?>%
                                         </span>
-                                    </td>
-                                    <td><?= $incident['assigned_to'] ?: '<em>Unassigned</em>' ?></td>
-                                    <td>
-                                        <a href="<?= base_url('incident-safety/incidents/' . $incident['id']) ?>" class="btn btn-sm btn-outline-primary">
-                                            View
-                                        </a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="3" class="px-6 py-8 text-center text-gray-500">
+                                    <i class="fas fa-clipboard-check text-3xl mb-2 block"></i>
+                                    No recent audits
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            <div class="px-6 py-4 border-t bg-gray-50">
+                <a href="<?= base_url('incident-safety/audits') ?>" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 font-medium text-sm">
+                    View All Audits <i class="fas fa-arrow-right ml-2"></i>
+                </a>
             </div>
         </div>
-    </div>
-    <?php endif; ?>
 
-    <!-- Quick Actions -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Quick Actions</h5>
-                </div>
-                <div class="card-body">
-                    <a href="<?= base_url('incident-safety/incidents/create') ?>" class="btn btn-danger me-2">
-                        <i class="fas fa-plus-circle"></i> Report New Incident
-                    </a>
-                    <a href="<?= base_url('incident-safety/audits/create') ?>" class="btn btn-info me-2">
-                        <i class="fas fa-clipboard-list"></i> Create Safety Audit
-                    </a>
-                    <a href="<?= base_url('incident-safety/reports/create') ?>" class="btn btn-primary me-2">
-                        <i class="fas fa-file-alt"></i> Generate Safety Report
-                    </a>
-                    <a href="<?= base_url('incident-safety/analytics') ?>" class="btn btn-success">
-                        <i class="fas fa-chart-bar"></i> View Analytics
-                    </a>
-                </div>
+        <!-- Critical Incidents -->
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="px-6 py-4 border-b bg-gradient-to-r from-red-50 to-red-100">
+                <h3 class="text-lg font-semibold text-red-900">Critical Incidents (30 Days)</h3>
+            </div>
+            <div class="p-6 space-y-4">
+                <?php if (!empty($criticalIncidents) && count($criticalIncidents) > 0): ?>
+                    <?php foreach (array_slice($criticalIncidents, 0, 5) as $critical): ?>
+                        <a href="<?= base_url('incident-safety/incidents/' . $critical['id']) ?>" class="block p-4 bg-red-50 rounded-lg hover:bg-red-100 transition border border-red-200">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-semibold text-gray-900"><?= $critical['incident_code'] ?></p>
+                                    <p class="text-sm text-gray-700 mt-1"><?= substr($critical['title'], 0, 50) ?>...</p>
+                                    <p class="text-xs text-gray-600 mt-2">
+                                        <i class="fas fa-calendar mr-1"></i>
+                                        <?= date('M d, Y', strtotime($critical['incident_date'])) ?>
+                                    </p>
+                                </div>
+                            </div>
+                        </a>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <div class="text-center py-12">
+                        <i class="fas fa-shield-alt text-green-400 text-5xl mb-3"></i>
+                        <p class="text-gray-500 font-medium">No critical incidents</p>
+                        <p class="text-sm text-gray-400 mt-1">Great safety record!</p>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

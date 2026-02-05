@@ -4,8 +4,25 @@
 
 <?= $this->section('styles') ?>
 <style>
-.form-section { @apply bg-white rounded-lg shadow-sm border p-6 space-y-4 mb-6; }
-.form-section-title { @apply text-lg font-semibold text-gray-900 mb-4 pb-4 border-b; }
+.form-section { 
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+.form-section > * + * {
+    margin-top: 1rem;
+}
+.form-section-title { 
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+}
 </style>
 <?= $this->endSection() ?>
 

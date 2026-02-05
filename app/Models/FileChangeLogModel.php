@@ -18,6 +18,7 @@ class FileChangeLogModel extends Model
 
     protected $useTimestamps = true;
     protected $createdField = 'created_at';
+    protected $updatedField = '';
 
     protected $validationRules = [
         'file_id' => 'required|integer',

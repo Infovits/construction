@@ -21,22 +21,41 @@ class ConversationModel extends Model
             SELECT c.*, 
                    lm.body AS last_message,
                    lm.created_at AS last_message_at,
-                   SUM(CASE WHEN cp.last_read_at IS NULL OR m.created_at > cp.last_read_at THEN 1 ELSE 0 END) AS unread_count
+                   COALESCE(unread_counts.unread_count, 0) AS unread_count,
+                   participants.participant_names
             FROM conversations c
-            JOIN conversation_participants cp ON cp.conversation_id = c.id
-            LEFT JOIN messages m ON m.conversation_id = c.id
             LEFT JOIN (
                 SELECT conversation_id, MAX(created_at) AS max_created
                 FROM messages
                 GROUP BY conversation_id
             ) lm_max ON lm_max.conversation_id = c.id
             LEFT JOIN messages lm ON lm.conversation_id = c.id AND lm.created_at = lm_max.max_created
-            WHERE cp.user_id = ? AND c.company_id = ?
-            GROUP BY c.id, lm.body, lm.created_at
+            LEFT JOIN (
+                SELECT cp.conversation_id,
+                       SUM(CASE WHEN cp.last_read_at IS NULL OR m.created_at > cp.last_read_at THEN 1 ELSE 0 END) AS unread_count
+                FROM conversation_participants cp
+                LEFT JOIN messages m ON m.conversation_id = cp.conversation_id
+                WHERE cp.user_id = ?
+                GROUP BY cp.conversation_id
+            ) unread_counts ON unread_counts.conversation_id = c.id
+            LEFT JOIN (
+                SELECT cp.conversation_id,
+                       GROUP_CONCAT(CONCAT(u.first_name, ' ', u.last_name) SEPARATOR ', ') AS participant_names
+                FROM conversation_participants cp
+                LEFT JOIN users u ON u.id = cp.user_id
+                GROUP BY cp.conversation_id
+            ) participants ON participants.conversation_id = c.id
+            WHERE c.id IN (
+                SELECT DISTINCT cp.conversation_id
+                FROM conversation_participants cp
+                WHERE cp.user_id = ? AND cp.conversation_id IN (
+                    SELECT c2.id FROM conversations c2 WHERE c2.company_id = ?
+                )
+            )
             ORDER BY lm.created_at DESC
         ";
 
-        return $db->query($sql, [$userId, $companyId])->getResultArray();
+        return $db->query($sql, [$userId, $userId, $companyId])->getResultArray();
     }
 
     public function getActiveConversationCount($companyId)

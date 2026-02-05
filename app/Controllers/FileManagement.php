@@ -10,6 +10,8 @@ use App\Models\FileTagModel;
 use App\Models\FileCommentModel;
 use App\Models\FileChangeLogModel;
 use App\Models\ProjectModel;
+use App\Models\UserModel;
+use App\Models\RoleModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
 class FileManagement extends BaseController
@@ -22,6 +24,8 @@ class FileManagement extends BaseController
     protected $commentModel;
     protected $changeLogModel;
     protected $projectModel;
+    protected $userModel;
+    protected $roleModel;
 
     public function __construct()
     {
@@ -33,6 +37,8 @@ class FileManagement extends BaseController
         $this->commentModel = new FileCommentModel();
         $this->changeLogModel = new FileChangeLogModel();
         $this->projectModel = new ProjectModel();
+        $this->userModel = new UserModel();
+        $this->roleModel = new RoleModel();
     }
 
     public function index()
@@ -46,8 +52,9 @@ class FileManagement extends BaseController
                                            ->where('is_archived', 0)
                                            ->findAll();
             $files = $this->fileModel->where('company_id', $companyId)
+                                     ->where('is_archived', 0)
+                                     ->where('is_latest_version', 1)
                                      ->orderBy('created_at', 'DESC')
-                                     ->limit(50)
                                      ->findAll();
             $categories = $this->categoryModel->getCategoriesByCompany($companyId);
             $expiringFiles = $this->fileModel->getExpiringFiles($companyId, 30);
@@ -88,6 +95,31 @@ class FileManagement extends BaseController
         return view('filemanagement/index', $data);
     }
 
+    public function archived()
+    {
+        $companyId = session('company_id');
+
+        $projects = $this->projectModel->where('company_id', $companyId)
+                                       ->where('is_archived', 0)
+                                       ->findAll();
+        
+        $archivedFiles = $this->fileModel->where('company_id', $companyId)
+                                         ->where('is_archived', 1)
+                                         ->orderBy('created_at', 'DESC')
+                                         ->findAll();
+        
+        $categories = $this->categoryModel->getCategoriesByCompany($companyId);
+
+        $data = [
+            'projects' => $projects,
+            'files' => $archivedFiles,
+            'categories' => $categories,
+            'title' => 'Archived Files'
+        ];
+
+        return view('filemanagement/archived', $data);
+    }
+
     public function upload()
     {
         if ($this->request->getMethod() !== 'post') {
@@ -103,9 +135,17 @@ class FileManagement extends BaseController
         $expiresAt = $this->request->getPost('expires_at');
 
         // Verify project exists
+        if (!$projectId) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Project is required',
+                'csrfHash' => csrf_hash()
+            ]);
+        }
+
         $project = $this->projectModel->getProjectById($projectId, $companyId);
         if (!$project) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Project not found'])->setStatusCode(404);
+            return $this->response->setJSON(['success' => false, 'message' => 'Project not found', 'csrfHash' => csrf_hash()])->setStatusCode(404);
         }
 
         // Handle file upload
@@ -120,9 +160,19 @@ class FileManagement extends BaseController
         }
 
         $uploadedFiles = [];
+        $errors = [];
 
         foreach ($files as $file) {
-            if (!$file->isValid() || $file->hasMoved()) {
+            // Check if file is valid and hasn't been moved
+            if (!$file->isValid()) {
+                $errorMsg = 'File validation failed: ' . $file->getErrorString();
+                $errors[] = $errorMsg;
+                log_message('error', 'Upload validation error: ' . $errorMsg);
+                continue;
+            }
+            
+            if ($file->hasMoved()) {
+                $errors[] = 'File has already been moved';
                 continue;
             }
 
@@ -130,58 +180,100 @@ class FileManagement extends BaseController
             $originalName = $file->getClientName();
             $fileSize = $file->getSize();
             $mimeType = $file->getMimeType();
-            $fileName = $file->getRandomName();
+            
+            // Use original filename, make it unique if already exists
+            $fileName = $originalName;
             $uploadPath = WRITEPATH . 'uploads/files/' . $companyId . '/' . $projectId . '/';
+            
+            // If file already exists, append timestamp to make it unique
+            if (file_exists($uploadPath . $fileName)) {
+                $pathInfo = pathinfo($fileName);
+                $fileName = $pathInfo['filename'] . '_' . time() . '.' . $pathInfo['extension'];
+            }
+            
+            log_message('debug', "Processing upload: {$originalName}, Size: {$fileSize}, MIME: {$mimeType}");
 
             // Create directory if not exists
             if (!is_dir($uploadPath)) {
-                @mkdir($uploadPath, 0755, true);
+                if (!@mkdir($uploadPath, 0777, true)) {
+                    $errors[] = 'Failed to create upload directory: ' . $uploadPath;
+                    continue;
+                }
             }
 
-            if ($file->move($uploadPath, $fileName)) {
-                $fileData = [
-                    'company_id' => $companyId,
-                    'project_id' => $projectId,
-                    'category_id' => $categoryId ?: null,
-                    'file_name' => $fileName,
-                    'original_file_name' => $originalName,
-                    'file_path' => 'writable/uploads/files/' . $companyId . '/' . $projectId . '/' . $fileName,
-                    'file_type' => $this->getFileExtension($originalName),
-                    'file_size' => $fileSize,
-                    'mime_type' => $mimeType,
-                    'description' => $description,
-                    'uploaded_by' => session('user_id'),
-                    'document_date' => $documentDate ?: null,
-                    'expires_at' => $expiresAt ?: null,
-                    'storage_location' => 'local',
-                    'version_number' => 1,
-                    'is_latest_version' => 1,
-                ];
-
-                if ($this->fileModel->insert($fileData)) {
-                    $fileId = $this->fileModel->getInsertID();
-                    
-                    // Add tags
-                    if ($tags) {
-                        $this->tagModel->addTags($fileId, $tags);
-                    }
-
-                    // Log the upload action
-                    $this->changeLogModel->logAction($fileId, 'uploaded', session('user_id'), 
-                        'File uploaded: ' . $originalName);
-
-                    $uploadedFiles[] = [
-                        'id' => $fileId,
-                        'name' => $originalName,
-                        'size' => $fileSize
+            // Attempt to move the file
+            try {
+                if ($file->move($uploadPath, $fileName)) {
+                    $fileData = [
+                        'company_id' => $companyId,
+                        'project_id' => $projectId,
+                        'category_id' => $categoryId ?: null,
+                        'file_name' => $fileName,
+                        'original_file_name' => $originalName,
+                        'file_path' => 'writable/uploads/files/' . $companyId . '/' . $projectId . '/' . $fileName,
+                        'file_type' => $this->getFileExtension($originalName),
+                        'file_size' => $fileSize,
+                        'mime_type' => $mimeType,
+                        'description' => $description,
+                        'uploaded_by' => session('user_id'),
+                        'document_date' => $documentDate ?: null,
+                        'expires_at' => $expiresAt ?: null,
+                        'storage_location' => 'local',
+                        'version_number' => 1,
+                        'is_latest_version' => 1,
                     ];
+
+                    if ($this->fileModel->insert($fileData)) {
+                        $fileId = $this->fileModel->getInsertID();
+                        
+                        // Add tags
+                        if ($tags) {
+                            $this->tagModel->addTags($fileId, $tags);
+                        }
+
+                        // Log the upload action
+                        $this->changeLogModel->logAction($fileId, 'uploaded', session('user_id'), 
+                            'File uploaded: ' . $originalName);
+
+                        $uploadedFiles[] = [
+                            'id' => $fileId,
+                            'name' => $originalName,
+                            'size' => $fileSize
+                        ];
+                    } else {
+                        $errors[] = 'Failed to save file info for: ' . $originalName;
+                    }
+                } else {
+                    $errors[] = 'Failed to move file: ' . $originalName . ' to ' . $uploadPath;
                 }
+            } catch (\Exception $e) {
+                $errors[] = 'Exception moving file ' . $originalName . ': ' . $e->getMessage();
             }
         }
 
+        if (count($uploadedFiles) === 0) {
+            $errorMessage = 'No files were uploaded successfully.';
+            if (!empty($errors)) {
+                $errorMessage .= ' Details: ' . implode('; ', array_slice($errors, 0, 3));
+            } else {
+                $errorMessage .= ' Please check file permissions.';
+            }
+            
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $errorMessage,
+                'csrfHash' => csrf_hash()
+            ]);
+        }
+
+        $message = count($uploadedFiles) . ' file(s) uploaded successfully';
+        if (!empty($errors)) {
+            $message .= ' (' . count($errors) . ' file(s) failed)';
+        }
+
         return $this->response->setJSON([
-            'success' => count($uploadedFiles) > 0,
-            'message' => count($uploadedFiles) . ' file(s) uploaded successfully',
+            'success' => true,
+            'message' => $message,
             'files' => $uploadedFiles,
             'csrfHash' => csrf_hash()
         ]);
@@ -206,6 +298,13 @@ class FileManagement extends BaseController
         $comments = $this->commentModel->getFileComments($fileId);
         $tags = $this->tagModel->getTagsByFile($fileId);
         $changeLogs = $this->changeLogModel->getFileChangeLogs($fileId);
+        $accessList = $this->accessModel->getUsersWithAccess($fileId);
+        $users = $this->userModel->getUsersWithRoles($companyId);
+        $roles = $this->roleModel->getActiveRoles($companyId);
+
+        $canManage = $this->checkFileAccess($fileId, $userId, 'manage');
+        $canEdit = $this->checkFileAccess($fileId, $userId, 'edit');
+        $canDelete = $this->checkFileAccess($fileId, $userId, 'delete');
 
         $data = [
             'file' => $file,
@@ -213,6 +312,12 @@ class FileManagement extends BaseController
             'comments' => $comments,
             'tags' => $tags,
             'changeLogs' => $changeLogs,
+            'accessList' => $accessList,
+            'users' => $users,
+            'roles' => $roles,
+            'canManage' => $canManage,
+            'canEdit' => $canEdit,
+            'canDelete' => $canDelete,
             'title' => 'View File - ' . $file['original_file_name']
         ];
 
@@ -223,6 +328,7 @@ class FileManagement extends BaseController
     {
         $companyId = session('company_id');
         $userId = session('user_id');
+        $versionNumber = $this->request->getGet('version');
 
         $file = $this->fileModel->getFileById($fileId, $companyId);
         if (!$file) {
@@ -234,11 +340,68 @@ class FileManagement extends BaseController
             return $this->response->setStatusCode(403)->setJSON(['message' => 'Access denied']);
         }
 
-        if (!file_exists($file['file_path'])) {
-            return $this->response->setStatusCode(404)->setJSON(['message' => 'File not found on disk']);
+        $filePath = $file['file_path'];
+        $downloadName = $file['original_file_name'];
+
+        if ($versionNumber) {
+            $version = $this->versionModel->getSpecificVersion($fileId, $versionNumber);
+            if ($version) {
+                $versionFullPath = $this->normalizePath(ROOTPATH . $version['file_path']);
+                if (file_exists($versionFullPath)) {
+                    $filePath = $version['file_path'];
+                    $downloadName = 'v' . $versionNumber . '_' . $file['original_file_name'];
+                }
+            }
         }
 
-        return $this->response->download($file['file_path'], $file['original_file_name']);
+        // Convert relative path to absolute path using ROOTPATH
+        $fullPath = $this->normalizePath(ROOTPATH . ltrim($filePath, '/\\'));
+        if (!file_exists($fullPath)) {
+            log_message('error', 'Download file not found: ' . $fullPath . ' (stored path: ' . $filePath . ')');
+            throw new PageNotFoundException('File not found on disk. The file may have been deleted or moved.');
+        }
+
+        return $this->response->download($fullPath, null, $downloadName);
+    }
+
+    public function preview($fileId)
+    {
+        $companyId = session('company_id');
+        $userId = session('user_id');
+        $versionNumber = $this->request->getGet('version');
+
+        $file = $this->fileModel->getFileById($fileId, $companyId);
+        if (!$file) {
+            throw new PageNotFoundException('File not found');
+        }
+
+        if (!$this->checkFileAccess($fileId, $userId, 'view')) {
+            throw new PageNotFoundException('Access denied');
+        }
+
+        $filePath = $file['file_path'];
+
+        if ($versionNumber) {
+            $version = $this->versionModel->getSpecificVersion($fileId, $versionNumber);
+            if ($version) {
+                $versionFullPath = $this->normalizePath(ROOTPATH . $version['file_path']);
+                if (file_exists($versionFullPath)) {
+                    $filePath = $version['file_path'];
+                }
+            }
+        }
+
+        // Convert relative path to absolute path using ROOTPATH
+        $fullPath = $this->normalizePath(ROOTPATH . ltrim($filePath, '/\\'));
+        if (!file_exists($fullPath)) {
+            log_message('error', 'Preview file not found: ' . $fullPath . ' (stored path: ' . $filePath . ')');
+            throw new PageNotFoundException('File not found on disk. The file may have been deleted or moved.');
+        }
+
+        return $this->response
+            ->setHeader('Content-Type', $file['mime_type'])
+            ->setHeader('Content-Disposition', 'inline; filename="' . $file['original_file_name'] . '"')
+            ->setBody(file_get_contents($fullPath));
     }
 
     public function delete($fileId)
@@ -260,6 +423,32 @@ class FileManagement extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Access denied'])->setStatusCode(403);
         }
 
+        // If already archived, permanently delete
+        if ($file['is_archived'] == 1) {
+            // Delete physical file
+            $filePath = ROOTPATH . 'writable/uploads/files/' . $file['company_id'] . '/' . $file['project_id'] . '/' . $file['file_name'];
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
+
+            // Delete from database
+            if ($this->fileModel->delete($fileId)) {
+                $this->changeLogModel->logAction($fileId, 'deleted', $userId, 'File permanently deleted');
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'File permanently deleted',
+                    'csrfHash' => csrf_hash()
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to delete file',
+                'csrfHash' => csrf_hash()
+            ]);
+        }
+
+        // Otherwise, archive it
         if ($this->fileModel->update($fileId, ['is_archived' => 1])) {
             $this->changeLogModel->logAction($fileId, 'deleted', $userId, 'File archived');
             return $this->response->setJSON([
@@ -272,6 +461,42 @@ class FileManagement extends BaseController
         return $this->response->setJSON([
             'success' => false,
             'message' => 'Failed to archive file',
+            'csrfHash' => csrf_hash()
+        ]);
+    }
+
+    public function restore($fileId)
+    {
+        if ($this->request->getMethod() !== 'post') {
+            throw new PageNotFoundException('Method not allowed');
+        }
+
+        $companyId = session('company_id');
+        $userId = session('user_id');
+
+        $file = $this->fileModel->getFileById($fileId, $companyId);
+        if (!$file) {
+            return $this->response->setJSON(['success' => false, 'message' => 'File not found'])->setStatusCode(404);
+        }
+
+        // Check access
+        if (!$this->checkFileAccess($fileId, $userId, 'edit')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Access denied'])->setStatusCode(403);
+        }
+
+        // Restore the file (set is_archived to 0)
+        if ($this->fileModel->update($fileId, ['is_archived' => 0])) {
+            $this->changeLogModel->logAction($fileId, 'restored', $userId, 'File restored from archive');
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'File restored successfully',
+                'csrfHash' => csrf_hash()
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Failed to restore file',
             'csrfHash' => csrf_hash()
         ]);
     }
@@ -319,20 +544,36 @@ class FileManagement extends BaseController
 
         $this->versionModel->insert($oldFileData);
 
-        // Save new file
-        $fileName = $newFile->getRandomName();
-        $uploadPath = dirname($file['file_path']) . '/';
+        // Get file information BEFORE moving
+        $originalName = $newFile->getClientName();
+        $fileSize = $newFile->getSize();
+        $mimeType = $newFile->getMimeType();
+        
+        // Use original filename, make it unique if already exists
+        $fileName = $originalName;
+        $uploadPath = WRITEPATH . 'uploads/files/' . $companyId . '/' . $file['project_id'] . '/';
+        
+        // If file already exists, append timestamp to make it unique
+        if (file_exists($uploadPath . $fileName)) {
+            $pathInfo = pathinfo($fileName);
+            $fileName = $pathInfo['filename'] . '_' . time() . '.' . $pathInfo['extension'];
+        }
 
         if ($newFile->move($uploadPath, $fileName)) {
-            // Delete old file
-            if (file_exists($file['file_path'])) {
-                @unlink($file['file_path']);
+            // Delete old physical file
+            $oldFullPath = $this->normalizePath(ROOTPATH . ltrim($file['file_path'], '/\\'));
+            if (file_exists($oldFullPath)) {
+                @unlink($oldFullPath);
             }
 
             // Update file record
             $updateData = [
-                'file_path' => $uploadPath . $fileName,
-                'file_size' => $newFile->getSize(),
+                'file_name' => $fileName,
+                'original_file_name' => $originalName,
+                'file_path' => 'writable/uploads/files/' . $companyId . '/' . $file['project_id'] . '/' . $fileName,
+                'file_size' => $fileSize,
+                'file_type' => $this->getFileExtension($originalName),
+                'mime_type' => $mimeType,
                 'version_number' => $nextVersion,
                 'is_latest_version' => 1
             ];
@@ -346,17 +587,16 @@ class FileManagement extends BaseController
                 return $this->response->setJSON([
                     'success' => true,
                     'message' => 'File updated successfully',
-                    'version' => $newVersion,
+                    'version' => $nextVersion,
                     'csrfHash' => csrf_hash()
                 ]);
             }
         }
-            return $this->response->setJSON([
-                'success' => false,
-                'message' => 'Failed to update file',
-                'csrfHash' => csrf_hash()
-            ]);
-        return $this->response->setJSON(['success' => false, 'message' => 'Failed to update file']);
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Failed to update file',
+            'csrfHash' => csrf_hash()
+        ]);
     }
 
     public function comment($fileId)
@@ -462,12 +702,30 @@ class FileManagement extends BaseController
         }
 
         $targetUserId = $this->request->getPost('user_id');
+        $targetRoleId = $this->request->getPost('role_id');
         $accessType = $this->request->getPost('access_type');
         $expiresAt = $this->request->getPost('expires_at');
 
+        if (empty($targetUserId) && empty($targetRoleId)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Select a user or role',
+                'csrfHash' => csrf_hash()
+            ])->setStatusCode(400);
+        }
+
+        if (!empty($targetUserId) && !empty($targetRoleId)) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Select either user or role, not both',
+                'csrfHash' => csrf_hash()
+            ])->setStatusCode(400);
+        }
+
         $accessData = [
             'file_id' => $fileId,
-            'user_id' => $targetUserId,
+            'user_id' => $targetUserId ?: null,
+            'role_id' => $targetRoleId ?: null,
             'access_type' => $accessType,
             'granted_by' => $userId,
             'expires_at' => $expiresAt ?: null
@@ -488,6 +746,38 @@ class FileManagement extends BaseController
         ]);
     }
 
+    public function revokeAccess($accessId)
+    {
+        if ($this->request->getMethod() !== 'post') {
+            throw new PageNotFoundException('Method not allowed');
+        }
+
+        $userId = session('user_id');
+        $access = $this->accessModel->find($accessId);
+
+        if (!$access) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Access record not found'])->setStatusCode(404);
+        }
+
+        if (!$this->checkFileAccess($access['file_id'], $userId, 'manage')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Access denied'])->setStatusCode(403);
+        }
+
+        if ($this->accessModel->revokeAccess($accessId)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Access revoked successfully',
+                'csrfHash' => csrf_hash()
+            ]);
+        }
+
+        return $this->response->setJSON([
+            'success' => false,
+            'message' => 'Failed to revoke access',
+            'csrfHash' => csrf_hash()
+        ]);
+    }
+
     protected function checkFileAccess($fileId, $userId, $accessType)
     {
         // File owner has full access
@@ -496,13 +786,34 @@ class FileManagement extends BaseController
             return true;
         }
 
-        // Check access control
-        return $this->accessModel->checkAccess($fileId, $userId, $accessType) !== null;
+        // Check user access
+        if ($this->accessModel->checkAccess($fileId, $userId, $accessType) !== null) {
+            return true;
+        }
+
+        // Check role access
+        $userRole = $this->userModel->getUserRole($userId);
+        $roleId = $userRole['role_id'] ?? null;
+
+        if ($roleId && $this->accessModel->checkAccessByRole($fileId, $roleId, $accessType) !== null) {
+            return true;
+        }
+
+        return false;
     }
 
     protected function getFileExtension($filename)
     {
         return strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    }
+
+    /**
+     * Normalize file paths to work across Windows and Unix systems
+     * Converts forward slashes to the appropriate directory separator
+     */
+    protected function normalizePath($path)
+    {
+        return str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
     }
 
     // =============== CATEGORY MANAGEMENT ===============

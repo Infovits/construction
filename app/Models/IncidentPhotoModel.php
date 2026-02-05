@@ -18,6 +18,7 @@ class IncidentPhotoModel extends Model
 
     protected $useTimestamps = true;
     protected $createdField = 'uploaded_at';
+    protected $updatedField = '';
 
     protected $validationRules = [
         'incident_id' => 'required|integer',

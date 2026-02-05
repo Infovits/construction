@@ -534,10 +534,13 @@ $routes->get("projects/(:any)", function($any) {
 $routes->group("file-management", ["filter" => "auth"], function($routes) {
     $routes->get("", "FileManagement::index");
     $routes->get("index", "FileManagement::index");
+    $routes->get("archived", "FileManagement::archived");
     $routes->post("upload", "FileManagement::upload");
     $routes->get("view/(:num)", "FileManagement::view/$1");
     $routes->get("download/(:num)", "FileManagement::download/$1");
+    $routes->get("preview/(:num)", "FileManagement::preview/$1");
     $routes->post("delete/(:num)", "FileManagement::delete/$1");
+    $routes->post("restore/(:num)", "FileManagement::restore/$1");
     $routes->post("updateVersion/(:num)", "FileManagement::updateVersion/$1");
     $routes->post("comment/(:num)", "FileManagement::comment/$1");
     $routes->get("search", "FileManagement::search");
@@ -559,6 +562,9 @@ $routes->group("incident-safety", ["filter" => "auth"], function($routes) {
     $routes->get("dashboard", "IncidentSafety::dashboard");
     $routes->get("", "IncidentSafety::dashboard");
 
+    // Photo serving
+    $routes->get("photos/(:num)", "IncidentSafety::servePhoto/$1");
+
     // Incidents
     $routes->group("incidents", function($routes) {
         $routes->get("", "IncidentSafety::incidents");
@@ -578,7 +584,11 @@ $routes->group("incident-safety", ["filter" => "auth"], function($routes) {
         $routes->get("list", "IncidentSafety::audits");
         $routes->get("create", "IncidentSafety::createAudit");
         $routes->post("store", "IncidentSafety::storeAudit");
+        $routes->get("edit/(:num)", "IncidentSafety::editAudit/$1");
+        $routes->post("update/(:num)", "IncidentSafety::updateAudit/$1");
+        $routes->post("delete/(:num)", "IncidentSafety::deleteAudit/$1");
         $routes->get("(:num)", "IncidentSafety::viewAudit/$1");
+        $routes->get("(:num)/document", "IncidentSafety::serveAuditDocument/$1");
     });
 
     // Safety Reports
@@ -587,7 +597,11 @@ $routes->group("incident-safety", ["filter" => "auth"], function($routes) {
         $routes->get("list", "IncidentSafety::reports");
         $routes->get("create", "IncidentSafety::createReport");
         $routes->post("store", "IncidentSafety::storeReport");
+        $routes->get("edit/(:num)", "IncidentSafety::editReport/$1");
+        $routes->post("update/(:num)", "IncidentSafety::updateReport/$1");
+        $routes->post("delete/(:num)", "IncidentSafety::deleteReport/$1");
         $routes->get("(:num)", "IncidentSafety::viewReport/$1");
+        $routes->get("(:num)/document", "IncidentSafety::serveReportDocument/$1");
     });
 
     // Analytics

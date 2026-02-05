@@ -52,16 +52,19 @@ class CreateMessagingTables extends Migration
             'id' => ['type' => 'BIGINT', 'unsigned' => true, 'auto_increment' => true],
             'user_id' => ['type' => 'BIGINT', 'unsigned' => true],
             'company_id' => ['type' => 'BIGINT', 'unsigned' => true],
-            'type' => ['type' => 'VARCHAR', 'constraint' => 50],
+            'notification_type' => ['type' => 'VARCHAR', 'constraint' => 50],
             'title' => ['type' => 'VARCHAR', 'constraint' => 255],
             'message' => ['type' => 'TEXT', 'null' => true],
-            'link' => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
+            'related_type' => ['type' => 'VARCHAR', 'constraint' => 50, 'null' => true],
+            'related_id' => ['type' => 'BIGINT', 'unsigned' => true, 'null' => true],
+            'priority' => ['type' => 'VARCHAR', 'constraint' => 20, 'default' => 'medium'],
+            'status' => ['type' => 'VARCHAR', 'constraint' => 20, 'default' => 'pending'],
             'is_read' => ['type' => 'TINYINT', 'constraint' => 1, 'default' => 0],
             'created_at' => ['type' => 'DATETIME', 'null' => false],
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addKey(['user_id', 'company_id']);
-        $this->forge->addKey('type');
+        $this->forge->addKey('notification_type');
         $this->forge->createTable('notifications', true);
     }
 

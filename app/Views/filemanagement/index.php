@@ -112,12 +112,43 @@
                 </div>
 
                 <!-- Toolbar -->
-                <div class="bg-white rounded-xl border border-gray-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="bg-white rounded-xl border border-gray-200 px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <!-- Search -->
                     <div class="flex-1 max-w-sm">
                         <div class="relative">
                             <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
                             <input type="text" class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition" id="searchInput" placeholder="Search files...">
+                        </div>
+                    </div>
+
+                    <!-- Category Filter -->
+                    <div class="min-w-[220px]">
+                        <div class="relative">
+                            <i class="fas fa-filter absolute left-3 top-3 text-gray-400"></i>
+                            <select id="categoryFilter" class="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                                <option value="">All Categories</option>
+                                <?php foreach ($categories as $cat): ?>
+                                    <option value="<?= $cat['id'] ?>"><?= $cat['name'] ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Extension Filter -->
+                    <div class="min-w-[220px]">
+                        <div class="relative">
+                            <i class="fas fa-file-code absolute left-3 top-3 text-gray-400"></i>
+                            <select id="extensionFilter" class="w-full pl-10 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition">
+                                <option value="">All Types</option>
+                                <option value="pdf">PDF</option>
+                                <option value="doc,docx">Word</option>
+                                <option value="xls,xlsx">Excel</option>
+                                <option value="ppt,pptx">PowerPoint</option>
+                                <option value="jpg,jpeg,png,gif,svg,bmp">Images</option>
+                                <option value="zip,rar,7z,tar,gz">Archives</option>
+                                <option value="mp4,avi,mkv,mov,webm">Videos</option>
+                                <option value="mp3,wav,flac,aac">Audio</option>
+                            </select>
                         </div>
                     </div>
                     
@@ -155,7 +186,7 @@
                 </div>
 
                 <!-- Grid View -->
-                <div id="gridView" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="fileGridBody">
+                <div id="fileGridBody" class="hidden">
                     <!-- Populated by JavaScript -->
                 </div>
             </div>
@@ -193,6 +224,7 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Select Files <span class="text-red-600">*</span></label>
                             <input type="file" name="files[]" multiple required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                            <p class="text-xs text-gray-500 mt-1">Max 50MB per file, 100MB total</p>
                         </div>
 
                         <div>
@@ -235,11 +267,8 @@ let csrfName = '<?= csrf_token() ?>';
 let csrfHash = '<?= csrf_hash() ?>';
 let currentPath = 'all';
 
-// File data organized by project
+// File data
 const filesData = {
-    <?php foreach ($projects as $proj): ?>
-    'project-<?= $proj['id'] ?>': <?= json_encode(array_filter($files, function($f) use ($proj) { return $f['project_id'] == $proj['id']; })) ?>,
-    <?php endforeach; ?>
     'all': <?= json_encode($files) ?>
 };
 
@@ -267,8 +296,8 @@ function highlightCurrentPath() {
     
     // Highlight current item
     if (currentPath === 'all') {
-        document.querySelector('[onclick*="navigateToPath(\'all\')"]').classList.add('bg-indigo-50', 'border-l-4', 'border-l-indigo-600');
-    } else {
+        document.querySelector('[onclick*="navigateToPath(\'all\')"]').classList.add('bg-indigo-50', 'border-l-4', 'border-l-indigo-600');    } else if (currentPath === 'archived') {
+        document.querySelector('[onclick*="navigateToPath(\'archived\')"]').classList.add('bg-indigo-50', 'border-l-4', 'border-l-indigo-600');    } else {
         const pathElements = currentPath.split('-');
         if (pathElements[0] === 'project') {
             document.querySelector('[onclick*="navigateToPath(\'project-' + pathElements[1] + '\')"]').classList.add('bg-indigo-50', 'border-l-4', 'border-l-indigo-600');
@@ -281,50 +310,31 @@ function highlightCurrentPath() {
 function filterAndDisplayFiles() {
     const pathParts = currentPath.split('-');
     let filesToShow = [];
-    let categoriesToShow = [];
 
     if (currentPath === 'all') {
         filesToShow = filesData['all'];
-        categoriesToShow = categoriesData;
+    } else if (currentPath === 'archived') {
+        filesToShow = filesData['archived'] || [];
     } else if (pathParts[0] === 'project') {
-        const projectId = pathParts[1];
-        filesToShow = filesData['project-' + projectId] || [];
-        // Only show categories that have files in this project
-        categoriesToShow = categoriesData.filter(cat => 
-            filesToShow.some(f => f.category_id == cat.id)
-        );
+        const projectId = parseInt(pathParts[1]);
+        filesToShow = filesData['all'].filter(f => parseInt(f.project_id) === projectId);
     } else if (pathParts[0] === 'category') {
-        const categoryId = pathParts[1];
-        filesToShow = filesData['all'].filter(f => f.category_id == categoryId);
-        categoriesToShow = categoriesData.filter(cat => cat.id == categoryId);
+        const categoryId = parseInt(pathParts[1]);
+        filesToShow = filesData['all'].filter(f => parseInt(f.category_id) === categoryId);
     }
 
-    updateListView(filesToShow, categoriesToShow);
-    updateGridView(filesToShow, categoriesToShow);
+    updateListView(filesToShow);
+    updateGridView(filesToShow);
 }
 
-function updateListView(files, categories) {
+
+function updateListView(files) {
     const tbody = document.getElementById('fileListBody');
     let html = '';
 
-    // Add categories as folders
-    categories.forEach(cat => {
-        html += `
-            <tr class="file-item hover:bg-gray-50 category-row" data-type="category" data-id="${cat.id}">
-                <td class="px-6 py-4 text-sm text-gray-900 cursor-pointer" onclick="navigateToPath('category-${cat.id}')">
-                    <i class="fas fa-folder-open mr-2" style="color: ${cat.color_code || '#6366f1'}"></i>
-                    <span class="font-medium">${cat.name}</span>
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-600">Folder</td>
-                <td class="px-6 py-4 text-sm text-gray-600">-</td>
-                <td class="px-6 py-4 text-sm text-gray-600">-</td>
-                <td class="px-6 py-4 text-sm space-x-2"></td>
-            </tr>
-        `;
-    });
-
     // Add files
     if (files.length > 0) {
+
         files.forEach(file => {
             const ext = (file.file_type || '').toLowerCase();
             let iconClass = 'fa-file';
@@ -366,34 +376,33 @@ function updateListView(files, categories) {
             const viewUrl = baseUrl + 'file-management/view/' + file.id;
             
             html += `
-                <tr class="file-item hover:bg-gray-50 cursor-pointer select-none" data-type="file" data-id="${file.id}" data-search="${file.original_file_name.toLowerCase()}">
+                <tr class="file-item hover:bg-gray-50 cursor-pointer select-none" data-type="file" data-id="${file.id}" data-search="${file.original_file_name.toLowerCase()}" data-category="${file.category_id || ''}" data-extension="${ext}" onclick="window.location.href='${viewUrl}'">
                     <td class="px-6 py-4 text-sm text-gray-900">
-                        <i class="fas ${iconClass} ${iconColor} mr-2"></i>
-                        <a href="${viewUrl}" class="text-indigo-600 hover:text-indigo-800 font-medium">${file.original_file_name}</a>
+                        <i class="fas ${iconClass} ${iconColor} mr-2 w-5 text-center"></i>
+                        <span class="text-indigo-600 font-medium">${file.original_file_name}</span>
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-600">${ext.toUpperCase()}</td>
                     <td class="px-6 py-4 text-sm text-gray-600">${formatFileSize(file.file_size)}</td>
                     <td class="px-6 py-4 text-sm text-gray-600">${date}</td>
-                    <td class="px-6 py-4 text-sm space-x-3 flex">
-                        <a href="${baseUrl}file-management/download/${file.id}" class="text-indigo-600 hover:text-indigo-800 cursor-pointer" title="Download">
-                            <i class="fas fa-download"></i>
-                        </a>
-                        <a href="${viewUrl}" class="text-green-600 hover:text-green-800 cursor-pointer" title="View">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        <a href="javascript:void(0);" onclick="event.stopPropagation(); deleteFile(${file.id});" class="text-red-600 hover:text-red-800 cursor-pointer" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </a>
+                    <td class="px-6 py-4 text-sm text-gray-600">
+                        <div class="inline-flex items-center gap-2">
+                            <a href="${baseUrl}file-management/download/${file.id}" class="px-3 py-1 rounded text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 text-xs font-medium transition" title="Download" onclick="event.stopPropagation();">
+                                <i class="fas fa-download mr-1"></i>Download
+                            </a>
+                            <a href="javascript:void(0);" onclick="event.stopPropagation(); deleteFile(${file.id});" class="px-3 py-1 rounded text-red-600 hover:bg-red-50 hover:text-red-800 text-xs font-medium transition" title="Delete">
+                                <i class="fas fa-trash mr-1"></i>Delete
+                            </a>
+                        </div>
                     </td>
                 </tr>
             `;
         });
-    } else if (categories.length === 0) {
+    } else {
         html += `
             <tr>
                 <td colspan="5" class="px-6 py-12 text-center text-gray-500">
                     <i class="fas fa-folder-open text-4xl mb-2 block opacity-30"></i>
-                    <p class="text-lg">Empty folder</p>
+                    <p class="text-lg">No files found</p>
                     <button type="button" class="text-indigo-600 hover:text-indigo-800 font-semibold mt-2" onclick="document.getElementById('uploadModal').classList.remove('hidden')">Upload files here</button>
                 </td>
             </tr>
@@ -403,25 +412,16 @@ function updateListView(files, categories) {
     tbody.innerHTML = html;
 }
 
-function updateGridView(files, categories) {
+function updateGridView(files) {
     const gridBody = document.getElementById('fileGridBody');
     let html = '';
 
-    // Add category folders
-    categories.forEach(cat => {
-        html += `
-            <div class="group cursor-pointer p-4 bg-white rounded-lg border border-gray-200 hover:shadow-lg hover:border-indigo-300 transition-all text-center category-card" data-type="category" data-id="${cat.id}" onclick="navigateToPath('category-${cat.id}')">
-                <div class="mb-3">
-                    <i class="fas fa-folder-open text-6xl" style="color: ${cat.color_code || '#6366f1'}"></i>
-                </div>
-                <p class="font-medium text-gray-900 text-sm mb-1 truncate">${cat.name}</p>
-                <p class="text-xs text-gray-500">Folder</p>
-            </div>
-        `;
-    });
-
     // Add files
     if (files.length > 0) {
+        html += `
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        `;
+
         files.forEach(file => {
             const ext = (file.file_type || '').toLowerCase();
             let iconClass = 'fa-file';
@@ -450,7 +450,7 @@ function updateGridView(files, categories) {
             }
 
             html += `
-                <div class="group p-4 bg-white rounded-lg border border-gray-200 hover:shadow-lg hover:border-indigo-300 transition-all text-center" data-type="file" data-id="${file.id}" data-search="${file.original_file_name.toLowerCase()}">
+                <div class="group p-4 bg-white rounded-lg border border-gray-200 hover:shadow-lg hover:border-indigo-300 transition-all text-center cursor-pointer" data-type="file" data-id="${file.id}" data-search="${file.original_file_name.toLowerCase()}" data-category="${file.category_id || ''}" data-extension="${ext}" onclick="window.location.href='${baseUrl}file-management/view/${file.id}'">
                     <div class="mb-3 relative">
                         <i class="fas ${iconClass} ${iconColor} text-5xl"></i>
                     </div>
@@ -458,25 +458,24 @@ function updateGridView(files, categories) {
                         ${file.original_file_name}
                     </p>
                     <p class="text-xs text-gray-500 mb-3">${formatFileSize(file.file_size)}</p>
-                    <div class="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <a href="${baseUrl}file-management/download/${file.id}" class="text-indigo-600 hover:text-indigo-800 cursor-pointer" title="Download">
-                            <i class="fas fa-download"></i>
+                    <div class="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.stopPropagation();">
+                        <a href="${baseUrl}file-management/download/${file.id}" class="px-2 py-1 rounded text-xs font-medium text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 transition" title="Download" onclick="event.stopPropagation();">
+                            <i class="fas fa-download mr-1"></i>Download
                         </a>
-                        <a href="${baseUrl}file-management/view/${file.id}" class="text-green-600 hover:text-green-800 cursor-pointer" title="View">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        <a href="javascript:void(0);" onclick="deleteFile(${file.id});" class="text-red-600 hover:text-red-800 cursor-pointer" title="Delete">
-                            <i class="fas fa-trash"></i>
+                        <a href="javascript:void(0);" onclick="event.stopPropagation(); deleteFile(${file.id});" class="px-2 py-1 rounded text-xs font-medium text-red-600 hover:bg-red-50 hover:text-red-800 transition" title="Delete">
+                            <i class="fas fa-trash mr-1"></i>Delete
                         </a>
                     </div>
                 </div>
             `;
         });
-    } else if (categories.length === 0) {
+
+        html += `</div>`;
+    } else {
         html += `
             <div class="col-span-full text-center py-12 text-gray-500">
                 <i class="fas fa-folder-open text-6xl mb-4 block opacity-30"></i>
-                <p class="text-lg">Empty folder</p>
+                <p class="text-lg">No files found</p>
                 <button type="button" class="text-indigo-600 hover:text-indigo-800 font-semibold mt-2" onclick="document.getElementById('uploadModal').classList.remove('hidden')">Upload files here</button>
             </div>
         `;
@@ -496,7 +495,9 @@ function updateBreadcrumb() {
     const breadcrumb = document.getElementById('breadcrumbPath');
     const parts = currentPath.split('-');
     
-    if (parts[0] === 'project') {
+    if (currentPath === 'archived') {
+        breadcrumb.innerHTML = ' / <span class="text-gray-700">Archived Files</span>';
+    } else if (parts[0] === 'project') {
         const projectId = parts[1];
         const proj = projectsData.find(p => p.id == projectId);
         breadcrumb.innerHTML = ' / <a href="#" onclick="navigateToPath(\'project-' + projectId + '\'); return false;" class="text-indigo-600 hover:text-indigo-700">' + (proj?.name || 'Project') + '</a>';
@@ -512,14 +513,32 @@ function updateBreadcrumb() {
 document.getElementById('uploadForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
+    const fileInput = this.querySelector('input[type="file"]');
+    const files = fileInput.files;
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    
+    // Validate file sizes
+    let totalSize = 0;
+    for (let i = 0; i < files.length; i++) {
+        totalSize += files[i].size;
+        if (files[i].size > maxSize) {
+            alert(`File "${files[i].name}" is too large (${(files[i].size / 1024 / 1024).toFixed(2)}MB). Maximum size is 50MB.`);
+            return;
+        }
+    }
+    
+    if (totalSize > (100 * 1024 * 1024)) { // 100MB total
+        alert(`Total file size (${(totalSize / 1024 / 1024).toFixed(2)}MB) exceeds the 100MB limit.`);
+        return;
+    }
+    
     const formData = new FormData(this);
+    // Add CSRF token explicitly
+    formData.append(csrfName, csrfHash);
     
     fetch('<?= base_url('file-management/upload') ?>', {
         method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRF-TOKEN': csrfHash
-        }
+        body: formData
     })
     .then(response => response.json())
     .then(data => {
@@ -529,20 +548,26 @@ document.getElementById('uploadForm').addEventListener('submit', function(e) {
         }
         if (data.success) {
             alert(data.message);
+            document.getElementById('uploadModal').classList.add('hidden');
             location.reload();
         } else {
-            alert('Error: ' + data.message);
+            alert('Error: ' + (data.message || 'Upload failed'));
         }
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        alert('Error: ' + error.message);
     });
 });
 
 function deleteFile(fileId) {
-    if (confirm('Are you sure you want to delete this file?')) {
+    if (confirm('Are you sure you want to delete this file? This will archive the file.')) {
+        const formData = new FormData();
+        formData.append(csrfName, csrfHash);
+        
         fetch('<?= base_url('file-management/delete') ?>/' + fileId, {
             method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrfHash
-            }
+            body: formData
         })
         .then(response => response.json())
         .then(data => {
@@ -551,16 +576,21 @@ function deleteFile(fileId) {
                 document.querySelectorAll('input[name="' + csrfName + '"]').forEach(el => el.value = csrfHash);
             }
             if (data.success) {
+                alert(data.message);
                 location.reload();
             } else {
                 alert('Error: ' + data.message);
             }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            alert('Error: ' + error.message);
         });
     }
 }
 
 function switchView(view) {
-    const gridView = document.getElementById('gridView');
+    const gridView = document.getElementById('fileGridBody');
     const listView = document.getElementById('listView');
     const gridBtn = document.getElementById('gridViewBtn');
     const listBtn = document.getElementById('listViewBtn');
@@ -602,19 +632,35 @@ document.querySelectorAll('[id^="toggle-"]').forEach(toggle => {
     });
 });
 
-// Search functionality
-document.getElementById('searchInput').addEventListener('input', function() {
-    const searchTerm = this.value.toLowerCase();
+// Search functionality with category and extension filters
+function applyFilters() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const categoryId = document.getElementById('categoryFilter')?.value || '';
+    const extensionFilter = document.getElementById('extensionFilter')?.value || '';
+    const allowedExtensions = extensionFilter ? extensionFilter.split(',').map(e => e.trim()) : [];
+    
     document.querySelectorAll('[data-search]').forEach(el => {
-        el.style.display = !searchTerm || el.getAttribute('data-search').includes(searchTerm) ? '' : 'none';
+        const matchesSearch = !searchTerm || el.getAttribute('data-search').includes(searchTerm);
+        const matchesCategory = !categoryId || el.getAttribute('data-category') === categoryId;
+        const fileExt = el.getAttribute('data-extension');
+        const matchesExtension = allowedExtensions.length === 0 || allowedExtensions.includes(fileExt);
+        el.style.display = (matchesSearch && matchesCategory && matchesExtension) ? '' : 'none';
     });
-});
+}
+
+document.getElementById('searchInput')?.addEventListener('input', applyFilters);
+document.getElementById('categoryFilter')?.addEventListener('change', applyFilters);
+document.getElementById('extensionFilter')?.addEventListener('change', applyFilters);
 
 // Load saved view preference
 document.addEventListener('DOMContentLoaded', function() {
     const savedView = localStorage.getItem('fileViewMode') || 'list';
     switchView(savedView);
+    <?php if (!empty($viewArchived)): ?>
+    navigateToPath('archived');
+    <?php else: ?>
     navigateToPath('all');
+    <?php endif; ?>
 });
 </script>
 

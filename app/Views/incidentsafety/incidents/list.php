@@ -4,10 +4,22 @@
 
 <?= $this->section('styles') ?>
 <style>
-.severity-critical { @apply bg-red-100 text-red-800; }
-.severity-high { @apply bg-orange-100 text-orange-800; }
-.severity-medium { @apply bg-yellow-100 text-yellow-800; }
-.severity-low { @apply bg-green-100 text-green-800; }
+.severity-critical { 
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+.severity-high { 
+    background-color: #ffedd5;
+    color: #9a3412;
+}
+.severity-medium { 
+    background-color: #fef3c7;
+    color: #92400e;
+}
+.severity-low { 
+    background-color: #dcfce7;
+    color: #166534;
+}
 </style>
 <?= $this->endSection() ?>
 

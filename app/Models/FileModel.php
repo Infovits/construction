@@ -21,7 +21,7 @@ class FileModel extends Model
 
     protected $useTimestamps = true;
     protected $createdField = 'created_at';
-    protected $updatedField = 'updated_at';
+    protected $updatedField = '';
 
     protected $validationRules = [
         'project_id' => 'required|integer',

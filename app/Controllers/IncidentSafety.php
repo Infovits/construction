@@ -47,8 +47,8 @@ class IncidentSafety extends BaseController
     {
         $companyId = session('company_id');
         $projectId = $this->request->getGet('project_id');
-        $filterType = $this->request->getGet('type');
-        $filterSeverity = $this->request->getGet('severity');
+        $filterType = $this->request->getGet('incident_type_id');
+        $filterSeverity = $this->request->getGet('severity_id');
         $filterStatus = $this->request->getGet('status');
 
         $incidents = $this->incidentModel->where('company_id', $companyId);
@@ -164,6 +164,7 @@ class IncidentSafety extends BaseController
         $actionSteps = $this->actionStepModel->getIncidentActions($incidentId);
         $type = $this->typeModel->find($incident['incident_type_id']);
         $severity = $this->severityModel->find($incident['severity_id']);
+        $users = $this->userModel->where('company_id', $companyId)->where('status', 'active')->findAll();
 
         $data = [
             'incident' => $incident,
@@ -171,6 +172,7 @@ class IncidentSafety extends BaseController
             'actionSteps' => $actionSteps,
             'type' => $type,
             'severity' => $severity,
+            'users' => $users,
             'title' => 'Incident Details - ' . $incident['incident_code']
         ];
 
@@ -179,7 +181,7 @@ class IncidentSafety extends BaseController
 
     public function updateIncidentStatus($incidentId)
     {
-        if (!$this->request->isPost()) {
+        if ($this->request->getMethod() !== 'post') {
             throw new PageNotFoundException('Method not allowed');
         }
 
@@ -248,6 +250,30 @@ class IncidentSafety extends BaseController
         }
     }
 
+    public function servePhoto($photoId)
+    {
+        $companyId = session('company_id');
+        
+        $photo = $this->photoModel->find($photoId);
+        if (!$photo) {
+            throw new PageNotFoundException('Photo not found');
+        }
+
+        // Verify the photo belongs to an incident in the user's company
+        $incident = $this->incidentModel->find($photo['incident_id']);
+        if (!$incident || $incident['company_id'] != $companyId) {
+            throw new PageNotFoundException('Unauthorized');
+        }
+
+        $filePath = ROOTPATH . $photo['photo_path'];
+        
+        if (!file_exists($filePath)) {
+            throw new PageNotFoundException('File not found');
+        }
+
+        return $this->response->download($filePath, null);
+    }
+
     // =============== ACTION STEPS ===============
 
     public function addActionStep($incidentId)
@@ -308,21 +334,25 @@ class IncidentSafety extends BaseController
         $auditType = $this->request->getGet('type');
         $status = $this->request->getGet('status');
 
-        $audits = $this->auditModel->where('company_id', $companyId);
+        $audits = $this->auditModel->select('safety_audits.*, projects.name as project_name, 
+                                            CONCAT(auditor.first_name, " ", auditor.last_name) as auditor_name')
+                                   ->join('projects', 'projects.id = safety_audits.project_id', 'left')
+                                   ->join('users as auditor', 'auditor.id = safety_audits.auditor_id', 'left')
+                                   ->where('safety_audits.company_id', $companyId);
 
         if ($projectId) {
-            $audits = $audits->where('project_id', $projectId);
+            $audits = $audits->where('safety_audits.project_id', $projectId);
         }
 
         if ($auditType) {
-            $audits = $audits->where('audit_type', $auditType);
+            $audits = $audits->where('safety_audits.audit_type', $auditType);
         }
 
         if ($status) {
-            $audits = $audits->where('status', $status);
+            $audits = $audits->where('safety_audits.status', $status);
         }
 
-        $audits = $audits->orderBy('audit_date', 'DESC')->paginate(25);
+        $audits = $audits->orderBy('safety_audits.audit_date', 'DESC')->paginate(25);
 
         $projects = $this->projectModel->where('company_id', $companyId)->findAll();
 
@@ -345,9 +375,11 @@ class IncidentSafety extends BaseController
         }
 
         $projects = $this->projectModel->where('company_id', $companyId)->findAll();
+        $users = $this->userModel->where('company_id', $companyId)->where('status', 'active')->findAll();
 
         $data = [
             'projects' => $projects,
+            'users' => $users,
             'title' => 'Create Safety Audit'
         ];
 
@@ -361,19 +393,39 @@ class IncidentSafety extends BaseController
 
         $auditCode = $this->auditModel->generateAuditCode($companyId);
 
+        // Handle document upload
+        $documentPath = null;
+        $file = $this->request->getFile('document_path');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $fileName = $file->getRandomName();
+            $uploadPath = WRITEPATH . 'uploads/audits/' . $companyId . '/';
+            
+            if (!is_dir($uploadPath)) {
+                @mkdir($uploadPath, 0755, true);
+            }
+            
+            if ($file->move($uploadPath, $fileName)) {
+                $documentPath = 'writable/uploads/audits/' . $companyId . '/' . $fileName;
+            }
+        }
+
         $auditData = [
             'company_id' => $companyId,
             'project_id' => $this->request->getPost('project_id'),
             'audit_code' => $auditCode,
             'audit_date' => $this->request->getPost('audit_date'),
             'audit_type' => $this->request->getPost('audit_type'),
-            'auditor_id' => $userId,
+            'auditor_id' => $this->request->getPost('auditor_id'),
             'audit_scope' => $this->request->getPost('audit_scope'),
             'total_observations' => $this->request->getPost('total_observations') ?: 0,
             'critical_findings' => $this->request->getPost('critical_findings') ?: 0,
             'major_findings' => $this->request->getPost('major_findings') ?: 0,
             'minor_findings' => $this->request->getPost('minor_findings') ?: 0,
             'conformance_percentage' => $this->request->getPost('conformance_percentage') ?: 0,
+            'findings_summary' => $this->request->getPost('findings_summary'),
+            'due_date_for_corrections' => $this->request->getPost('due_date_for_corrections'),
+            'follow_up_date' => $this->request->getPost('follow_up_date'),
+            'document_path' => $documentPath,
             'status' => 'draft'
         ];
 
@@ -384,6 +436,109 @@ class IncidentSafety extends BaseController
         }
 
         return redirect()->back()->with('error', 'Failed to create safety audit');
+    }
+
+    public function editAudit($auditId)
+    {
+        $companyId = session('company_id');
+        
+        $audit = $this->auditModel->where('id', $auditId)->where('company_id', $companyId)->first();
+        if (!$audit) {
+            throw new PageNotFoundException('Audit not found');
+        }
+
+        $projects = $this->projectModel->where('company_id', $companyId)->where('status', 'active')->findAll();
+        $users = $this->userModel->where('company_id', $companyId)->where('status', 'active')->findAll();
+
+        $data = [
+            'title' => 'Edit Safety Audit',
+            'audit' => $audit,
+            'projects' => $projects,
+            'users' => $users
+        ];
+
+        return view('incidentsafety/audits/edit', $data);
+    }
+
+    public function updateAudit($auditId)
+    {
+        $companyId = session('company_id');
+        $userId = session('user_id');
+
+        if ($this->request->getMethod() !== 'post') {
+            return redirect()->back();
+        }
+
+        $audit = $this->auditModel->where('id', $auditId)->where('company_id', $companyId)->first();
+        if (!$audit) {
+            throw new PageNotFoundException('Audit not found');
+        }
+
+        $auditData = [
+            'project_id' => $this->request->getPost('project_id'),
+            'audit_date' => $this->request->getPost('audit_date'),
+            'audit_type' => $this->request->getPost('audit_type'),
+            'auditor_id' => $this->request->getPost('auditor_id'),
+            'conformance_percentage' => $this->request->getPost('conformance_percentage'),
+            'non_conformities' => $this->request->getPost('non_conformities'),
+            'findings_summary' => $this->request->getPost('findings_summary'),
+            'due_date_for_corrections' => $this->request->getPost('due_date_for_corrections'),
+            'follow_up_date' => $this->request->getPost('follow_up_date'),
+            'status' => $this->request->getPost('status')
+        ];
+
+        // Handle document upload if new file provided
+        $file = $this->request->getFile('document_path');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $fileName = $file->getRandomName();
+            $uploadPath = WRITEPATH . 'uploads/audits/' . $companyId . '/';
+            
+            if (!is_dir($uploadPath)) {
+                @mkdir($uploadPath, 0755, true);
+            }
+
+            if ($file->move($uploadPath, $fileName)) {
+                // Delete old file if exists
+                if (!empty($audit['document_path'])) {
+                    $oldFile = ROOTPATH . $audit['document_path'];
+                    if (file_exists($oldFile)) {
+                        @unlink($oldFile);
+                    }
+                }
+                $auditData['document_path'] = 'writable/uploads/audits/' . $companyId . '/' . $fileName;
+            }
+        }
+
+        if ($this->auditModel->update($auditId, $auditData)) {
+            return redirect()->to('/incident-safety/audits/' . $auditId)
+                           ->with('success', 'Safety audit updated successfully');
+        }
+
+        return redirect()->back()->with('error', 'Failed to update safety audit');
+    }
+
+    public function deleteAudit($auditId)
+    {
+        $companyId = session('company_id');
+
+        $audit = $this->auditModel->where('id', $auditId)->where('company_id', $companyId)->first();
+        if (!$audit) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Audit not found']);
+        }
+
+        // Delete associated document if exists
+        if (!empty($audit['document_path'])) {
+            $filePath = ROOTPATH . $audit['document_path'];
+            if (file_exists($filePath)) {
+                @unlink($filePath);
+            }
+        }
+
+        if ($this->auditModel->delete($auditId)) {
+            return $this->response->setJSON(['success' => true, 'message' => 'Audit deleted successfully']);
+        }
+
+        return $this->response->setJSON(['success' => false, 'message' => 'Failed to delete audit']);
     }
 
     public function viewAudit($auditId)
@@ -403,6 +558,27 @@ class IncidentSafety extends BaseController
         return view('incidentsafety/audits/view', $data);
     }
 
+    public function serveAuditDocument($auditId)
+    {
+        $companyId = session('company_id');
+        
+        $audit = $this->auditModel->where('id', $auditId)
+                                  ->where('company_id', $companyId)
+                                  ->first();
+        
+        if (!$audit || empty($audit['document_path'])) {
+            throw new PageNotFoundException('Document not found');
+        }
+
+        $filePath = ROOTPATH . $audit['document_path'];
+        
+        if (!file_exists($filePath)) {
+            throw new PageNotFoundException('File not found');
+        }
+
+        return $this->response->download($filePath, null);
+    }
+
     // =============== SAFETY REPORTS ===============
 
     public function reports()
@@ -411,17 +587,21 @@ class IncidentSafety extends BaseController
         $reportType = $this->request->getGet('type');
         $status = $this->request->getGet('status');
 
-        $reports = $this->reportModel->where('company_id', $companyId);
+        $reports = $this->reportModel->select('safety_reports.*, projects.name as project_name, 
+                                              CONCAT(generator.first_name, " ", generator.last_name) as generated_by_name')
+                                     ->join('projects', 'projects.id = safety_reports.project_id', 'left')
+                                     ->join('users as generator', 'generator.id = safety_reports.generated_by', 'left')
+                                     ->where('safety_reports.company_id', $companyId);
 
         if ($reportType) {
-            $reports = $reports->where('report_type', $reportType);
+            $reports = $reports->where('safety_reports.report_type', $reportType);
         }
 
         if ($status) {
-            $reports = $reports->where('status', $status);
+            $reports = $reports->where('safety_reports.status', $status);
         }
 
-        $reports = $reports->orderBy('report_period_end', 'DESC')->paginate(25);
+        $reports = $reports->orderBy('safety_reports.report_period_end', 'DESC')->paginate(25);
 
         $data = [
             'reports' => $reports,
@@ -457,6 +637,22 @@ class IncidentSafety extends BaseController
 
         $reportCode = $this->reportModel->generateReportCode($companyId);
 
+        // Handle document upload
+        $documentPath = null;
+        $file = $this->request->getFile('report_file_path');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $fileName = $file->getRandomName();
+            $uploadPath = WRITEPATH . 'uploads/reports/' . $companyId . '/';
+            
+            if (!is_dir($uploadPath)) {
+                @mkdir($uploadPath, 0755, true);
+            }
+            
+            if ($file->move($uploadPath, $fileName)) {
+                $documentPath = 'writable/uploads/reports/' . $companyId . '/' . $fileName;
+            }
+        }
+
         $reportData = [
             'company_id' => $companyId,
             'project_id' => $this->request->getPost('project_id'),
@@ -471,6 +667,7 @@ class IncidentSafety extends BaseController
             'key_highlights' => $this->request->getPost('key_highlights'),
             'challenges_identified' => $this->request->getPost('challenges_identified'),
             'recommendations' => $this->request->getPost('recommendations'),
+            'report_file_path' => $documentPath,
             'status' => 'draft'
         ];
 
@@ -481,6 +678,108 @@ class IncidentSafety extends BaseController
         }
 
         return redirect()->back()->with('error', 'Failed to create safety report');
+    }
+
+    public function editReport($reportId)
+    {
+        $companyId = session('company_id');
+        
+        $report = $this->reportModel->where('id', $reportId)->where('company_id', $companyId)->first();
+        if (!$report) {
+            throw new PageNotFoundException('Report not found');
+        }
+
+        $projects = $this->projectModel->where('company_id', $companyId)->where('status', 'active')->findAll();
+
+        $data = [
+            'title' => 'Edit Safety Report',
+            'report' => $report,
+            'projects' => $projects
+        ];
+
+        return view('incidentsafety/reports/edit', $data);
+    }
+
+    public function updateReport($reportId)
+    {
+        $companyId = session('company_id');
+        $userId = session('user_id');
+
+        if ($this->request->getMethod() !== 'post') {
+            return redirect()->back();
+        }
+
+        $report = $this->reportModel->where('id', $reportId)->where('company_id', $companyId)->first();
+        if (!$report) {
+            throw new PageNotFoundException('Report not found');
+        }
+
+        $reportData = [
+            'project_id' => $this->request->getPost('project_id'),
+            'report_type' => $this->request->getPost('report_type'),
+            'report_period_start' => $this->request->getPost('report_period_start'),
+            'report_period_end' => $this->request->getPost('report_period_end'),
+            'total_incidents' => $this->request->getPost('total_incidents') ?: 0,
+            'total_near_misses' => $this->request->getPost('total_near_misses') ?: 0,
+            'total_injured_workers' => $this->request->getPost('total_injured_workers') ?: 0,
+            'key_highlights' => $this->request->getPost('key_highlights'),
+            'challenges_identified' => $this->request->getPost('challenges_identified'),
+            'recommendations' => $this->request->getPost('recommendations'),
+            'status' => $this->request->getPost('status')
+        ];
+
+        // Handle document upload if new file provided
+        $file = $this->request->getFile('report_file_path');
+        if ($file && $file->isValid() && !$file->hasMoved()) {
+            $fileName = $file->getRandomName();
+            $uploadPath = WRITEPATH . 'uploads/reports/' . $companyId . '/';
+            
+            if (!is_dir($uploadPath)) {
+                @mkdir($uploadPath, 0755, true);
+            }
+
+            if ($file->move($uploadPath, $fileName)) {
+                // Delete old file if exists
+                if (!empty($report['report_file_path'])) {
+                    $oldFile = ROOTPATH . $report['report_file_path'];
+                    if (file_exists($oldFile)) {
+                        @unlink($oldFile);
+                    }
+                }
+                $reportData['report_file_path'] = 'writable/uploads/reports/' . $companyId . '/' . $fileName;
+            }
+        }
+
+        if ($this->reportModel->update($reportId, $reportData)) {
+            return redirect()->to('/incident-safety/reports/' . $reportId)
+                           ->with('success', 'Safety report updated successfully');
+        }
+
+        return redirect()->back()->with('error', 'Failed to update safety report');
+    }
+
+    public function deleteReport($reportId)
+    {
+        $companyId = session('company_id');
+
+        $report = $this->reportModel->where('id', $reportId)->where('company_id', $companyId)->first();
+        if (!$report) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Report not found']);
+        }
+
+        // Delete associated document if exists
+        if (!empty($report['report_file_path'])) {
+            $filePath = ROOTPATH . $report['report_file_path'];
+            if (file_exists($filePath)) {
+                @unlink($filePath);
+            }
+        }
+
+        if ($this->reportModel->delete($reportId)) {
+            return $this->response->setJSON(['success' => true, 'message' => 'Report deleted successfully']);
+        }
+
+        return $this->response->setJSON(['success' => false, 'message' => 'Failed to delete report']);
     }
 
     public function viewReport($reportId)
@@ -498,6 +797,27 @@ class IncidentSafety extends BaseController
         ];
 
         return view('incidentsafety/reports/view', $data);
+    }
+
+    public function serveReportDocument($reportId)
+    {
+        $companyId = session('company_id');
+        
+        $report = $this->reportModel->where('id', $reportId)
+                                    ->where('company_id', $companyId)
+                                    ->first();
+        
+        if (!$report || empty($report['report_file_path'])) {
+            throw new PageNotFoundException('Document not found');
+        }
+
+        $filePath = ROOTPATH . $report['report_file_path'];
+        
+        if (!file_exists($filePath)) {
+            throw new PageNotFoundException('File not found');
+        }
+
+        return $this->response->download($filePath, null);
     }
 
     // =============== ANALYTICS ===============
