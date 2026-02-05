@@ -52,7 +52,7 @@
                 </div>
                 
                 <div class="flex items-center space-x-2">
-                    <?php if (hasPermission('roles.edit') && !$role['is_system_role']): ?>
+                    <?php if (hasPermission('roles.edit') && (!$role['is_system_role'] || hasPermission('*'))): ?>
                     <a href="<?= base_url('admin/roles/' . $role['id'] . '/edit') ?>" class="text-indigo-600 hover:text-indigo-900" title="Edit">
                         <i data-lucide="edit" class="w-4 h-4"></i>
                     </a>
@@ -64,7 +64,7 @@
                     </a>
                     <?php endif; ?>
                     
-                    <?php if (hasPermission('roles.delete') && !$role['is_system_role']): ?>
+                    <?php if (hasPermission('roles.delete') && (!$role['is_system_role'] || hasPermission('*'))): ?>
                     <button onclick="deleteRole(<?= $role['id'] ?>, '<?= esc($role['name']) ?>')" 
                             class="text-red-600 hover:text-red-900" title="Delete">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>

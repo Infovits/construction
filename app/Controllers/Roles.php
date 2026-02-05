@@ -93,8 +93,9 @@ class Roles extends BaseController
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Role not found');
         }
 
-        if ($role['is_system_role']) {
-            return redirect()->to('/admin/roles')->with('error', 'System roles cannot be modified.');
+        // Only Super Admin (with wildcard permission) can edit system roles
+        if ($role['is_system_role'] && !hasPermission('*')) {
+            return redirect()->to('/admin/roles')->with('error', 'System roles can only be modified by Super Admin.');
         }
 
         $data = [
@@ -119,8 +120,9 @@ class Roles extends BaseController
             throw new \CodeIgniter\Exceptions\PageNotFoundException('Role not found');
         }
 
-        if ($role['is_system_role']) {
-            return redirect()->to('/admin/roles')->with('error', 'System roles cannot be modified.');
+        // Only Super Admin (with wildcard permission) can update system roles
+        if ($role['is_system_role'] && !hasPermission('*')) {
+            return redirect()->to('/admin/roles')->with('error', 'System roles can only be modified by Super Admin.');
         }
 
         $validation = \Config\Services::validation();
@@ -162,8 +164,9 @@ class Roles extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Role not found']);
         }
 
-        if ($role['is_system_role']) {
-            return $this->response->setJSON(['success' => false, 'message' => 'System roles cannot be deleted']);
+        // Only Super Admin (with wildcard permission) can delete system roles
+        if ($role['is_system_role'] && !hasPermission('*')) {
+            return $this->response->setJSON(['success' => false, 'message' => 'System roles can only be deleted by Super Admin']);
         }
 
         // Check if role is assigned to users

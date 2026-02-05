@@ -148,6 +148,7 @@
             </div>
             
             <nav class="mt-6 md:mt-8 flex-1 overflow-y-auto pb-20">
+                <?php if (canViewDashboard()): ?>
                 <div class="px-4 md:px-6 py-3 bg-indigo-50 border-r-4 border-indigo-500">
                     <a href="#" class="flex items-center space-x-3 text-indigo-600 nav-item relative" onclick="toggleSubmenu(event, 'dashboard-submenu')">
                         <i data-lucide="layout-dashboard" class="w-5 h-5 flex-shrink-0"></i>
@@ -156,16 +157,27 @@
                         <div class="tooltip absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
                             Dashboard
                         </div>
+                    </a>
                     <div class="submenu" id="dashboard-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
+                            <?php if (hasPermission('dashboard.view') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/dashboard') ?>" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Main Dashboard</a>
+                            <?php endif; ?>
+                            <?php if (canViewAnalytics()): ?>
                             <a href="<?= base_url('admin/analytics') ?>" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Analytics</a>
+                            <?php endif; ?>
+                            <?php if (canViewReports()): ?>
                             <a href="<?= base_url('admin/reports') ?>" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Reports</a>
+                            <?php endif; ?>
+                            <?php if (canViewOverview()): ?>
                             <a href="<?= base_url('admin/overview') ?>" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Overview</a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 
+                <?php if (canViewProjects()): ?>
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'project-submenu')">
                         <i data-lucide="folder-open" class="w-5 h-5 flex-shrink-0"></i>
@@ -174,15 +186,24 @@
                         <div class="tooltip absolute left-16 bg-gray-800 text-white px-2 py-1 rounded text-sm whitespace-nowrap">
                             Project Management
                         </div>
+                    </a>
                     <div class="submenu" id="project-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
+                            <?php if (hasPermission('projects.view') || hasPermission('projects.*') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/projects') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">All Projects</a>
+                            <?php endif; ?>
+                            <?php if (hasPermission('projects.create') || hasPermission('projects.*') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/projects/create') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">New Project</a>
+                            <?php endif; ?>
+                            <?php if (canViewProjectCategories()): ?>
                             <a href="<?= base_url('admin/project-categories') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Categories</a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 
+                <?php if (canViewTasks()): ?>
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'tasks-submenu')">
                         <i data-lucide="check-square" class="w-5 h-5 flex-shrink-0"></i>
@@ -194,16 +215,26 @@
                     </a>
                     <div class="submenu" id="tasks-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
+                            <?php if (hasPermission('tasks.view') || hasPermission('tasks.*') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/tasks') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">All Tasks</a>
+                            <?php endif; ?>
+                            <?php if (hasPermission('tasks.create') || hasPermission('tasks.*') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/tasks/create') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">New Task</a>
+                            <?php endif; ?>
+                            <?php if (hasPermission('tasks.view') || hasPermission('tasks.*') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/tasks/calendar') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Calendar View</a>
                             <a href="<?= base_url('admin/tasks?status=pending') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Pending Tasks</a>
                             <a href="<?= base_url('admin/tasks?status=in_progress') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">In Progress</a>
+                            <?php endif; ?>
+                            <?php if (hasPermission('tasks.reports') || hasPermission('tasks.*') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/tasks/report') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Reports</a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 
+                <?php if (canViewMilestones()): ?>
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'milestones-submenu')">
                         <i data-lucide="flag" class="w-5 h-5 flex-shrink-0"></i>
@@ -215,14 +246,22 @@
                     </a>
                     <div class="submenu" id="milestones-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
+                            <?php if (hasPermission('milestones.view') || hasPermission('milestones.*') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/milestones') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">All Milestones</a>
+                            <?php endif; ?>
+                            <?php if (hasPermission('milestones.create') || hasPermission('milestones.*') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/milestones/create') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">New Milestone</a>
+                            <?php endif; ?>
+                            <?php if (hasPermission('milestones.view') || hasPermission('milestones.*') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/milestones?status=upcoming') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Upcoming</a>
                             <a href="<?= base_url('admin/milestones?status=completed') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Completed</a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 
+                <?php if (canViewClients()): ?>
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'clients-submenu')">
                         <i data-lucide="users" class="w-5 h-5 flex-shrink-0"></i>
@@ -234,12 +273,18 @@
                     </a>
                     <div class="submenu" id="clients-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
+                            <?php if (hasPermission('clients.view') || hasPermission('clients.*') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/clients') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">All Clients</a>
+                            <?php endif; ?>
+                            <?php if (hasPermission('clients.create') || hasPermission('clients.*') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/clients/create') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">New Client</a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 
+                <?php if (canViewMessages()): ?>
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'message-submenu')">
                         <i data-lucide="message-circle" class="w-5 h-5 flex-shrink-0"></i>
@@ -251,14 +296,20 @@
                     </a>
                     <div class="submenu" id="message-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
+                            <?php if (hasPermission('messages.view') || hasPermission('messages.*') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/messages') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Inbox</a>
-                            <a href="<?= base_url('admin/messages/new') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">New Message</a>
                             <a href="<?= base_url('admin/messages/sent') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Sent</a>
                             <a href="<?= base_url('admin/messages/drafts') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Drafts</a>
+                            <?php endif; ?>
+                            <?php if (hasPermission('messages.create') || hasPermission('messages.*') || hasPermission('*')): ?>
+                            <a href="<?= base_url('admin/messages/new') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">New Message</a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 
+                <?php if (canViewInventory()): ?>
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'inventory-submenu')">
                         <i data-lucide="package" class="w-5 h-5 flex-shrink-0"></i>
@@ -280,8 +331,10 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <!-- File Management Section -->
+                <?php if (canViewFiles()): ?>
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'files-submenu')">
                         <i data-lucide="folder" class="w-5 h-5 flex-shrink-0"></i>
@@ -299,8 +352,10 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <!-- Incident & Safety Section -->
+                <?php if (canViewSafety()): ?>
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'safety-submenu')">
                         <i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0"></i>
@@ -321,8 +376,10 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <!-- Procurement Management Section -->
+                <?php if (canViewProcurement()): ?>
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'procurement-submenu')">
                         <i data-lucide="shopping-cart" class="w-5 h-5 flex-shrink-0"></i>
@@ -342,8 +399,10 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <!-- Accounting Module -->
+                <?php if (canViewAccounting()): ?>
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'accounting-submenu')">
                         <i data-lucide="calculator" class="w-5 h-5 flex-shrink-0"></i>
@@ -402,11 +461,13 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
 
 
 
 
                 <!-- HR & Administration Section -->
+                <?php if (canViewHR()): ?>
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'hr-submenu')">
                         <i data-lucide="user-check" class="w-5 h-5 flex-shrink-0"></i>
@@ -418,14 +479,22 @@
                     </a>
                     <div class="submenu" id="hr-submenu">
                         <div class="sidebar-text ml-8 mt-2 space-y-1">
+                            <?php if (hasPermission('users.view') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/users') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Users</a>
+                            <?php endif; ?>
+                            <?php if (hasPermission('roles.view') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/roles') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Roles & Permissions</a>
+                            <?php endif; ?>
+                            <?php if (hasPermission('hr.view') || hasPermission('*')): ?>
                             <a href="<?= base_url('admin/departments') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Departments</a>
                             <a href="<?= base_url('admin/positions') ?>" class="block py-2 text-sm text-gray-500 hover:text-gray-700">Job Positions</a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 
+                <?php if (canViewSettings()): ?>
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative" onclick="toggleSubmenu(event, 'settings-submenu')">
                         <i data-lucide="settings" class="w-5 h-5 flex-shrink-0"></i>
@@ -444,6 +513,7 @@
                         </div>
                     </div>
                 </div>
+                <?php endif; ?>
                 
                 <div class="px-4 md:px-6 py-3 hover:bg-gray-50 transition-colors">
                     <a href="#" class="flex items-center space-x-3 text-gray-600 nav-item relative">
