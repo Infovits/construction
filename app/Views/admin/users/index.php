@@ -11,18 +11,21 @@
             <p class="text-gray-600">Manage users, roles, and permissions</p>
         </div>
         
-        <?php if (hasPermission('users.create')): ?>
         <div class="flex flex-col sm:flex-row gap-2">
+            <?php if (hasPermission('users.create')): ?>
             <a href="<?= base_url('admin/users/create') ?>" class="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                 <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
                 Add User
             </a>
+            <?php endif; ?>
+
+            <?php if (hasPermission('users.edit') || hasPermission('users.delete')): ?>
             <button onclick="showBulkActions()" class="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
                 <i data-lucide="settings" class="w-4 h-4 mr-2"></i>
                 Bulk Actions
             </button>
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
     </div>
 
     <!-- Statistics Cards -->
@@ -278,6 +281,8 @@
 <script>
 // User management JavaScript functions
 let selectedUsers = [];
+const csrfToken = "<?= csrf_hash() ?>";
+const baseUrl = "<?= base_url() ?>";
 
 function selectAll() {
     const checkboxes = document.querySelectorAll('.user-checkbox');
@@ -369,11 +374,12 @@ function performBulkAction(action) {
         return;
     }
     
-    fetch('/admin/users/bulk-action', {
+    fetch(`${baseUrl}/admin/users/bulk-action`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken
         },
         body: JSON.stringify({
             action: action,
@@ -405,10 +411,11 @@ function toggleUserStatus(userId, currentStatus) {
         return;
     }
     
-    fetch(`/admin/users/toggle/${userId}`, {
-        method: 'PATCH',
+    fetch(`${baseUrl}/admin/users/toggle/${userId}`, {
+        method: 'POST',
         headers: {
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken
         }
     })
     .then(response => response.json())
@@ -430,10 +437,11 @@ function resetPassword(userId) {
         return;
     }
     
-    fetch(`/admin/users/reset-password/${userId}`, {
+    fetch(`${baseUrl}/admin/users/reset-password/${userId}`, {
         method: 'POST',
         headers: {
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken
         }
     })
     .then(response => response.json())
@@ -455,10 +463,11 @@ function deleteUser(userId, userName) {
         return;
     }
     
-    fetch(`/admin/users/delete/${userId}`, {
-        method: 'DELETE',
+    fetch(`${baseUrl}/admin/users/delete/${userId}`, {
+        method: 'POST',
         headers: {
-            'X-Requested-With': 'XMLHttpRequest'
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken
         }
     })
     .then(response => response.json())
@@ -468,12 +477,6 @@ function deleteUser(userId, userName) {
         } else {
             alert('Error: ' + data.message);
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('An error occurred');
-    });
-}
     })
     .catch(error => {
         console.error('Error:', error);

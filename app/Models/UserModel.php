@@ -90,9 +90,16 @@ class UserModel extends Model
     public function getUserWithDetails($userId)
     {
         return $this->select('users.*, roles.name as role_name, roles.id as role_id,
-                            departments.name as department_name, departments.id as department_id,
-                            job_positions.title as position_title, job_positions.id as position_id,
-                            employee_details.*')
+                    departments.name as department_name, departments.id as department_id,
+                    job_positions.title as position_title, job_positions.id as position_id,
+                    employee_details.id as employee_detail_id,
+                    employee_details.department_id, employee_details.position_id,
+                    employee_details.hire_date, employee_details.employment_type,
+                    employee_details.employment_status, employee_details.basic_salary,
+                    employee_details.currency, employee_details.pay_frequency,
+                    employee_details.bank_name, employee_details.bank_account_number,
+                    employee_details.bank_branch, employee_details.tax_number,
+                    employee_details.supervisor_id')
             ->join('user_roles', 'users.id = user_roles.user_id', 'left')
             ->join('roles', 'user_roles.role_id = roles.id', 'left')
             ->join('employee_details', 'users.id = employee_details.user_id', 'left')

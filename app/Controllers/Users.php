@@ -36,11 +36,10 @@ class Users extends BaseController
 
     public function create()
     {
-        // Ensure session has company_id
+        $this->checkPermission('users.create');
+
         if (!session('company_id')) {
-            // Set default company_id for testing - remove in production
-            $this->session->set('company_id', 1);
-            $this->session->set('user_id', 1); // Set default user_id for testing
+            return redirect()->to('/auth/login')->with('error', 'Session expired. Please log in again.');
         }
 
         $data = [
@@ -60,7 +59,7 @@ class Users extends BaseController
     public function store()
     {
         // Ensure this is a POST request
-        if (!$this->request->getMethod() === 'post') {
+        if ($this->request->getMethod() !== 'post') {
             return redirect()->back()->with('error', 'Invalid request method');
         }
 
@@ -71,10 +70,8 @@ class Users extends BaseController
             log_message('debug', 'Company ID: ' . (session('company_id') ?: 'NOT SET'));
         }
 
-        // Ensure session has company_id
         if (!session('company_id')) {
-            $this->session->set('company_id', 1); // Default for testing
-            $this->session->set('user_id', 1); // Default for testing
+            return redirect()->to('/auth/login')->with('error', 'Session expired. Please log in again.');
         }
 
         // Validation rules
@@ -281,6 +278,12 @@ class Users extends BaseController
 
     public function index()
     {
+        $this->checkPermission('users.view');
+
+        if (!session('company_id')) {
+            return redirect()->to('/auth/login')->with('error', 'Session expired. Please log in again.');
+        }
+
         $search = $this->request->getGet('search');
         $status = $this->request->getGet('status');
         $role = $this->request->getGet('role');
@@ -312,6 +315,12 @@ class Users extends BaseController
      */
     public function edit($id)
     {
+        $this->checkPermission('users.edit');
+
+        if (!session('company_id')) {
+            return redirect()->to('/auth/login')->with('error', 'Session expired. Please log in again.');
+        }
+
         // Debug logging
         log_message('debug', 'Users::edit called with ID: ' . $id);
         log_message('debug', 'Company ID: ' . (session('company_id') ?: 'NOT SET'));
@@ -360,6 +369,16 @@ class Users extends BaseController
      */
     public function update($id)
     {
+        $this->checkPermission('users.edit');
+
+        if (!session('company_id')) {
+            return redirect()->to('/auth/login')->with('error', 'Session expired. Please log in again.');
+        }
+
+        if ($this->request->getMethod() !== 'post') {
+            return redirect()->to(base_url('admin/users/edit/' . $id));
+        }
+
         $user = $this->userModel->find($id);
 
         if (!$user) {
@@ -441,7 +460,8 @@ class Users extends BaseController
 
         // Perform validation
         if (!$this->validate($rules)) {
-            return redirect()->back()->withInput();
+            $this->session->setFlashdata('validation', $this->validator);
+            return redirect()->to(base_url('admin/users/edit/' . $id))->withInput();
         }
 
         // Start database transaction
@@ -569,8 +589,19 @@ class Users extends BaseController
             // Log error
             log_message('error', 'User update failed: ' . $e->getMessage());
 
-            return redirect()->back()->withInput()->with('error', 'Failed to update user: ' . $e->getMessage());
+            return redirect()->to(base_url('admin/users/edit/' . $id))
+                ->withInput()
+                ->with('error', 'Failed to update user: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Guard against direct GET to update without ID
+     */
+    public function updateRedirect()
+    {
+        return redirect()->to(base_url('admin/users'))
+            ->with('error', 'Invalid update request. Please edit a user from the list.');
     }
 
     /**
@@ -606,15 +637,19 @@ class Users extends BaseController
     {
         $this->checkPermission('users.delete');
 
+        if (!session('company_id')) {
+            return $this->respondAction(false, 'Session expired. Please log in again.');
+        }
+
         $user = $this->userModel->find($id);
 
         if (!$user || $user['company_id'] != session('company_id')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'User not found']);
+            return $this->respondAction(false, 'User not found');
         }
 
         // Prevent deleting yourself
         if ($user['id'] == session('user_id')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'You cannot delete your own user account']);
+            return $this->respondAction(false, 'You cannot delete your own user account');
         }
 
         // Start transaction
@@ -632,7 +667,7 @@ class Users extends BaseController
                 $this->db->transComplete();
                 
                 if ($this->db->transStatus() !== false) {
-                    return $this->response->setJSON(['success' => true, 'message' => 'User deleted successfully']);
+                    return $this->respondAction(true, 'User deleted successfully');
                 }
             }
         } catch (\Exception $e) {
@@ -640,7 +675,7 @@ class Users extends BaseController
             log_message('error', 'Failed to delete user: ' . $e->getMessage());
         }
 
-        return $this->response->setJSON(['success' => false, 'message' => 'Failed to delete user']);
+        return $this->respondAction(false, 'Failed to delete user');
     }
 
     /**
@@ -650,28 +685,182 @@ class Users extends BaseController
     {
         $this->checkPermission('users.edit');
 
+        if (!session('company_id')) {
+            return $this->respondAction(false, 'Session expired. Please log in again.');
+        }
+
         $user = $this->userModel->find($id);
 
         if (!$user || $user['company_id'] != session('company_id')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'User not found']);
+            return $this->respondAction(false, 'User not found');
         }
 
         // Prevent toggling yourself
         if ($user['id'] == session('user_id')) {
-            return $this->response->setJSON(['success' => false, 'message' => 'You cannot change your own user status']);
+            return $this->respondAction(false, 'You cannot change your own user status');
         }
 
         $newStatus = $user['status'] === 'active' ? 'inactive' : 'active';
 
         if ($this->userModel->update($id, ['status' => $newStatus])) {
-            return $this->response->setJSON([
-                'success' => true, 
-                'message' => 'User status updated successfully',
-                'status' => $newStatus
-            ]);
+            return $this->respondAction(true, 'User status updated successfully', ['status' => $newStatus]);
         }
 
-        return $this->response->setJSON(['success' => false, 'message' => 'Failed to update user status']);
+        return $this->respondAction(false, 'Failed to update user status');
+    }
+
+    /**
+     * Reset user password (admin action)
+     */
+    public function resetPassword($id)
+    {
+        $this->checkPermission('users.edit');
+
+        if (!session('company_id')) {
+            return $this->respondAction(false, 'Session expired. Please log in again.');
+        }
+
+        $user = $this->userModel->find($id);
+
+        if (!$user || $user['company_id'] != session('company_id')) {
+            return $this->respondAction(false, 'User not found');
+        }
+
+        if ($user['id'] == session('user_id')) {
+            return $this->respondAction(false, 'You cannot reset your own password');
+        }
+
+        try {
+            $tempPassword = substr(str_replace(['+', '/', '='], '', base64_encode(random_bytes(12))), 0, 12);
+
+            $updated = $this->userModel->update($id, [
+                'password' => password_hash($tempPassword, PASSWORD_DEFAULT),
+                'password_changed_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ]);
+
+            if (!$updated) {
+                throw new \Exception('Failed to update password');
+            }
+
+            $this->logActivity('user_password_reset', 'users', $id, [
+                'reset_by' => session('user_id')
+            ]);
+
+            return $this->respondAction(true, 'Password reset successfully', ['temp_password' => $tempPassword]);
+        } catch (\Exception $e) {
+            log_message('error', 'Password reset failed: ' . $e->getMessage());
+            return $this->respondAction(false, 'Failed to reset password');
+        }
+    }
+
+    /**
+     * Bulk actions for users (activate, deactivate, delete)
+     */
+    public function bulkAction()
+    {
+        if (!session('company_id')) {
+            return $this->respondAction(false, 'Session expired. Please log in again.');
+        }
+
+        $payload = $this->request->getJSON(true);
+        if (!$payload) {
+            $payload = $this->request->getPost();
+        }
+
+        $action = $payload['action'] ?? null;
+        $userIds = $payload['user_ids'] ?? [];
+
+        if (!in_array($action, ['activate', 'deactivate', 'delete'], true)) {
+            return $this->respondAction(false, 'Invalid action');
+        }
+
+        if (!is_array($userIds) || empty($userIds)) {
+            return $this->respondAction(false, 'No users selected');
+        }
+
+        $userIds = array_values(array_filter(array_map('intval', $userIds)));
+
+        if (empty($userIds)) {
+            return $this->respondAction(false, 'No valid users selected');
+        }
+
+        if ($action === 'delete') {
+            $this->checkPermission('users.delete');
+        } else {
+            $this->checkPermission('users.edit');
+        }
+
+        // Exclude current user from bulk actions
+        $userIds = array_values(array_filter($userIds, function ($id) {
+            return $id !== (int)session('user_id');
+        }));
+
+        if (empty($userIds)) {
+            return $this->respondAction(false, 'You cannot perform this action on your own account');
+        }
+
+        // Only target users in the current company
+        $validUsers = $this->userModel->select('id')
+            ->where('company_id', session('company_id'))
+            ->whereIn('id', $userIds)
+            ->findAll();
+
+        $validIds = array_column($validUsers, 'id');
+
+        if (empty($validIds)) {
+            return $this->respondAction(false, 'No matching users found');
+        }
+
+        $this->db->transStart();
+
+        try {
+            if ($action === 'delete') {
+                $this->db->table('user_roles')->whereIn('user_id', $validIds)->delete();
+                $this->employeeDetailModel->whereIn('user_id', $validIds)->delete();
+                $this->userModel->whereIn('id', $validIds)->delete();
+            } else {
+                $newStatus = $action === 'activate' ? 'active' : 'inactive';
+                $this->userModel->whereIn('id', $validIds)->set(['status' => $newStatus])->update();
+            }
+
+            $this->db->transComplete();
+
+            if ($this->db->transStatus() === false) {
+                throw new \Exception('Bulk action transaction failed');
+            }
+
+            $this->logActivity('users_bulk_' . $action, 'users', 0, [
+                'count' => count($validIds),
+                'user_ids' => $validIds
+            ]);
+
+            $message = $action === 'delete'
+                ? 'Selected users deleted successfully'
+                : 'Selected users updated successfully';
+
+            return $this->respondAction(true, $message);
+        } catch (\Exception $e) {
+            $this->db->transRollback();
+            log_message('error', 'Bulk action failed: ' . $e->getMessage());
+            return $this->respondAction(false, 'Bulk action failed');
+        }
+    }
+
+    private function respondAction(bool $success, string $message, array $extra = [])
+    {
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(array_merge([
+                'success' => $success,
+                'message' => $message
+            ], $extra));
+        }
+
+        if ($success) {
+            return redirect()->to(base_url('admin/users'))->with('success', $message);
+        }
+
+        return redirect()->to(base_url('admin/users'))->with('error', $message);
     }
 
     private function checkPermission($permission)

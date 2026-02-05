@@ -33,6 +33,11 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
         $routes->post("store", "Users::store");
         $routes->get("edit/(:num)", "Users::edit/$1");
         $routes->post("update/(:num)", "Users::update/$1");
+        $routes->get("update", "Users::updateRedirect");
+        $routes->post("reset-password/(:num)", "Users::resetPassword/$1");
+        $routes->post("bulk-action", "Users::bulkAction");
+        $routes->post("toggle/(:num)", "Users::toggle/$1");
+        $routes->post("delete/(:num)", "Users::delete/$1");
         $routes->delete("delete/(:num)", "Users::delete/$1");
         $routes->delete("(:num)", "Users::delete/$1");
         $routes->patch("toggle/(:num)", "Users::toggle/$1");
