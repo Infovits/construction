@@ -60,6 +60,12 @@ if (!function_exists('canViewAnalytics')) {
     }
 }
 
+if (!function_exists('canViewGitCommits')) {
+    function canViewGitCommits() {
+        return hasPermission('gitcommits.view') || hasPermission('gitcommits.*') || hasPermission('*');
+    }
+}
+
 if (!function_exists('canViewInventory')) {
     function canViewInventory() {
         return hasPermission('materials.view') || hasPermission('materials.*') || 

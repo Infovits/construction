@@ -25,6 +25,7 @@ $routes->group("admin", ["filter" => "auth"], function($routes) {
     $routes->get("reports", "Reports::index");
     $routes->post("reports/generate", "Reports::generate");
     $routes->get("overview", "Overview::index");
+    $routes->get("gitcommits", "GitCommits::index");
 
     // User Management Routes
     $routes->group("users", function($routes) {
