@@ -100,10 +100,10 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-900">
-                                            <?= date('M j, Y', strtotime($commit['date'])) ?>
+                                            <?= isset($commit['timestamp']) ? date('M j, Y', $commit['timestamp']) : esc($commit['date']) ?>
                                         </div>
                                         <div class="text-xs text-gray-500">
-                                            <?= date('g:i A', strtotime($commit['date'])) ?>
+                                            <?= isset($commit['timestamp']) ? date('g:i A', $commit['timestamp']) : '' ?>
                                         </div>
                                     </td>
                                 </tr>

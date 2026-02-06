@@ -172,7 +172,9 @@
                             <?php if (canViewOverview()): ?>
                             <a href="<?= base_url('admin/overview') ?>" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Overview</a>
                             <?php endif; ?>
+                            <?php if (canViewGitCommits()): ?>
                             <a href="<?= base_url('admin/gitcommits') ?>" class="block py-2 text-sm text-indigo-500 hover:text-indigo-700">Git Commits</a>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

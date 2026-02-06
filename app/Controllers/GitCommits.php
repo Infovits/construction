@@ -30,7 +30,7 @@ class GitCommits extends BaseController
     }
 
     /**
-     * Check if git is available on the system
+     * Check if git repository exists and git command is available
      */
     private function isGitAvailable()
     {
@@ -38,6 +38,15 @@ class GitCommits extends BaseController
         
         // Check if .git directory exists
         if (!is_dir($gitPath . '.git')) {
+            return false;
+        }
+
+        // Check if git command is available
+        $output = [];
+        $returnCode = 0;
+        @exec('git --version 2>&1', $output, $returnCode);
+        
+        if ($returnCode !== 0) {
             return false;
         }
 
@@ -52,13 +61,41 @@ class GitCommits extends BaseController
         $commits = [];
         $gitPath = ROOTPATH;
 
+        // Validate limit parameter
+        $limit = max(1, min((int)$limit, 500));
+
         try {
-            // Change to git directory and execute git log
-            $command = "cd " . escapeshellarg($gitPath) . " && git log --all --pretty=format:'%H|%an|%ae|%ad|%s' --date=iso -" . (int)$limit;
+            // Use proc_open for more secure command execution
+            $descriptorspec = [
+                0 => ["pipe", "r"],
+                1 => ["pipe", "w"],
+                2 => ["pipe", "w"]
+            ];
+
+            $cwd = rtrim($gitPath, '/');
+            $gitCommand = "git log --all --pretty=format:'%H|%an|%ae|%ad|%s' --date=iso -" . $limit;
             
-            $output = shell_exec($command);
+            $process = proc_open($gitCommand, $descriptorspec, $pipes, $cwd);
             
-            if ($output === null) {
+            if (!is_resource($process)) {
+                log_message('error', 'Failed to execute git command');
+                return [];
+            }
+
+            fclose($pipes[0]);
+            $output = stream_get_contents($pipes[1]);
+            fclose($pipes[1]);
+            $errors = stream_get_contents($pipes[2]);
+            fclose($pipes[2]);
+            
+            $returnCode = proc_close($process);
+            
+            if ($returnCode !== 0) {
+                log_message('error', 'Git command failed: ' . $errors);
+                return [];
+            }
+
+            if (empty($output)) {
                 return [];
             }
 
@@ -72,12 +109,19 @@ class GitCommits extends BaseController
                 $parts = explode('|', $line, 5);
                 
                 if (count($parts) === 5) {
+                    // Validate date format before adding
+                    $timestamp = strtotime($parts[3]);
+                    if ($timestamp === false) {
+                        continue;
+                    }
+
                     $commits[] = [
                         'hash' => $parts[0],
                         'short_hash' => substr($parts[0], 0, 7),
                         'author' => $parts[1],
                         'email' => $parts[2],
                         'date' => $parts[3],
+                        'timestamp' => $timestamp,
                         'message' => $parts[4]
                     ];
                 }
