@@ -19,9 +19,63 @@
             background: #ffffff;
         }
         
+        /* Company Header */
+        .company-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #2c3e50;
+        }
+        
+        .logo-container {
+            flex-shrink: 0;
+            width: 120px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+        
+        .company-logo {
+            max-width: 110px;
+            max-height: 70px;
+            object-fit: contain;
+        }
+        
+            .logo-placeholder {
+                font-size: 24px;
+                font-weight: bold;
+                color: #495057;
+                text-transform: uppercase;
+            }
+        
+        .company-info {
+            flex: 1;
+        }
+        
+        .company-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2c3e50;
+            margin: 0 0 3px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .company-detail {
+            font-size: 11px;
+            color: #555;
+            margin: 2px 0;
+            line-height: 1.4;
+        }
+        
         /* Header Styles */
         .header {
-            text-align: center;
             margin-bottom: 20px;
             padding-bottom: 15px;
             border-bottom: 2px solid #333;
@@ -308,6 +362,25 @@
     </style>
 </head>
 <body>
+    <!-- Company Header with Logo -->
+    <div class="company-header">
+        <div class="logo-container">
+              <div class="logo-placeholder"><?= esc(substr($company_name ?? 'C', 0, 2)) ?></div>
+        </div>
+        <div class="company-info">
+            <h1 class="company-name"><?= htmlspecialchars($company_name ?? 'Company') ?></h1>
+            <?php if (!empty($company_address)): ?>
+            <p class="company-detail"><?= htmlspecialchars($company_address) ?></p>
+            <?php endif; ?>
+            <?php if (!empty($company_phone)): ?>
+            <p class="company-detail">Phone: <?= htmlspecialchars($company_phone) ?></p>
+            <?php endif; ?>
+            <?php if (!empty($company_email)): ?>
+            <p class="company-detail">Email: <?= htmlspecialchars($company_email) ?></p>
+            <?php endif; ?>
+        </div>
+    </div>
+
     <div class="header">
         <div class="header-title"><?= esc($title) ?></div>
         <div class="header-subtitle">Task Status Report</div>

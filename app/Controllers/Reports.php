@@ -276,12 +276,18 @@ class Reports extends BaseController
 
     private function getPurchaseOrdersReport($companyId, $dateRange)
     {
-        $poModel = new \App\Models\PurchaseOrderModel();
+        $db = \Config\Database::connect();
         $startDate = $this->getStartDate($dateRange);
 
-        $orders = $poModel->where('company_id', $companyId)
-            ->where('created_at >=', $startDate)
-            ->get()->getResultArray();
+        $orders = $db->table('purchase_orders po')
+            ->select('po.*, s.name as supplier_name, p.name as project_name, u.first_name, u.last_name')
+            ->join('suppliers s', 's.id = po.supplier_id', 'left')
+            ->join('projects p', 'p.id = po.project_id', 'left')
+            ->join('users u', 'u.id = po.created_by', 'left')
+            ->where('p.company_id', $companyId)
+            ->where('po.created_at >=', $startDate)
+            ->get()
+            ->getResultArray();
 
         return [
             'title' => 'Purchase Orders Report',
@@ -367,7 +373,6 @@ class Reports extends BaseController
             'address' => ($company['address'] ?? '') . (($company['city'] ?? '') ? ', ' . $company['city'] : ''),
             'phone' => $company['phone'] ?? '',
             'email' => $company['email'] ?? '',
-            'logo_url' => $cleanSettings['company_logo'] ?? $company['logo_url'] ?? null,
             'currency' => $cleanSettings['currency'] ?? 'USD',
             'timezone' => $cleanSettings['timezone'] ?? 'UTC',
             'date_format' => $cleanSettings['date_format'] ?? 'Y-m-d',
@@ -403,9 +408,6 @@ class Reports extends BaseController
 
         // Company Header with Logo and Info
         $html .= '<div class="company-header">';
-        if (!empty($companyInfo['logo_url'])) {
-            $html .= '<img src="' . esc($companyInfo['logo_url']) . '" class="company-logo" alt="Company Logo">';
-        }
         $html .= '<div class="company-info">';
         $html .= '<h2 class="company-name">' . esc($companyInfo['name'] ?? 'Construction Management System') . '</h2>';
         if (!empty($companyInfo['address'])) {
@@ -1348,4 +1350,60 @@ class Reports extends BaseController
             'in_progress' => $inProgress
         ];
     }
+
+    /**
+     * Convert logo path to absolute filesystem path for DomPDF
+     */
+    private function getAbsoluteLogoPath($logoPath)
+    {
+        if (empty($logoPath)) {
+            return null;
+        }
+
+        // Remove any leading slashes or backslashes
+        $logoPath = ltrim($logoPath, '/\\');
+
+        // If it's already an absolute path and exists, return it
+        if (file_exists($logoPath) && is_file($logoPath)) {
+            return $logoPath;
+        }
+
+        // Get just the filename
+        $filename = basename($logoPath);
+
+        // Build base paths - use explicit path construction
+        $publicPath = ROOTPATH . 'public' . DIRECTORY_SEPARATOR;
+        
+        // Try to build absolute path from relative path
+        $paths = [
+            // Direct paths with full uploaded path
+            $publicPath . str_replace('/', DIRECTORY_SEPARATOR, $logoPath),
+            FCPATH . str_replace('/', DIRECTORY_SEPARATOR, $logoPath),
+            
+            // Common upload directories with filename only
+            $publicPath . 'uploads' . DIRECTORY_SEPARATOR . 'logos' . DIRECTORY_SEPARATOR . $filename,
+            $publicPath . 'uploads' . DIRECTORY_SEPARATOR . 'company' . DIRECTORY_SEPARATOR . $filename,
+            $publicPath . 'uploads' . DIRECTORY_SEPARATOR . $filename,
+            FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'logos' . DIRECTORY_SEPARATOR . $filename,
+            FCPATH . 'uploads' . DIRECTORY_SEPARATOR . 'company' . DIRECTORY_SEPARATOR . $filename,
+            
+            // Try with original path in uploads
+            $publicPath . 'uploads' . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $logoPath),
+            FCPATH . 'uploads' . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $logoPath),
+        ];
+
+        foreach ($paths as $path) {
+            if (file_exists($path) && is_file($path)) {
+                log_message('info', 'Logo found at: ' . $path);
+                return $path;
+            }
+        }
+
+        // Log all attempted paths for debugging
+        log_message('warning', 'Logo file not found for path: ' . $logoPath . '. Tried paths: ' . implode(', ', $paths));
+        
+        // If no file found, return null (will use fallback text)
+        return null;
+    }
 }
+
